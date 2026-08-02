@@ -1,0 +1,15 @@
+{
+  "module": "storefront",
+  "file": "storefront-leaflet-map.tsx",
+  "purpose": "Client-only Leaflet/OpenStreetMap store locator map adapted from the old SHRESTA reference behavior while sourcing store records from SHRESTA-BE.",
+  "dependencies": [
+    "leaflet"
+  ],
+  "businessRules": [
+    "Store markers are rendered from backend latitude and longitude in GET /api/v1/storefront/stores.",
+    "Leaflet must be imported inside the client effect so SSR stays safe while avoiding a next/dynamic bailout placeholder.",
+    "Selecting a store from search/list/marker zooms the map to that store.",
+    "Map popups escape backend text before generating Leaflet HTML.",
+    "No frontend-owned store dataset is allowed."
+  ]
+}

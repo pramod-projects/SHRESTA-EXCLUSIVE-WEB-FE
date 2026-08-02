@@ -1,0 +1,10 @@
+{
+  "module": "frontend-platform",
+  "file": "next.config.mjs",
+  "purpose": "Next.js runtime configuration for SHRESTA-WEB-FE.",
+  "businessRules": [
+    "Security headers are applied to every route.",
+    "Development may be verified through localhost or 127.0.0.1 on the default Next.js port; 127.0.0.1 is allowed as a dev origin so client components, HMR, and map hydration are not blocked during local QA.",
+    "External image domains must remain explicit because product, category, and asset images normally come from SHRESTA-BE or future CDN/object-storage hosts."
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "module": "lib",
+  "file": "api-page-fallback.ts",
+  "purpose": "SSR page helper that converts only SHRESTA backend unavailability errors into null fallbacks.",
+  "businessRules": [
+    "Catch ShrestaApiUnavailableError and return null so route components can render a user-facing unavailable state.",
+    "Rethrow all other errors so frontend bugs and invalid data shapes are not hidden as backend downtime."
+  ]
+}

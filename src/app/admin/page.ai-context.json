@@ -1,0 +1,19 @@
+{
+  "module": "admin",
+  "file": "page.tsx",
+  "purpose": "Catalog operations overview for SHRESTA asset and category management.",
+  "businessRules": [
+    "The admin root must summarize SHRESTA-BE asset, category, ACL, and pending-review data through API calls.",
+    "Do not expose frontend-only layout/copy controls in the admin overview.",
+    "Use the overview to show DAM/taxonomy data coverage, asset hygiene, review snapshot, and direct links to asset/category/review operations.",
+    "Top-level admin overview copy should stay operations-friendly and avoid casual backend/internal jargon; use display terms like catalog data coverage, details, fields, read source, facet mapping, and governed updates where the exact payload key is not required.",
+    "Product-facing SKU bindings are handled through backend asset metadata, not frontend static image lists.",
+    "Backend network failures and backend API 404 responses render AdminApiUnavailable instead of the Next runtime overlay."
+  ],
+  "routes": [
+    "/admin",
+    "/admin/assets",
+    "/admin/categories",
+    "/admin/review"
+  ]
+}

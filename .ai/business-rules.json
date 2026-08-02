@@ -1,0 +1,70 @@
+{
+  "repository": "SHRESTA-WEB-FE",
+  "scope": "SHRESTA EXCLUSIVE saree-focused premium quick commerce web frontend",
+  "nonNegotiables": [
+    "Use TypeScript strict mode with noUncheckedIndexedAccess enabled.",
+    "Never use any. Use unknown with type guards when external data is not yet typed.",
+    "All money displayed by the frontend arrives as paise and is formatted in one currency utility.",
+    "The frontend never computes trusted order totals. Server-priced responses are the source of truth.",
+    "Cloudinary public_id is passed to a URL builder; full Cloudinary URLs are not treated as durable domain data.",
+    "TanStack Query owns server state. Zustand is UI-only state such as drawers, dialogs, and navigation chrome.",
+    "Cart, checkout, orders, and profile screens are client-rendered and never globally cached.",
+    "Product detail pages may use ISR; listing/search pages must remain fresh enough for inventory-aware SEO.",
+    "Storefront, category, asset, and product-like merchandising datasets are never hard-coded in the frontend.",
+    "Frontend customer and admin product surfaces render product names, prices, SKUs, badges, category membership, and images only from SHRESTA-BE responses.",
+    "Backend API connection failures and backend API 404 responses render the shared API-not-reachable state on SSR customer/admin pages.",
+    "Frontend routes that do not exist render the shared SHRESTA page-not-available route instead of a default framework 404 page.",
+    "Featured collection product inclusion uses backend metadata such as productBadgeFilters and shared resolver logic; no collection slug gets one-off frontend filtering.",
+    "Store locator marker positions and search zoom behavior use backend store records and coordinates from GET /api/v1/storefront/stores through the client-only Leaflet map.",
+    "The store locator Leaflet map imports Leaflet inside the client effect and must not be wrapped in a next/dynamic bailout that can leave the map blank.",
+    "Customer routes linked from the storefront shell should remain visually aligned with the old SHRESTA reference page structures while sourcing all data from SHRESTA-BE APIs.",
+    "Admin mutations run through server actions, forward Idempotency-Key, and keep SHRESTA_ADMIN_API_KEY server-only.",
+    "Admin create/update/archive/delete submissions run through a reviewer-visible change request queue before records are changed or removed.",
+    "Admin asset tag inputs must enforce the backend media_assets.tags contract: uppercase token values only, 40 characters per tag, and 16 tags per asset.",
+    "Admin ACL has four roles only: SUPER_ADMIN, CHANGE_SUBMITTER, CHANGE_REVIEWER, and CHANGE_MANAGER.",
+    "Customer login is required before Proceed To Checkout creates a backend checkout order ID and before final confirm-and-pay/order placement; browsing, cart viewing, wishlist viewing, and checkout review remain public.",
+    "Proceed To Checkout uses the same-origin /api/customer-orders/draft proxy, requires an Idempotency-Key, and stores only 15-minute draft metadata in the browser.",
+    "Any browser cart change after checkout draft creation clears the local draft; final confirm must include draftOrderId and reject missing, expired, or cart-mismatched draft metadata.",
+    "Customer order placement uses the same-origin /api/customer-orders proxy, requires draftOrderId plus an Idempotency-Key, and treats SHRESTA-BE totals/statuses/item snapshots as truth.",
+    "Customer order summaries for /account use GET /api/customer-orders and are keyed by authenticated customerId, so email and phone identities mapped to the same customer show the same order history.",
+    "Customer login/profile state is backend-owned and exposed to React only through same-origin APIs backed by an HTTP-only session cookie.",
+    "SHRESTA is a quick-commerce platform; customer-facing delivery promises must use minutes, hours, or same-day slots and must not drift into multi-day ecommerce shipping copy.",
+    "Customer-facing UI copy must not expose implementation language such as backend, API, DB, KV, S3, CDN, metadata, contract, snapshots, or events; use SHRESTA/customer language instead.",
+    "Every current and future screen must be responsive across mobile, tablet, laptop, desktop, and wide monitor viewports. UI work must include top-to-bottom manual or browser-assisted verification for all affected routes and interaction states using a review-identify-fix-rereview loop.",
+    "ProductCard.description and ProductCard.longDescription are backend-owned customer-facing copy used by customer PDPs.",
+    "The SHRESTA Assistant chat widget is icon-only when closed, reveals text only on hover/focus, and sends messages through the backend-owned customer chat API.",
+    "Frontend media rendering uses backend-provided S3/CDN variant URLs, dimensions, versioned/cache-busted URLs, and LQIP metadata.",
+    "Tailwind utility styling depends on @tailwindcss/postcss and SHRESTA @theme tokens in globals.css; visual changes must not remove this pipeline.",
+    "Every significant component, hook, and utility has AI context before it is considered complete.",
+    ".ai documentation and mind maps are updated in the same change as code, API, dependency, config, or UI architecture changes."
+  ],
+  "performanceBudgets": {
+    "lcpSeconds": 2.5,
+    "cls": 0.1,
+    "ttiSecondsOn4G": 3.5,
+    "addToCartPerceivedMs": 100,
+    "criticalApiP95Ms": 100
+  },
+  "categoryFoundation": {
+    "launchFamilies": ["saree", "silk_saree", "saree"],
+    "publicReadApi": "GET /api/v1/categories",
+    "facetFormat": "lowercase snake_case key:value strings",
+    "backendMappingFormat": "attribute_facets.{attribute_key}",
+    "rule": "All filters, badges, SEO, PDP attributes, recommendations, and merchandising surfaces come from category configuration."
+  },
+  "storefrontFoundation": {
+    "publicReadApi": "GET /api/v1/storefront/home",
+    "storeLocatorReadApi": "GET /api/v1/storefront/stores",
+    "rule": "Home page brand, navigation, announcement, hero, trust, collection, bestseller, material, newsletter, footer, mobile nav, and live-chat entry surfaces are rendered from backend-owned data plus local UI state. Collection counts, product inclusion, and customer-facing product descriptions use backend product-card data plus generic metadata filters, while visible customer copy stays implementation-free."
+  },
+  "adminFoundation": {
+    "overviewRoute": "/admin",
+    "assetRoute": "/admin/assets",
+    "categoryRoute": "/admin/categories",
+    "legacyMerchandisingRoute": "/admin/merchandising redirects to /admin/assets",
+    "reviewRoute": "/admin/review",
+    "mutationHeader": "Idempotency-Key",
+    "serverOnlySecret": "SHRESTA_ADMIN_API_KEY",
+    "rule": "Admin forms expose backend-owned asset/category editable fields, allow existing asset image replacement through the backend multipart API, and submit governed change requests for create/update/archive/delete flows; frontend-only layout/copy controls are not primary admin dashboard data."
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "component": "HomePage",
+  "module": "storefront",
+  "purpose": "Backend-driven SHRESTA storefront home route rendered from the SHRESTA-BE home merchandising API.",
+  "businessRules": [
+    "Money display must use formatPaise.",
+    "Do not introduce client-trusted pricing or inventory state here.",
+    "Copy must describe SHRESTA as a saree-focused brand.",
+    "Brand, navigation, hero, trust, collection, bestseller, material, newsletter, footer, mobile navigation, and customer shell copy must come from GET /api/v1/storefront/home.",
+    "Images must render through ResponsiveMedia using backend-provided variants, LQIP, dimensions, and versioned URLs.",
+    "Backend network failures and backend API 404 responses render StorefrontBackendUnavailable; other errors must not be swallowed."
+  ],
+  "apiDependencies": [
+    "GET /api/v1/storefront/home"
+  ],
+  "aiHint": "Keep this route free of frontend-owned datasets. The visual style follows the old SHRESTA reference, but every data-bearing surface is fed by SHRESTA-BE."
+}

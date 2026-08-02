@@ -1,0 +1,17 @@
+{
+  "module": "api-proxy",
+  "file": "api/customer-orders/route.ts",
+  "purpose": "Same-origin Next route for placing orders and listing the authenticated customer's order summaries.",
+  "businessRules": [
+    "POST forwards checkout placement to SHRESTA-BE with the HTTP-only customer session, draftOrderId, and Idempotency-Key.",
+    "Final placement expects the browser to have obtained a 15-minute checkout order ID through /api/customer-orders/draft first.",
+    "GET forwards profile order-history reads to SHRESTA-BE using the same HTTP-only session cookie.",
+    "The browser never receives or stores the raw backend customer session token.",
+    "All ShrestaApiError messages are passed through toShrestaUserMessage() — infrastructure codes become a generic string; 5xx responses return as 503.",
+    "401 responses additionally delete the session cookie so stale sessions are cleared client-side."
+  ],
+  "apiDependencies": [
+    "POST /api/v1/customer/orders",
+    "GET /api/v1/customer/orders"
+  ]
+}

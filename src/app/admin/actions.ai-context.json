@@ -1,0 +1,29 @@
+{
+  "module": "admin",
+  "file": "actions.ts",
+  "purpose": "Next.js server actions that translate admin dashboard forms into SHRESTA-BE mutations.",
+  "ownedConcepts": [
+    "Asset upload action",
+    "Asset image replacement action",
+    "Asset metadata update request action",
+    "Asset archive/delete request actions",
+    "Bulk asset category/subcategory assignment request action",
+    "Category family/product type/attribute/filter/tax/styling change request submissions",
+    "Merchandising update request submission",
+    "Reviewer approve/reject actions"
+  ],
+  "businessRules": [
+    "Each mutating form must submit an idempotencyKey field.",
+    "Actions forward the idempotency key to SHRESTA-BE instead of generating hidden browser state.",
+    "Actions revalidate affected admin routes after successful mutation.",
+    "JSON metadata/rules inputs must parse to JSON objects before being sent to the backend.",
+    "Asset actions must forward categoryProductTypeKey with categoryFamilyKey so UI-visible images can be bound to backend taxonomy subcategories.",
+    "Asset tag form values are validated against the shared 40-character/16-tag uppercase token contract before uploads or reviewable metadata changes are submitted.",
+    "Image replacement is an approved binary apply path because the file itself cannot be safely carried through JSON review payloads; the backend still enforces admin role, idempotency, row locking, versioning, and KV invalidation.",
+    "Create/update/archive/delete admin form submissions create reviewable change requests before records are changed or removed.",
+    "Approval execution is backend-owned; frontend actions only submit requests or reviewer decisions."
+  ],
+  "apiDependencies": [
+    "src/features/admin/admin-api.ts"
+  ]
+}

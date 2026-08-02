@@ -1,0 +1,16 @@
+{
+  "route": "app/api/customer-orders/draft/route.ts",
+  "module": "customer-orders",
+  "purpose": "Same-origin Next.js proxy for authenticated checkout draft creation.",
+  "businessRules": [
+    "The browser must not read or send the backend bearer token directly; this route forwards the HTTP-only customer session cookie as Authorization.",
+    "Proceed-to-checkout requires an Idempotency-Key because creating or reusing a checkout order ID is a customer mutation.",
+    "Unauthenticated customers receive 401 so the cart page can show the login-required dialog before entering checkout.",
+    "The proxy forwards only the cart product IDs and quantities; backend owns all pricing, media, SKU, category, and expiry logic.",
+    "All ShrestaApiError messages are passed through toShrestaUserMessage() — infrastructure codes become a generic string; 5xx responses return as 503.",
+    "401 responses additionally delete the session cookie so stale sessions are cleared client-side."
+  ],
+  "apiDependencies": [
+    "POST /api/v1/customer/orders/draft"
+  ]
+}

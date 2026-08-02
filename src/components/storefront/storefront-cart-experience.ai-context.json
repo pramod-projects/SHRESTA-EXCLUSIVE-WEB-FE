@@ -1,0 +1,48 @@
+{
+  "module": "storefront",
+  "file": "storefront-cart-experience.tsx",
+  "purpose": "Reference-inspired cart, wishlist, and checkout review surfaces rendered with backend-owned product data and browser-owned Phase 1 cart/wishlist IDs.",
+  "ownedConcepts": [
+    "Cart page",
+    "Wishlist page",
+    "Checkout review page",
+    "Checkout draft order ID gate",
+    "Cart item row",
+    "Quantity stepper",
+    "Order summary panel",
+    "Free delivery progress",
+    "Checkout stepper",
+    "Login-required order placement dialog",
+    "Customer-safe checkout readiness copy",
+    "15-minute checkout draft storage",
+    "Idempotent backend order placement",
+    "Order success/status display"
+  ],
+  "businessRules": [
+    "Cart and wishlist browser state may store only product IDs and quantities.",
+    "Product names, SKU, prices, categories, badges, and image URLs must come from SHRESTA-BE storefront product responses.",
+    "Cart viewing, wishlist viewing, and checkout review are public exploration flows.",
+    "Proceed To Checkout requires login; authenticated clicks create or reuse a backend 15-minute checkout order ID for the exact current cart.",
+    "Login is also required when the customer clicks Place Order / confirm-and-pay.",
+    "The login-required dialog must offer Continue Shopping and Login actions.",
+    "Stored checkout draft metadata must be cleared when the browser cart changes, and final confirm must refuse placement when the draft is missing, expired, or cart-signature mismatched.",
+    "When the HTTP-only customer session cookie validates through /api/customer-profile, checkout may call /api/customer-orders at the final review step.",
+    "Order draft creation must forward an Idempotency-Key to /api/customer-orders/draft; final order placement must forward draftOrderId and an Idempotency-Key to /api/customer-orders.",
+    "Order placement must submit only draftOrderId, product IDs/quantities, and customer-entered fulfillment data, and trust backend totals/statuses/item snapshots.",
+    "The browser cart is cleared only after SHRESTA-BE successfully persists and returns an order.",
+    "The browser cart must remain unchanged when navigating to login and returning to checkout.",
+    "Displayed pre-submit totals are customer-facing estimates; post-submit totals come from the backend order response.",
+    "Checkout delivery choices must preserve SHRESTA quick-commerce language and price-speed hierarchy: scheduled 2-4 hr, priority 60-90 min, and rapid 30-60 min slots instead of multi-day shipping timelines.",
+    "Checkout delivery inputs use regex-backed validation, Indian PIN auto-fill for known local/UAT PINs, and optional landmark handling.",
+    "Checkout detail fields surface inline regex validation after blur using the same validators as the final submit gate.",
+    "The checkout mobile field uses a dedicated segmented phone control with an India +91 country-code pill, divider, and separate numeric input so typed digits never overlap the prefix.",
+    "Checkout icons must remain semantic and distinct: details uses ShieldCheck, delivery uses Truck, payment uses CreditCard, review uses CheckCircle2, address types use Home/Building2/MapPin, and item summary uses Package.",
+    "Customer-visible cart and checkout text must use SHRESTA/customer language and must not mention backend, DB, snapshots, events, API, or other implementation details."
+  ],
+  "apiDependencies": [
+    "GET /api/v1/storefront/home",
+    "GET /api/customer-profile",
+    "POST /api/customer-orders",
+    "GET /api/customer-orders/{orderNumber}"
+  ]
+}

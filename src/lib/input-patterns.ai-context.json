@@ -1,0 +1,21 @@
+{
+  "module": "common",
+  "file": "input-patterns.ts",
+  "purpose": "Shared HTML input regex patterns and validation titles for customer and admin forms.",
+  "ownedConcepts": [
+    "Login identity pattern",
+    "Six digit OTP pattern",
+    "Email pattern",
+    "Slug pattern",
+    "Snake-case key pattern",
+    "HSN code pattern",
+    "Backend mapping pattern",
+    "Site-relative path pattern"
+  ],
+  "businessRules": [
+    "OTP inputs must accept exactly 6 digits.",
+    "Login identity accepts either a valid email address or an Indian mobile number with optional +91 prefix.",
+    "Admin key inputs should use lowercase snake_case unless the backend contract explicitly uses enum-safe uppercase values.",
+    "Reusable regex strings should be imported from this module instead of being duplicated in page components."
+  ]
+}

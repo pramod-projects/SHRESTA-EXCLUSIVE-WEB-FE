@@ -1,0 +1,43 @@
+{
+  "module": "admin",
+  "file": "assets/page.tsx",
+  "purpose": "Server-rendered asset management dashboard for existing assets and new uploads.",
+  "ownedConcepts": [
+    "Asset search filters",
+    "Operational asset statistics",
+    "Upload form",
+    "Replace image form",
+    "Bulk category and subcategory assignment",
+    "Catalog details edit form",
+    "Backend-derived SKU dropdowns",
+    "Backend-derived enum-safe tag multi-select dropdowns",
+    "Archive/remove form",
+    "Variant preview",
+    "Optimization statistics",
+    "Admin-only broken image warnings"
+  ],
+  "businessRules": [
+    "Existing assets and categories must be fetched from SHRESTA-BE before rendering.",
+    "The page should remain readable on mobile and desktop with grouped search, upload, bulk assignment, and asset-card sections.",
+    "Visible admin copy should say catalog details/details instead of casual metadata jargon where the exact database field name is not required.",
+    "Upload and edit forms must include the editable DB-backed metadata fields exposed by backend contracts, including categoryFamilyKey, categoryProductTypeKey, productSku, tags, alt text, and SEO fields.",
+    "SKU selectors must be populated from backend-owned product records rather than asset metadata guesses.",
+    "Tag selectors must be populated from backend-owned storefront, category, and asset data rather than frontend constants, then normalized to uppercase enum-safe values with the shared 40-character/16-tag asset contract.",
+    "Images shown in admin use backend S3/CDN URLs, LQIP, versioned URLs, and generated variant metadata.",
+    "Existing assets expose a replace-image form that submits a single image to SHRESTA-BE and keeps the asset key stable.",
+    "Brand/system chrome such as the SHRESTA logo is not part of the admin asset manager; the backend asset API only returns catalog-managed media.",
+    "Image load failures are reported here so administrators can replace/re-upload assets; customer pages should use silent SHRESTA fallbacks.",
+    "Archive/remove hides records through backend APIs; frontend must not locally delete state as truth.",
+    "Backend network failures and backend API 404 responses render AdminApiUnavailable instead of the Next runtime overlay."
+  ],
+  "apiDependencies": [
+    "GET /api/v1/admin/assets",
+    "GET /api/v1/admin/catalog/categories",
+    "GET /api/v1/admin/storefront/home",
+    "POST /api/v1/admin/assets",
+    "POST /api/v1/admin/assets/{assetKey}/image",
+    "PATCH /api/v1/admin/assets/{assetKey}",
+    "POST /api/v1/admin/assets/bulk/category-assignment",
+    "DELETE /api/v1/admin/assets/{assetKey}"
+  ]
+}

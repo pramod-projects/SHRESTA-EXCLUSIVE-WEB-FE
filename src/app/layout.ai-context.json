@@ -1,0 +1,10 @@
+{
+  "component": "RootLayout",
+  "module": "app-shell",
+  "purpose": "Root Next.js layout for SHRESTA web.",
+  "businessRules": [
+    "Keep global metadata saree-first and premium.",
+    "Do not fetch user-specific data in the root layout because it risks unsafe caching."
+  ],
+  "aiHint": "Global providers can be added here, but server-owned data must remain in TanStack Query inside client providers."
+}

@@ -1,0 +1,13 @@
+{
+  "module": "catalog",
+  "file": "category-config.ts",
+  "purpose": "Frontend type contract and fetch function for backend category configuration.",
+  "businessRules": [
+    "Category filters are generated from backend configuration rather than hard-coded per launch family.",
+    "Filter backend mappings use attribute_facets.{attribute_key}.",
+    "GST is represented as basis points from backend configuration, not floating percentages."
+  ],
+  "apiDependencies": [
+    "GET /api/v1/categories"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "module": "customer-chat-widget",
+  "file": "customer-chat-widget.tsx",
+  "purpose": "Floating icon-only SHRESTA Assistant widget for storefront customer help.",
+  "businessRules": [
+    "Closed state must follow the old reference live-chat behavior: a visually centered circular assistant icon at rest, unread ping, and hover/focus expansion that reveals Chat with us.",
+    "Launcher and quick-action icons must be unique and use-case matched: assistant chat, order tracking, product help, returns, support, and generic guidance should not share one generic icon.",
+    "Click opens an old-reference-style 380x520 wine/gold chat panel with SHRESTA Support header, online status, message bubbles, quick actions, message composer, and operating-hours note.",
+    "Messages go through /api/customer-chat and are persisted by SHRESTA-BE.",
+    "Anonymous exploration help is allowed; private order-specific help must direct customers to login/account support."
+  ],
+  "apiDependencies": [
+    "POST /api/customer-chat",
+    "POST /api/v1/customer/chat/messages"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "component": "FeedbackButton",
+  "module": "shared",
+  "file": "feedback-button.tsx",
+  "purpose": "Drop-in button that drives the full async feedback lifecycle with visual states: idle → pending (spinner) → success (checkmark, auto-reset) | error (X icon, auto-reset) → idle.",
+  "uiRules": [
+    "Uses shresta-btn-success and shresta-btn-error CSS classes (defined in globals.css) for the pop/shake entry animations.",
+    "Icons: Loader2 (spinning) for pending, Check for success, XCircle for error — all from lucide-react.",
+    "Storefront variant matches the wine-700→wine-900 gradient pill CTA style with 700ms transitions.",
+    "Admin variants map to .admin-button, .admin-button.secondary, and .admin-button.danger CSS classes.",
+    "Omit variant to bring a fully custom className with no preset styles.",
+    "The button is automatically disabled while pending to prevent double-submission."
+  ],
+  "businessRules": [
+    "onAction must be a function returning Promise<void>; resolve = success, reject = error.",
+    "pendingLabel overrides children while the action is in-flight.",
+    "successLabel (default 'Done!') and errorLabel (default 'Try again') are shown for resetAfterMs (default 2000 ms) then auto-reset.",
+    "The global button:not([disabled]):active rule in globals.css already provides tactile press feedback; FeedbackButton adds the async outcome layer on top.",
+    "For buttons whose success/failure state requires custom rendering, use useFeedback directly instead of FeedbackButton."
+  ],
+  "dependencies": [
+    "@/lib/use-feedback",
+    "lucide-react (Check, Loader2, XCircle)",
+    "globals.css (shresta-btn-success, shresta-btn-error, .admin-button)"
+  ]
+}

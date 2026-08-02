@@ -1,0 +1,19 @@
+{
+  "module": "admin",
+  "file": "layout.tsx",
+  "purpose": "Admin shell with navigation for the asset/category operations console.",
+  "businessRules": [
+    "Keep admin navigation focused on internal DAM, taxonomy, and review operations, not customer-facing marketing or frontend-only copy controls.",
+    "Admin shell spacing, icons, and navigation labels must keep asset, category, and review operations readable on narrow and wide screens.",
+    "On mobile and tablet widths, admin navigation must scroll within its own rail and must never increase page-level width; phone tabs hide secondary descriptions so labels remain readable.",
+    "Navigation descriptions use operator-friendly labels such as details and fields instead of casual implementation jargon.",
+    "Do not load customer storefront datasets in the admin layout.",
+    "Future admin sections should join this shell without leaking server-only secrets to the browser."
+  ],
+  "routes": [
+    "/admin",
+    "/admin/assets",
+    "/admin/categories",
+    "/admin/review"
+  ]
+}

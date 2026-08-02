@@ -1,0 +1,24 @@
+{
+  "module": "admin",
+  "file": "review/page.tsx",
+  "purpose": "Reviewer queue for approving or rejecting admin create, update, archive, and delete requests before data-changing work is applied.",
+  "ownedConcepts": [
+    "Pending change request list",
+    "Reviewer ACL summary",
+    "Approve form",
+    "Reject form",
+    "Payload inspection"
+  ],
+  "businessRules": [
+    "No archive or permanent delete should be completed from normal admin pages without a submitted change request appearing here.",
+    "Review actions use CHANGE_REVIEWER ACL and idempotency keys.",
+    "Payloads are displayed for auditability before approval.",
+    "Backend network failures and backend API 404 responses render AdminApiUnavailable instead of the Next runtime overlay."
+  ],
+  "apiDependencies": [
+    "GET /api/v1/admin/acl/me",
+    "GET /api/v1/admin/change-requests",
+    "POST /api/v1/admin/change-requests/{requestKey}/approve",
+    "POST /api/v1/admin/change-requests/{requestKey}/reject"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "module": "styling",
+  "file": "postcss.config.mjs",
+  "purpose": "PostCSS configuration required for Tailwind CSS v4 utility generation in Next.js.",
+  "ownedConcepts": [
+    "@tailwindcss/postcss adapter",
+    "Tailwind utility compilation",
+    "SHRESTA storefront and admin visual system"
+  ],
+  "businessRules": [
+    "Do not remove @tailwindcss/postcss while Tailwind v4 is used.",
+    "Customer storefront and admin pages depend on generated Tailwind utilities for layout, spacing, responsiveness, and SHRESTA reference styling.",
+    "Any styling pipeline change must be validated with npm run build and browser screenshots."
+  ]
+}

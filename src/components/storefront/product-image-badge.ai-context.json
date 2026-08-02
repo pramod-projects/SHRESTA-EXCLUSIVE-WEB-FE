@@ -1,0 +1,17 @@
+{
+  "module": "storefront",
+  "file": "product-image-badge.tsx",
+  "purpose": "Icon-only product badge renderer for product cards and PDP media surfaces.",
+  "businessRules": [
+    "Badges must render as compact icons with hover text so product imagery is not covered by long badge labels.",
+    "Badge icons must be semantic and distinct: bestseller uses Flame, certification uses BadgeCheck, anti-tarnish uses ShieldCheck, water resistance uses Droplets, wedding uses Crown, silk/saree uses Shirt, new uses Sparkles, and unknown badges use Star.",
+    "Display labels come from enumDisplayLabel while the backend enum value remains unchanged.",
+    "Hover labels must stay inside the overflow-clipped product media frame and must never hang below the image/card boundary.",
+    "All badge hover labels expand inward from the top-left badge row, wrap within a bounded pill, and allow at most two short lines so long backend tags remain readable without escaping the image box.",
+    "Do not reintroduce per-icon right-aligned hover labels on product media; badges near the left edge can clip when labels expand left."
+  ],
+  "dependencies": [
+    "@/lib/admin-enums",
+    "lucide-react"
+  ]
+}

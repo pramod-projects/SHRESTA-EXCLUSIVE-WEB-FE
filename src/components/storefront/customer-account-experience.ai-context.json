@@ -1,0 +1,26 @@
+{
+  "module": "storefront",
+  "file": "customer-account-experience.tsx",
+  "purpose": "Customer profile center with manual login CTA, verified profile details, customer ID, mapped identity status, and placed order history.",
+  "ownedConcepts": [
+    "Signed-out profile CTA",
+    "Verified customer profile card",
+    "Customer ID metric",
+    "Mapped identity metric",
+    "Placed orders panel",
+    "Order status pills",
+    "Sign out and switch account actions"
+  ],
+  "businessRules": [
+    "Signed-out customers can continue browsing without auth; order placement remains gated at confirm-and-pay.",
+    "Signed-in customer truth comes from /api/customer-profile and /api/customer-orders using the HTTP-only backend session cookie.",
+    "Order summaries are keyed by authenticated customerId so email and phone identities mapped to the same customer show the same placed orders.",
+    "React state caches order summaries by customerId to avoid showing another customer's order history after account switching.",
+    "Account action cards must use distinct semantic icons: checkout uses ShoppingBag, wishlist uses Heart, order support uses PackageCheck, and general support uses Headset."
+  ],
+  "apiDependencies": [
+    "GET /api/customer-profile",
+    "GET /api/customer-orders",
+    "POST /api/customer-logout"
+  ]
+}

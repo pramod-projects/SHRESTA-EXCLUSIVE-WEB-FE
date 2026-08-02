@@ -1,0 +1,10 @@
+{
+  "route": "/api/health",
+  "module": "platform",
+  "purpose": "Frontend health route for deployment smoke tests.",
+  "businessRules": [
+    "Health response must not expose secrets or internal backend credentials.",
+    "Route is force-dynamic to avoid stale deployment health during rollouts."
+  ],
+  "aiHint": "Keep this route dependency-free. Backend dependency health belongs to backend and synthetic monitoring."
+}

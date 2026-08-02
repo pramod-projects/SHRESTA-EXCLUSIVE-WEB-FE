@@ -1,0 +1,22 @@
+{
+  "module": "wishlist",
+  "file": "browser-wishlist.ts",
+  "purpose": "Phase 1 browser wishlist state shared across storefront pages until authenticated wishlist APIs are integrated.",
+  "ownedConcepts": [
+    "Wishlist product ID persistence",
+    "Toggle item",
+    "Remove item",
+    "Clear wishlist",
+    "Header wishlist count synchronization"
+  ],
+  "businessRules": [
+    "Persist only product IDs in browser storage.",
+    "Product names, prices, SKU, category, and images must be resolved from backend storefront product data before rendering.",
+    "Wishlist viewing remains public in Phase 1; future account persistence can merge browser IDs after login.",
+    "Invalid persisted wishlist values must be ignored and duplicate product IDs must be merged."
+  ],
+  "storage": {
+    "key": "shresta.wishlist.v1",
+    "schema": "string[]"
+  }
+}

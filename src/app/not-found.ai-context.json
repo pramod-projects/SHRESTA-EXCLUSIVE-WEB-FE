@@ -1,0 +1,9 @@
+{
+  "module": "app-shell",
+  "file": "not-found.tsx",
+  "purpose": "Global Next.js not-found route for frontend pages that are not available.",
+  "businessRules": [
+    "Render PageNotAvailable for missing FE routes and explicit notFound() calls.",
+    "Do not use this for backend API 404 responses; those are handled by API loader fallbacks."
+  ]
+}

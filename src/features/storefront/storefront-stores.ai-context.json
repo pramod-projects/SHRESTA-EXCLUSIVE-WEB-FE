@@ -1,0 +1,12 @@
+{
+  "module": "storefront",
+  "file": "storefront-stores.ts",
+  "purpose": "Typed frontend API client for the backend-owned SHRESTA store locator and service network response.",
+  "apiDependencies": [
+    "GET /api/v1/storefront/stores"
+  ],
+  "businessRules": [
+    "Store locator copy, filters, service modes, contact details, and service promises are loaded from SHRESTA-BE.",
+    "The frontend may filter returned stores locally for responsiveness but must not define store datasets."
+  ]
+}

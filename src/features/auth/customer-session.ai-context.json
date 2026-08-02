@@ -1,0 +1,15 @@
+{
+  "module": "customer-auth-session",
+  "purpose": "Client-side helpers for validating login input and talking to same-origin Next auth routes backed by SHRESTA-BE customer sessions.",
+  "securityRules": [
+    "Customer login state is not persisted in localStorage.",
+    "Next API routes hold the backend session token in an HTTP-only cookie.",
+    "The browser fetches profile state from /api/customer-profile rather than trusting client-owned state."
+  ],
+  "relatedRoutes": [
+    "/api/customer-login",
+    "/api/customer-profile",
+    "/api/customer-logout"
+  ],
+  "lastUpdated": "2026-07-05"
+}

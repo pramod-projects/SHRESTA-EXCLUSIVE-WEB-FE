@@ -1,0 +1,53 @@
+{
+  "module": "storefront",
+  "file": "storefront-home-experience.tsx",
+  "purpose": "Reference-style SHRESTA customer storefront shell rendered from the backend-owned StorefrontHome contract.",
+  "ownedConcepts": [
+    "StorefrontPageChrome",
+    "Announcement bar",
+    "Customer header",
+    "Mobile menu",
+    "Mega menu",
+    "Hero carousel",
+    "Trust badges",
+    "Collection cards",
+    "Product tiles",
+    "Why SHRESTA section",
+    "Material showcase",
+    "Newsletter",
+    "Footer",
+    "StorefrontBackendUnavailable",
+    "Mobile bottom nav",
+    "Live chat entry",
+    "Reference lucide icon system",
+    "Reference framer-motion hover and carousel behavior"
+  ],
+  "businessRules": [
+    "Do not introduce frontend-owned storefront, category, asset, or product datasets.",
+    "All images render through ResponsiveMedia using backend-provided URLs and variants.",
+    "The page depends on Tailwind utility compilation and SHRESTA wine/gold theme tokens from globals.css; verify visually after styling config changes.",
+    "Footer and mobile bottom navigation should follow the old SHRESTA reference structure: compact logo, wine footer surface, and icon-based Home/Search/Cart/Wishlist/Account mobile nav.",
+    "On small screens, the mobile bottom-nav Search control must open an in-page search dialog with a visible input; it must not navigate to /products until the customer submits a query or chooses a quick link.",
+    "Footer copyright strip is separated from the upper footer content by a visible white divider line.",
+    "Cart and wishlist counts come from Phase 1 browser stores that persist only product IDs/quantities; product details still come from backend data.",
+    "Mobile menu, mobile search dialog, desktop search disclosure, and carousel index are local UI state only.",
+    "The customer shell follows the wine/gold SHRESTA reference style while preserving SHRESTA EXCLUSIVE as a saree-focused brand.",
+    "StorefrontPageChrome is reused by product, category, collection, store, cart, wishlist, account, support, legal, and newsletter pages so header/footer/mobile navigation stay visually consistent.",
+    "Non-product UI presentation may live in FE, but catalog product, category, and asset/image data must remain backend-provided.",
+    "Backend enum values such as product badges may be rendered through readable labels without changing the backend value.",
+    "Shared icon-button styling must not hardcode display behavior that overrides responsive utilities; desktop header should hide the hamburger menu and keep the SHRESTA logo at the left brand position.",
+    "ReferenceIcon must keep semantic icons distinct across promises: AD cues use Gem, silk/saree cues use Shirt, packaging uses PackageCheck, certification uses BadgeCheck, delivery uses Truck, returns uses RotateCcw, and skin/safety uses HeartHandshake or ShieldCheck.",
+    "Hero carousel previous/next controls should use premium wine/gold glass styling, not plain generic buttons.",
+    "Collection cards render backend itemCount with singular/plural item labels while preserving the backend-provided numeric count.",
+    "Customer chat is provided by CustomerChatWidget and must keep the old reference live-chat visual shell while using the backend chat API.",
+    "StorefrontBackendUnavailable delegates to the shared API-not-reachable component so customer pages use one consistent backend-down/backend API 404 UX.",
+    "NewsletterSection uses a frosted dark pill badge (Sparkles icon + eyebrow text) and white text on the gold/wine section background.",
+    "The email input in NewsletterSection has a Mail icon on the left rendered inside a white/95 rounded pill label with a gold-600 icon tint.",
+    "The Subscribe button uses a wine-700 → wine-900 dark gradient with a gold ring accent (ring-gold-500/40 at rest, ring-2 ring-gold-400/70 on hover). All transitions are slow and premium: scale/shadow 700ms ease-out, ring 700ms, sweep shine 1100ms ease-in-out, arrow slide 500ms.",
+    "NewsletterSection includes a legal consent line below the form in text-white/50 text-xs.",
+    "Footer copyright uses the © symbol and reads '© {year} SHRESTA EXCLUSIVE. All rights reserved.'"
+  ],
+  "apiDependencies": [
+    "GET /api/v1/storefront/home"
+  ]
+}

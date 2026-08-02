@@ -1,0 +1,27 @@
+{
+  "module": "storefront",
+  "file": "responsive-media.tsx",
+  "purpose": "Responsive media renderer for backend-provided asset variants.",
+  "ownedConcepts": [
+    "ResponsiveMedia",
+    "prefetchMedia",
+    "srcset generation",
+    "LQIP background rendering",
+    "Silent customer fallback for failed image loads",
+    "backend-static-dev original URL preference"
+  ],
+  "businessRules": [
+    "Do not construct or version image URLs in the frontend when the backend has already supplied variant URLs.",
+    "Prefer AVIF, then WebP, then original-compatible fallback formats.",
+    "Preserve backend dimensions and alt text for layout stability and accessibility.",
+    "Use eager loading only for above-the-fold media; keep other media lazy.",
+    "Render a branded fallback surface when backend merchandising references an archived or missing media asset.",
+    "Customer-facing image failures must not show upload/debug errors; explicit broken image warnings belong to admin asset management.",
+    "For backend-static-dev media, prefer the original backend static URL because generated /shresta-media/variants paths may not exist in local development; S3/CDN delivery modes should continue using optimized variants.",
+    "If a selected variant fails in customer UI, retry the backend-provided original asset URL before rendering the branded SHRESTA fallback.",
+    "The picture wrapper applies stable block/full-size classes for fixed aspect-ratio containers so image layout does not create blank customer-facing space."
+  ],
+  "apiDependencies": [
+    "MediaAsset from GET /api/v1/storefront/home"
+  ]
+}

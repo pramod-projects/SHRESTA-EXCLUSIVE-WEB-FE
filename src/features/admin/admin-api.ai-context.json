@@ -1,0 +1,32 @@
+{
+  "module": "admin",
+  "file": "admin-api.ts",
+  "purpose": "Server-only bridge from Next.js admin routes/actions to SHRESTA-BE admin APIs.",
+  "ownedConcepts": [
+    "Admin asset contracts",
+    "Admin category mutation contracts",
+    "Admin ACL contracts",
+    "Admin change request contracts",
+    "X-SHRESTA-ADMIN-KEY forwarding",
+    "Idempotency-Key forwarding"
+  ],
+  "businessRules": [
+    "This module must be imported only by server routes or server actions.",
+    "SHRESTA_ADMIN_API_KEY must never be exposed through NEXT_PUBLIC variables or client components.",
+    "Every backend mutation helper requires a caller-supplied idempotency key.",
+    "Asset and category data remains backend-owned and is never normalized into frontend constants.",
+    "Asset contracts include categoryFamilyKey, categoryProductTypeKey, productSku, tags, alt text, SEO fields, generated variants, S3/CDN URLs, and optimization stats.",
+    "Existing image replacement uses POST /api/v1/admin/assets/{assetKey}/image with multipart FormData and an idempotency key.",
+    "Multipart admin requests classify backend network failures and backend API 404 responses as ShrestaApiUnavailableError using SHRESTA service wording for unavailable messages.",
+    "The active ACL model uses only SUPER_ADMIN, CHANGE_SUBMITTER, CHANGE_REVIEWER, and CHANGE_MANAGER.",
+    "Create/update/archive/delete dashboard submissions should use admin change request APIs unless the endpoint is explicitly an approved apply path."
+  ],
+  "apiDependencies": [
+    "/api/v1/admin/assets",
+    "/api/v1/admin/assets/{assetKey}/image",
+    "/api/v1/admin/catalog/categories",
+    "/api/v1/admin/storefront/home",
+    "/api/v1/admin/acl/me",
+    "/api/v1/admin/change-requests"
+  ]
+}

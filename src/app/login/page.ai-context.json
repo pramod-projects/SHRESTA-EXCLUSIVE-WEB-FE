@@ -1,0 +1,21 @@
+{
+  "module": "storefront-auth",
+  "file": "login/page.tsx",
+  "purpose": "Customer login gate for final order placement while allowing ungated product exploration, cart review, and checkout review.",
+  "businessRules": [
+    "Customers can browse the storefront, view cart, view wishlist, and review checkout without logging in.",
+    "Login is required before final confirm-and-pay, saved addresses, or account-specific workflows.",
+    "Login navigation must preserve browser cart state so customers can return to checkout with the same items.",
+    "Identity input must use shared email-or-Indian-mobile regex validation.",
+    "OTP input must accept exactly 6 digits using the shared OTP regex.",
+    "Login posts through /api/customer-login to SHRESTA-BE and stores the backend session token only in an HTTP-only cookie.",
+    "Local/dev/UAT may expose the seeded test login helper; production builds must not show seeded credential help unless explicitly configured for UAT."
+  ],
+  "apiDependencies": [
+    "POST /api/customer-login",
+    "POST /api/v1/auth/customer/login"
+  ],
+  "routes": [
+    "/login"
+  ]
+}

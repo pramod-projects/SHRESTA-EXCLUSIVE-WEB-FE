@@ -1,0 +1,28 @@
+{
+  "module": "admin",
+  "file": "categories/page.tsx",
+  "purpose": "Server-rendered category configuration dashboard for backend-owned category datasets.",
+  "ownedConcepts": [
+    "Category family create/update/archive/delete request flows",
+    "Readable category family summary counts",
+    "Collapsible category configuration editors",
+    "Subcategory/product type create/update/archive/delete request flows",
+    "Attribute create/update/archive/delete request flows",
+    "Filter create/update/archive/delete request flows",
+    "Tax create/update/archive/delete request flows",
+    "Styling create/update/archive/delete request flows"
+  ],
+  "businessRules": [
+    "Existing category configuration must be fetched from SHRESTA-BE before rendering.",
+    "High-density category configuration must be grouped into collapsible sections so existing datasets can be scanned before editing.",
+    "Forms expose backend-owned editable fields including metadata, allowed values, tax dates, and styling rules.",
+    "Visible form labels use operations wording such as Advanced Details JSON and Facet Mapping while preserving required metadata/backendMapping payload fields.",
+    "Snake-case keys, backend mappings, and HSN codes use shared regex patterns from src/lib/input-patterns.ts.",
+    "Category configuration is saree-focused and must stay saree-only.",
+    "Mutations use server actions with idempotency and revalidate this route after success.",
+    "Backend network failures and backend API 404 responses render AdminApiUnavailable instead of the Next runtime overlay."
+  ],
+  "apiDependencies": [
+    "/api/v1/admin/catalog/categories"
+  ]
+}

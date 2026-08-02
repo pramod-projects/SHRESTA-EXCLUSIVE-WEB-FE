@@ -1,0 +1,18 @@
+{
+  "module": "admin",
+  "file": "enum-multi-select.tsx",
+  "purpose": "Client-side searchable dropdown multi-select for enum-safe admin form values.",
+  "ownedConcepts": [
+    "Selected enum chips",
+    "Searchable option list",
+    "Hidden repeated form inputs",
+    "Inline enum-value creation"
+  ],
+  "businessRules": [
+    "Submitted values are normalized through src/lib/admin-enums.ts before entering server actions.",
+    "Use for SKU-adjacent tags, product badges, and asset tags where values must be uppercase and contain only A-Z, 0-9, hyphen, or underscore.",
+    "When valueKind is tag, typed values are capped to the shared 40-character asset-tag contract and the selected set is capped to 16 tags.",
+    "Do not use this component for backend category family keys or product type keys that intentionally preserve backend catalog key casing."
+  ],
+  "apiDependencies": []
+}

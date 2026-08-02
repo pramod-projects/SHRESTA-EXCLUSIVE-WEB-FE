@@ -1,0 +1,16 @@
+{
+  "module": "admin",
+  "file": "merchandising/page.tsx",
+  "purpose": "Compatibility redirect from the older merchandising admin route to the asset manager.",
+  "ownedConcepts": [
+    "Legacy admin route compatibility"
+  ],
+  "businessRules": [
+    "Frontend presentation copy and storefront section controls must not be exposed as primary admin dashboard data.",
+    "Operators should manage image/category/SKU bindings in /admin/assets and taxonomy in /admin/categories.",
+    "Existing bookmarks to /admin/merchandising should land safely on /admin/assets."
+  ],
+  "apiDependencies": [
+    "none"
+  ]
+}

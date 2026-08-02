@@ -1,0 +1,22 @@
+{
+  "module": "customer-account",
+  "file": "account/page.tsx",
+  "purpose": "Customer profile route that shows a manual login CTA when signed out and backend-verified profile details when signed in.",
+  "businessRules": [
+    "The desktop header account icon links here as the manual login/profile entry point.",
+    "Signed-out customers see Login to account and can continue browsing without auth.",
+    "Signed-in customers see profile identity, customer ID, mapped identity status, verified session expiry, placed order summary, Sign out, and Switch account.",
+    "Profile truth comes from SHRESTA-BE through /api/customer-profile; React must not trust localStorage for login state."
+  ],
+  "apiDependencies": [
+    "GET /api/customer-profile",
+    "GET /api/customer-orders",
+    "GET /api/v1/customer/profile",
+    "GET /api/v1/customer/orders",
+    "POST /api/customer-logout",
+    "POST /api/v1/auth/customer/logout"
+  ],
+  "routes": [
+    "/account"
+  ]
+}

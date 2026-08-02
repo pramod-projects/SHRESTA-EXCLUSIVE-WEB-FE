@@ -1,0 +1,22 @@
+{
+  "module": "lib",
+  "file": "api-client.ts",
+  "purpose": "Typed frontend fetch layer for SHRESTA backend ApiResponse envelopes with user-safe error mapping.",
+  "businessRules": [
+    "Frontend API calls consume backend envelope contracts instead of ad hoc response shapes.",
+    "Backend trace IDs and error codes are preserved for user support and observability.",
+    "NEXT_PUBLIC_API_BASE_URL is the only browser-exposed backend base URL configuration.",
+    "Network-level backend fetch failures and backend API 404 responses are classified as ShrestaApiUnavailableError so SSR pages can show a single customer-safe service-unavailable UX.",
+    "Internal infrastructure error codes (INVALID_ENVELOPE, EMPTY_DATA, SHRESTA_SERVICE_ERROR) must never reach the customer UI as raw strings; toShrestaUserMessage() maps them to a generic friendly fallback.",
+    "BE-originated business error messages (wrong OTP, account not found, etc.) pass through toShrestaUserMessage() unchanged — the BE writes those for users.",
+    "All Next.js API route handlers must call toShrestaUserMessage(error) instead of error.message when building the JSON response body so internal strings never leak to the browser."
+  ],
+  "ownedConcepts": [
+    "ApiResponseEnvelope",
+    "ShrestaApiError",
+    "ShrestaApiUnavailableError",
+    "isShrestaApiUnavailableError",
+    "toShrestaUserMessage",
+    "requestApi"
+  ]
+}

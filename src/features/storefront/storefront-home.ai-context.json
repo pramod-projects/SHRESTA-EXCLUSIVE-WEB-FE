@@ -1,0 +1,23 @@
+{
+  "module": "storefront",
+  "file": "storefront-home.ts",
+  "purpose": "Typed frontend contract and fetch function for the backend-owned storefront home API.",
+  "ownedConcepts": [
+    "StorefrontHome",
+    "MediaAsset",
+    "MediaVariant",
+    "HeroSlide",
+    "FeaturedCollection",
+    "ProductCard"
+  ],
+  "businessRules": [
+    "Home merchandising content is backend-owned and must not be duplicated as frontend constants.",
+    "Media assets include backend-versioned/cache-busted URLs, variants, dimensions, delivery mode, and LQIP metadata.",
+    "Media fields are nullable because archived or permanently deleted backend assets must not crash storefront rendering.",
+    "ProductCard includes backend-owned short and long customer-facing descriptions used by PDP and admin merchandising forms.",
+    "The home route uses no-store fetching so admin-managed storefront changes are visible without stale browser-owned data."
+  ],
+  "apiDependencies": [
+    "GET /api/v1/storefront/home"
+  ]
+}

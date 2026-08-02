@@ -1,0 +1,13 @@
+{
+  "file": "currency.ts",
+  "module": "common",
+  "purpose": "Single frontend utility for branded paise values and display formatting.",
+  "financialCritical": true,
+  "businessRules": [
+    "Components must not divide paise by 100 directly.",
+    "Backend and frontend contracts must name paise explicitly.",
+    "Only safe non-negative integer paise values can be branded as PriceInPaise.",
+    "Customer-facing formatted INR values must include the ₹ symbol."
+  ],
+  "aiHint": "Do not add rupee-based inputs here. Convert backend numeric paise to PriceInPaise at API boundaries."
+}

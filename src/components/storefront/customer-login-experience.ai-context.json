@@ -1,0 +1,22 @@
+{
+  "component": "CustomerLoginExperience",
+  "module": "storefront-auth",
+  "purpose": "Customer-facing OTP login surface used before final order confirmation and from the profile/account entry point.",
+  "uiRules": [
+    "Do not reuse admin form controls for this customer login screen; the login card must use customer-login-input and customer CTA styling.",
+    "Inputs must remain dark wine/gold in normal, focused, and browser autofill states.",
+    "The primary login button must render as a premium SHRESTA customer CTA with a distinct LogIn icon, centered label, right arrow affordance, and gold focus ring.",
+    "The non-production test-login helper is allowed only in non-production/UAT-configured builds, must stay visually secondary, and must not use internal labels such as local/UAT in visible copy."
+  ],
+  "businessRules": [
+    "Login posts to /api/customer-login and stores the backend session token only in an HTTP-only cookie.",
+    "Cart state must remain browser-preserved when navigating to login and returning to checkout/account.",
+    "Error messages shown in the error box are always user-readable strings from submitCustomerLogin result.message — never raw API codes or internal exception strings.",
+    "submitCustomerLogin handles the toShrestaUserMessage translation at the route layer; the component only renders whatever message it receives."
+  ],
+  "dependencies": [
+    "@/features/auth/customer-session",
+    "@/lib/input-patterns",
+    "src/app/globals.css customer-login-input"
+  ]
+}

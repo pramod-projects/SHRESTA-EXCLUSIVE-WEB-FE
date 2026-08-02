@@ -1,0 +1,30 @@
+{
+  "module": "storefront",
+  "file": "storefront-page-data.ts",
+  "purpose": "Server-side customer page data aggregator and resolver helpers for backend-driven storefront routes.",
+  "ownedConcepts": [
+    "fetchStorefrontPageData",
+    "fetchStorefrontStoresPageData",
+    "familyKeyToSlug",
+    "slugToFamilyKey",
+    "findCollectionBySlug",
+    "findCategoryBySlug",
+    "findProductBySlug",
+    "productsForFamily",
+    "productsMatchingQuery",
+    "relatedProducts"
+  ],
+  "businessRules": [
+    "Fetch home merchandising and category configuration from SHRESTA-BE together for customer pages.",
+    "Resolve public silk-sarees slug aliases to backend family keys such as silk_saree.",
+    "The silk_saree family key is used consistently for collection and category product resolution.",
+    "Collections with productBadgeFilters must resolve from backend product badges/tags using the same normalized token matching for every collection slug.",
+    "Do not introduce frontend-owned product, collection, category, asset, or store records.",
+    "Return null only on backend network unavailability or backend API 404 so route components can show the shared backend-unreachable state; rethrow other defects."
+  ],
+  "apiDependencies": [
+    "GET /api/v1/storefront/home",
+    "GET /api/v1/categories",
+    "GET /api/v1/storefront/stores"
+  ]
+}

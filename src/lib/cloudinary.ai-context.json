@@ -1,0 +1,11 @@
+{
+  "file": "cloudinary.ts",
+  "module": "common",
+  "purpose": "Centralized Cloudinary URL builder from persisted public_id values.",
+  "businessRules": [
+    "Persist and pass Cloudinary public_id values, not full URLs.",
+    "Image transformation decisions belong in this utility or dedicated image components.",
+    "Components must not assemble Cloudinary URLs inline."
+  ],
+  "aiHint": "If image presets are added later, document them in .ai/knowledge-base.md and route all callers through this file."
+}

@@ -1,0 +1,13 @@
+{
+  "module": "cart",
+  "file": "cart/page.tsx",
+  "purpose": "Customer cart route that renders browser cart IDs against backend-owned storefront product data.",
+  "businessRules": [
+    "Cart page is public and must not require login.",
+    "Cart lines resolve product details from GET /api/v1/storefront/home data.",
+    "Proceeding to checkout keeps the cart intact and does not require login until final order placement."
+  ],
+  "routes": [
+    "/cart"
+  ]
+}

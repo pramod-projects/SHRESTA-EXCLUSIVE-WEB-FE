@@ -1,0 +1,9 @@
+{
+  "module": "app-shell",
+  "file": "error.tsx",
+  "purpose": "Global production error boundary for unexpected page rendering failures.",
+  "businessRules": [
+    "Show a clear SHRESTA page-could-not-load message with retry and home recovery actions.",
+    "Do not expose stack traces or framework internals to users."
+  ]
+}

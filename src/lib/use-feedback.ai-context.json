@@ -1,0 +1,18 @@
+{
+  "module": "lib",
+  "file": "use-feedback.ts",
+  "purpose": "React hook that manages the idle → pending → success|error → idle lifecycle for any async button action, with auto-reset after a configurable delay.",
+  "businessRules": [
+    "A second trigger() call is a no-op while the state is 'pending' — prevents double-submission.",
+    "The auto-reset timer is cleared on unmount to avoid setState-on-unmounted-component warnings.",
+    "resetAfterMs controls how long success/error states are held before returning to idle (default 2000 ms).",
+    "Callers must pass a function that returns a Promise; the hook resolves success on fulfillment and error on rejection.",
+    "The hook does not catch or swallow errors — the error state signals that the caller's action threw/rejected.",
+    "Use FeedbackButton (src/components/shared/feedback-button.tsx) for the standard visual treatment; use useFeedback directly when you need custom rendering."
+  ],
+  "ownedConcepts": [
+    "FeedbackState",
+    "UseFeedbackReturn",
+    "useFeedback"
+  ]
+}

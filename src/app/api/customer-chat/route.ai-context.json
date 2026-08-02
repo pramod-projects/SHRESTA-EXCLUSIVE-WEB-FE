@@ -1,0 +1,13 @@
+{
+  "module": "customer-chat-proxy",
+  "purpose": "Same-origin Next route that proxies SHRESTA Assistant messages to SHRESTA-BE.",
+  "routes": [
+    "POST /api/customer-chat"
+  ],
+  "securityRules": [
+    "Chat messages are validated and persisted by SHRESTA-BE.",
+    "Anonymous exploration chat is allowed.",
+    "Order-private support must be escalated to login/profile flows before private data is shown."
+  ],
+  "lastUpdated": "2026-07-05"
+}

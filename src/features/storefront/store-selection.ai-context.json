@@ -1,0 +1,10 @@
+{
+  "module": "storefront",
+  "file": "store-selection.ts",
+  "purpose": "Pure store locator selection helper for focusing backend store search results.",
+  "businessRules": [
+    "A text search that narrows the store list to one backend store should focus and zoom that store.",
+    "If filters hide the selected backend store, the selection must clear instead of showing stale details.",
+    "Store records come from GET /api/v1/storefront/stores and must not be defined as frontend datasets."
+  ]
+}

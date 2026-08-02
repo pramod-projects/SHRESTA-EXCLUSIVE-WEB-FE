@@ -1,0 +1,21 @@
+{
+  "module": "customer-auth-proxy",
+  "purpose": "Same-origin Next route that proxies customer login to SHRESTA-BE and stores the returned opaque session token in an HTTP-only cookie.",
+  "routes": [
+    "POST /api/customer-login",
+    "GET /api/customer-profile",
+    "POST /api/customer-logout"
+  ],
+  "securityRules": [
+    "The session token is never exposed to React components after login.",
+    "The cookie is HTTP-only, SameSite=Lax, path=/, and Secure in production builds.",
+    "Profile reads and logout calls are delegated to SHRESTA-BE with a bearer token."
+  ],
+  "errorHandlingRules": [
+    "All ShrestaApiError messages are passed through toShrestaUserMessage() — internal infrastructure codes (INVALID_ENVELOPE, EMPTY_DATA) become a generic user-friendly string; BE-originated codes pass through unchanged.",
+    "5xx ShrestaApiErrors are returned as 503 (not the raw BE status) so the browser never sees a 500.",
+    "ShrestaApiUnavailableError (BE unreachable or not found) returns 503 with 'Login is temporarily unavailable. Please try again shortly.'",
+    "Malformed request JSON returns 400 with a customer-friendly message, not a raw JSON parse error string."
+  ],
+  "lastUpdated": "2026-07-19"
+}

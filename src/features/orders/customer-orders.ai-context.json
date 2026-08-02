@@ -1,0 +1,22 @@
+{
+  "module": "customer-orders",
+  "file": "customer-orders.ts",
+  "purpose": "Client helper for creating authenticated checkout order IDs, placing customer orders, and listing profile order history through same-origin Next proxies backed by SHRESTA-BE.",
+  "businessRules": [
+    "Proceed-to-checkout creates or reuses a backend checkout draft through /api/customer-orders/draft before the customer enters checkout.",
+    "The checkout draft response carries orderId, orderNumber, backend cartSignature, totals, item snapshots, and expiresAt for the 15-minute checkout window.",
+    "Final order placement must send draftOrderId so SHRESTA-BE can verify the draft is active, unexpired, customer-owned, and cart-signature matched.",
+    "Frontend sends product IDs and quantities only; SHRESTA-BE resolves product names, SKU, prices, media, and snapshots before DB insert.",
+    "Draft creation and order placement require Idempotency-Key and an HTTP-only customer session cookie handled by same-origin route handlers.",
+    "Browser cart must clear only after the backend returns a persisted order response.",
+    "Profile order history reads customer-owned order summaries keyed by the authenticated customerId."
+  ],
+  "apiDependencies": [
+    "POST /api/customer-orders/draft",
+    "POST /api/v1/customer/orders/draft",
+    "GET /api/customer-orders",
+    "GET /api/v1/customer/orders",
+    "POST /api/customer-orders",
+    "POST /api/v1/customer/orders"
+  ]
+}

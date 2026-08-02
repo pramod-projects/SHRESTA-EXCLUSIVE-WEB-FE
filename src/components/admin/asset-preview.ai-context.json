@@ -1,0 +1,18 @@
+{
+  "module": "admin",
+  "file": "asset-preview.tsx",
+  "purpose": "Admin-only image preview component that reports broken asset URLs on the asset upload/management surface.",
+  "ownedConcepts": [
+    "Admin asset picture preview",
+    "Variant source-set rendering",
+    "Broken image warning state"
+  ],
+  "businessRules": [
+    "Customer storefront image failures must not show upload/debug errors.",
+    "Broken backend asset URLs should be visible only to administrators on asset management surfaces so they can replace or re-upload the source asset.",
+    "Preview uses backend-provided AVIF/WebP/fallback source sets and LQIP metadata."
+  ],
+  "apiDependencies": [
+    "GET /api/v1/admin/assets"
+  ]
+}

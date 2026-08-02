@@ -1,0 +1,15 @@
+{
+  "module": "checkout",
+  "file": "checkout/page.tsx",
+  "purpose": "Checkout review route that remains public until the final confirm-and-pay action requires login.",
+  "businessRules": [
+    "Exploration routes remain public.",
+    "Cart and checkout review remain public.",
+    "Clicking Place Order opens a login-required dialog with Continue Shopping and Login actions.",
+    "Login returns to /checkout and must not clear the browser cart.",
+    "When /api/customer-profile returns a verified profile, checkout copy reflects that payment handoff is unlocked for the signed-in customer."
+  ],
+  "routes": [
+    "/checkout"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "module": "shared",
+  "file": "backend-api-unavailable.tsx",
+  "purpose": "Shared SHRESTA service-unavailable state for SSR pages whose SHRESTA service dependency cannot be reached or returns a not-found service response.",
+  "ownedConcepts": [
+    "Storefront unavailable page frame",
+    "Admin unavailable panel frame",
+    "SHRESTA wine/gold unavailable message"
+  ],
+  "businessRules": [
+    "Use this only for SHRESTA service reachability failures and service 404 responses, not for frontend routes that do not exist.",
+    "Storefront surfaces use the full-page frame; admin surfaces use the panel frame inside the admin layout.",
+    "Customer-facing copy must not mention backend, API, route, port, database, metadata, contract, storage, framework, or runtime details."
+  ]
+}

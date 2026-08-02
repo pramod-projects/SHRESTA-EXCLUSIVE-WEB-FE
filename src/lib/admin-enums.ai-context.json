@@ -1,0 +1,18 @@
+{
+  "module": "admin",
+  "file": "admin-enums.ts",
+  "purpose": "Shared helpers for enum-safe admin SKU, tag, and badge values.",
+  "ownedConcepts": [
+    "Enum normalization",
+    "Enum validation",
+    "Enum option merging",
+    "Human-readable enum labels"
+  ],
+  "businessRules": [
+    "SKU, asset tags, and product badge/tag values must normalize to uppercase with only A-Z, 0-9, hyphen, and underscore.",
+    "Admin-managed asset tags have a shared 40-character maximum and 16-tag maximum matching the SHRESTA-BE media_assets.tags contract.",
+    "Server actions must validate enum-like submitted values before creating backend change requests.",
+    "Customer-facing components may convert enum values back into readable labels without changing backend truth."
+  ],
+  "apiDependencies": []
+}

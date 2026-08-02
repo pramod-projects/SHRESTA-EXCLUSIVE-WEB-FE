@@ -1,0 +1,24 @@
+{
+  "module": "cart",
+  "file": "browser-cart.ts",
+  "purpose": "Phase 1 browser cart state shared across storefront pages until SHRESTA-BE cart APIs are integrated.",
+  "ownedConcepts": [
+    "Browser cart line persistence",
+    "Add item",
+    "Update quantity",
+    "Remove item",
+    "Clear cart",
+    "Header cart count synchronization"
+  ],
+  "businessRules": [
+    "Persist only product IDs and quantities in browser storage.",
+    "Product names, prices, SKU, category, and images must be resolved from backend storefront product data before rendering.",
+    "Cart viewing remains public; login is required only before the final confirm-and-pay action.",
+    "Invalid persisted cart lines must be ignored and duplicate product IDs must be merged.",
+    "This module is a Phase 1 client continuity layer and must be replaced or reconciled with backend cart APIs when they exist."
+  ],
+  "storage": {
+    "key": "shresta.cart.v1",
+    "schema": "Array<{ productId: string; quantity: number }>"
+  }
+}

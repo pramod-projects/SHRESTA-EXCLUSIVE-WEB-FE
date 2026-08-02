@@ -1,0 +1,14 @@
+{
+  "module": "wishlist",
+  "file": "wishlist/page.tsx",
+  "purpose": "Customer wishlist route that renders browser-saved product IDs against backend-owned storefront product data.",
+  "businessRules": [
+    "Wishlist page is public in Phase 1.",
+    "Wishlist state stores only product IDs in browser storage.",
+    "Saved product names, SKU, prices, badges, and images resolve from GET /api/v1/storefront/home data.",
+    "Saved products can be moved into the browser cart without login."
+  ],
+  "routes": [
+    "/wishlist"
+  ]
+}

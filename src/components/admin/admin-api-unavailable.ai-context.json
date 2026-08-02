@@ -1,0 +1,9 @@
+{
+  "module": "admin",
+  "file": "admin-api-unavailable.tsx",
+  "purpose": "Admin-specific wrapper around the shared backend API unavailable state.",
+  "businessRules": [
+    "Render inside the existing admin layout as a panel, not as a nested full-page shell.",
+    "Use this when admin SSR loaders receive ShrestaApiUnavailableError from SHRESTA-BE fetches."
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "module": "shared",
+  "file": "page-not-available.tsx",
+  "purpose": "Shared SHRESTA-styled frontend route-not-found experience.",
+  "businessRules": [
+    "Use for frontend pages/routes that do not exist, not for backend API failures.",
+    "Provide clear recovery actions back to Home and Products.",
+    "Do not fetch backend data; missing route UX must work even when SHRESTA-BE is unavailable."
+  ]
+}
