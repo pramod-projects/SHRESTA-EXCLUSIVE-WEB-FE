@@ -286,10 +286,10 @@ export function StorefrontListingExperience({
             query={query}
             title={heading}
           />
-          <section className="border-b border-[var(--wine-800)] bg-[rgba(43,15,20,0.62)] px-4 py-4 sm:px-6">
+          <section className="border-b border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-4 py-4 sm:px-6">
             <div className="mx-auto max-w-7xl">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                <span className="shrink-0 text-sm font-semibold text-[var(--shresta-text-muted)]">Filter by price:</span>
+                <span className="shrink-0 text-sm font-semibold text-[var(--shresta-logo-muted)]">Filter by price:</span>
                 <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:snap-x sm:overflow-x-auto sm:pb-1 sm:[scrollbar-width:none] sm:[&::-webkit-scrollbar]:hidden">
                   {priceBuckets.map((bucket) => (
                     <button
@@ -305,7 +305,7 @@ export function StorefrontListingExperience({
               </div>
             </div>
           </section>
-          <section className="bg-[var(--wine-950)] px-4 py-10 sm:px-6 lg:py-14">
+          <section className="bg-[var(--shresta-logo-bg)] px-4 py-10 sm:px-6 lg:py-14">
             <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[336px_1fr] xl:grid-cols-[360px_1fr]">
               <CatalogSidebar {...filterPanelProps} />
               <CatalogMobileFilterDrawer
@@ -314,12 +314,12 @@ export function StorefrontListingExperience({
                 onClose={() => setMobileFiltersOpen(false)}
               />
               <div className="min-w-0" id="catalog-results">
-                <div className="mb-5 flex flex-col gap-4 border-b border-[var(--wine-800)] pb-4 sm:flex-row sm:items-end sm:justify-between">
+                <div className="mb-5 flex flex-col gap-4 border-b border-[var(--shresta-logo-border)] pb-4 sm:flex-row sm:items-end sm:justify-between">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--gold-400)]">Curated SHRESTA results</p>
-                    <h2 className="mt-1 font-serif text-3xl font-light text-white">{products.length} products</h2>
+                    <h2 className="mt-1 font-serif text-3xl font-light text-[var(--shresta-logo-text)]">{products.length} products</h2>
                     {products.length > PRODUCTS_PER_CATALOG_PAGE ? (
-                      <p className="mt-1 text-sm font-medium text-[var(--shresta-text-muted)]">
+                      <p className="mt-1 text-sm font-medium text-[var(--shresta-logo-muted)]">
                         Showing {visibleFrom}-{visibleTo} of {products.length}
                       </p>
                     ) : null}
@@ -329,26 +329,26 @@ export function StorefrontListingExperience({
                       <button
                         aria-expanded={mobileFiltersOpen}
                         aria-label="Open filters"
-                        className="relative inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--wine-700)] bg-[rgba(72,16,37,0.5)] px-4 text-sm font-bold text-[var(--shresta-text-primary)] shadow-[0_14px_34px_rgba(0,0,0,0.2)] transition hover:border-[var(--gold-500)] hover:text-[var(--gold-300)] active:scale-[0.98]"
+                        className="relative inline-flex min-h-11 items-center gap-2 rounded-full border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-4 text-sm font-bold text-[var(--shresta-logo-text)] shadow-[0_10px_24px_rgba(47,33,21,0.12)] transition hover:border-[var(--gold-500)] hover:text-[var(--gold-600)] active:scale-[0.98]"
                         onClick={() => setMobileFiltersOpen(true)}
                         type="button"
                       >
                         <SlidersHorizontal className="h-4 w-4 text-[var(--gold-400)]" />
                         Filters
                         {activeProductFilterCount > 0 ? (
-                          <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-[var(--wine-950)] bg-[var(--gold-500)] px-1 text-[0.65rem] font-black text-[var(--wine-950)]">
+                          <span className="absolute -right-2 -top-2 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-[var(--shresta-logo-bg)] bg-[var(--gold-500)] px-1 text-[0.65rem] font-black text-[var(--wine-950)]">
                             {activeProductFilterCount}
                           </span>
                         ) : null}
                       </button>
                       {activeProductFilterCount > 0 ? (
-                        <span className="text-xs font-medium text-[var(--shresta-text-muted)]">{activeProductFilterCount} active</span>
+                        <span className="text-xs font-medium text-[var(--shresta-logo-muted)]">{activeProductFilterCount} active</span>
                       ) : null}
                     </div>
-                    <form action="/products" className="flex min-h-11 w-full max-w-md overflow-hidden rounded-full border border-[var(--wine-700)] bg-[rgba(26,9,12,0.66)] sm:w-auto">
+                    <form action="/products" className="flex min-h-11 w-full max-w-md overflow-hidden rounded-full border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] sm:w-auto">
                       <input
                         aria-label="Search products"
-                        className="min-w-0 flex-1 bg-transparent px-4 text-sm text-[var(--shresta-text-primary)] outline-none placeholder:text-[var(--shresta-text-muted)]"
+                        className="min-w-0 flex-1 bg-transparent px-4 text-sm text-[var(--shresta-logo-text)] outline-none placeholder:text-[var(--shresta-logo-muted)]"
                         defaultValue={query}
                         name="query"
                         placeholder="Search sarees"
@@ -359,7 +359,7 @@ export function StorefrontListingExperience({
                       </button>
                     </form>
                     <div className="flex items-center gap-3">
-                      <div className="hidden items-center rounded-lg border border-[var(--wine-700)] bg-[rgba(72,16,37,0.38)] p-1 sm:flex">
+                      <div className="hidden items-center rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-1 sm:flex">
                         <button
                           aria-label="Grid view"
                           className={viewMode === "grid" ? activeIconButtonClass : inactiveIconButtonClass}
@@ -377,10 +377,10 @@ export function StorefrontListingExperience({
                           <ListIcon />
                         </button>
                       </div>
-                      <label className="flex items-center gap-2 text-sm text-[var(--shresta-text-muted)]">
+                      <label className="flex items-center gap-2 text-sm text-[var(--shresta-logo-muted)]">
                         <SortIcon />
                         <select
-                          className="h-10 rounded-lg border border-[var(--wine-700)] bg-[rgba(72,16,37,0.38)] px-3 text-sm text-[var(--shresta-text-primary)] outline-none"
+                          className="h-10 rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-3 text-sm text-[var(--shresta-logo-text)] outline-none"
                           onChange={(event) => {
                             resetCatalogPage();
                             setSortBy(event.target.value as SortOption);
@@ -405,7 +405,7 @@ export function StorefrontListingExperience({
                     ))}
                     {hasProductFilters ? (
                       <button
-                        className="text-sm text-[var(--shresta-text-muted)] hover:text-[var(--gold-400)]"
+                        className="text-sm text-[var(--shresta-logo-muted)] hover:text-[var(--gold-400)]"
                         onClick={clearProductFilters}
                         type="button"
                       >
@@ -468,12 +468,47 @@ export function StorefrontProductDetailExperience({
   const compareAt = formatPaise(asPriceInPaise(product.compareAtPricePaise));
   const hasDiscount = product.compareAtPricePaise > product.pricePaise;
   const discountPercent = hasDiscount ? Math.round(((product.compareAtPricePaise - product.pricePaise) / product.compareAtPricePaise) * 100) : 0;
-  const [quantity, setQuantity] = useState(1);
-  const [selectedImage, setSelectedImage] = useState(product.image);
+  const [quantityState, setQuantityState] = useState<{ productId: string; quantity: number }>({
+    productId: product.id,
+    quantity: product.stockQuantity > 0 ? 1 : 0
+  });
+  const [selectedImageState, setSelectedImageState] = useState<{ productId: string; image: ProductCard["image"] }>({
+    productId: product.id,
+    image: product.image
+  });
   const assurance = productAssurance(product, category);
   const AssuranceIcon = assurance.icon;
   const allImages = [product.image, ...(product.galleryImages ?? [])].filter(Boolean);
+  const quantity = quantityState.productId === product.id ? quantityState.quantity : (product.stockQuantity > 0 ? 1 : 0);
+  const selectedImage = selectedImageState.productId === product.id ? selectedImageState.image : product.image;
   const hasDemoVideo = Boolean(product.demoVideoUrl);
+
+  const handleDecreaseQuantity = () => {
+    setQuantityState((current) => {
+      const currentQuantity = current.productId === product.id ? current.quantity : (product.stockQuantity > 0 ? 1 : 0);
+      return {
+        productId: product.id,
+        quantity: Math.max(1, currentQuantity - 1)
+      };
+    });
+  };
+
+  const handleIncreaseQuantity = () => {
+    setQuantityState((current) => {
+      const currentQuantity = current.productId === product.id ? current.quantity : (product.stockQuantity > 0 ? 1 : 0);
+      return {
+        productId: product.id,
+        quantity: product.stockQuantity > 0 ? Math.min(product.stockQuantity, currentQuantity + 1) : currentQuantity + 1
+      };
+    });
+  };
+
+  const handleSelectImage = (image: ProductCard["image"]) => {
+    setSelectedImageState({
+      productId: product.id,
+      image
+    });
+  };
 
   return (
     <StorefrontPageChrome home={home}>
@@ -481,9 +516,9 @@ export function StorefrontProductDetailExperience({
         const wishlisted = controls.wishlistKeys.has(product.id);
         return (
           <>
-            <section className="bg-[var(--wine-950)] px-4 py-8 sm:px-6 lg:py-12">
+            <section className="bg-[var(--shresta-logo-bg)] px-4 py-8 sm:px-6 lg:py-12">
               <div className="mx-auto max-w-7xl">
-                <nav aria-label="Breadcrumb" className="mb-6 flex flex-wrap items-center gap-2 text-sm text-[var(--shresta-text-muted)]">
+                <nav aria-label="Breadcrumb" className="mb-6 flex flex-wrap items-center gap-2 text-sm text-[var(--shresta-logo-muted)]">
                   <Link className="hover:text-[var(--gold-400)]" href="/">Home</Link>
                   <span>/</span>
                   <Link className="hover:text-[var(--gold-400)]" href="/products">Products</Link>
@@ -497,7 +532,7 @@ export function StorefrontProductDetailExperience({
 
                 <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)]">
 	                  <div className="self-start">
-	                    <div className="relative overflow-hidden rounded-lg border border-[var(--wine-800)] bg-[var(--wine-900)]">
+	                    <div className="relative overflow-hidden rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)]">
 	                      <ResponsiveMedia
                         eager
                         className="aspect-square w-full object-cover"
@@ -506,7 +541,7 @@ export function StorefrontProductDetailExperience({
                       />
 	                      <div className="absolute left-4 top-4 flex flex-wrap gap-2">
 	                        {discountPercent > 0 ? (
-	                          <span className="rounded-full bg-rose-500 px-3 py-1 text-xs font-bold uppercase tracking-[0.08em] text-white">
+	                          <span className="rounded-full bg-rose-500 px-3 py-1 text-xs font-bold uppercase tracking-[0.08em] text-[var(--shresta-logo-text)]">
 	                            {discountPercent}% Off
 	                          </span>
 	                        ) : null}
@@ -515,7 +550,7 @@ export function StorefrontProductDetailExperience({
 	                      <div className="absolute right-4 top-4 flex gap-2">
 	                        <button
 	                          aria-label={wishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
-	                          className={wishlisted ? "flex h-10 w-10 items-center justify-center rounded-full bg-[rgba(212,175,55,0.22)] text-[var(--gold-300)] shadow-md backdrop-blur" : "flex h-10 w-10 items-center justify-center rounded-full bg-[rgba(43,15,20,0.92)] text-[var(--gold-400)] shadow-md backdrop-blur hover:bg-[var(--wine-800)]"}
+                              className={wishlisted ? "flex h-10 w-10 items-center justify-center rounded-full bg-[rgba(212,175,55,0.22)] text-[var(--gold-600)] shadow-md backdrop-blur" : "flex h-10 w-10 items-center justify-center rounded-full bg-[var(--shresta-logo-surface)] text-[var(--gold-400)] shadow-md backdrop-blur hover:bg-[var(--shresta-logo-surface)]"}
 	                          onClick={() => controls.toggleWishlist(product.id)}
 	                          type="button"
 	                        >
@@ -523,7 +558,7 @@ export function StorefrontProductDetailExperience({
 	                        </button>
 	                        <button
 	                          aria-label="Share product"
-	                          className="flex h-10 w-10 items-center justify-center rounded-full bg-[rgba(43,15,20,0.92)] text-[var(--shresta-text-secondary)] shadow-md backdrop-blur hover:bg-[var(--wine-800)] hover:text-[var(--gold-400)]"
+	                          className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--shresta-logo-surface)] text-[var(--shresta-logo-muted)] shadow-md backdrop-blur hover:bg-[var(--shresta-logo-surface)] hover:text-[var(--gold-400)]"
 	                          type="button"
 	                        >
 	                          <ShareIcon />
@@ -536,9 +571,9 @@ export function StorefrontProductDetailExperience({
                         {allImages.map((img, index) => (
                           <button
                             aria-label={`View image ${index + 1}`}
-                            className={`shrink-0 overflow-hidden rounded-lg border-2 transition ${selectedImage?.assetKey === img?.assetKey ? "border-[var(--gold-500)]" : "border-[var(--wine-700)] hover:border-[var(--gold-400)]"}`}
+                            className={`shrink-0 overflow-hidden rounded-lg border-2 transition ${selectedImage?.assetKey === img?.assetKey ? "border-[var(--gold-500)]" : "border-[var(--shresta-logo-border)] hover:border-[var(--gold-400)]"}`}
                             key={img?.assetKey ?? index}
-                            onClick={() => setSelectedImage(img)}
+                            onClick={() => handleSelectImage(img)}
                             type="button"
                           >
                             <ResponsiveMedia
@@ -553,7 +588,7 @@ export function StorefrontProductDetailExperience({
 
                     {hasDemoVideo ? (
                       <a
-                        className="mt-3 flex items-center gap-3 rounded-lg border border-[var(--wine-700)] bg-[rgba(26,9,12,0.58)] px-4 py-3 text-sm font-semibold text-[var(--shresta-text-primary)] hover:border-[var(--gold-500)] hover:text-[var(--gold-300)]"
+                        className="mt-3 flex items-center gap-3 rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-4 py-3 text-sm font-semibold text-[var(--shresta-logo-text)] hover:border-[var(--gold-500)] hover:text-[var(--gold-600)]"
                         href={product.demoVideoUrl!}
                         rel="noopener noreferrer"
                         target="_blank"
@@ -568,16 +603,16 @@ export function StorefrontProductDetailExperience({
 
                   <aside className="flex flex-col justify-center">
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--gold-400)]">{product.sku}</p>
-                    <h1 className="mt-3 font-serif text-4xl font-light leading-tight text-white sm:text-5xl">{product.name}</h1>
-                    <p className="mt-4 max-w-xl text-sm leading-6 text-[var(--shresta-text-secondary)]">
+                    <h1 className="mt-3 font-serif text-4xl font-light leading-tight text-[var(--shresta-logo-text)] sm:text-5xl">{product.name}</h1>
+                    <p className="mt-4 max-w-xl text-sm leading-6 text-[var(--shresta-logo-muted)]">
                       {productDetailDescription(product, category)}
                     </p>
                     <div className="mt-6 flex flex-wrap items-baseline gap-3">
-                      <span className="text-3xl font-semibold text-white">{price}</span>
-                      {hasDiscount ? <span className="text-base text-[var(--shresta-text-muted)] line-through">{compareAt}</span> : null}
+                      <span className="text-3xl font-semibold text-[var(--shresta-logo-text)]">{price}</span>
+                      {hasDiscount ? <span className="text-base text-[var(--shresta-logo-muted)] line-through">{compareAt}</span> : null}
                     </div>
-                    <div className="mt-3 flex items-center gap-2 text-sm text-[var(--shresta-text-secondary)]">
-                      <span className="font-semibold text-amber-300">{product.rating.toFixed(1)}</span>
+                    <div className="mt-3 flex items-center gap-2 text-sm text-[var(--shresta-logo-muted)]">
+                      <span className="font-semibold text-amber-700">{product.rating.toFixed(1)}</span>
                       <span>{product.reviewCount} reviews</span>
                       <span className="text-[var(--wine-700)]">|</span>
                       <span>{enumDisplayLabel(product.productType)}</span>
@@ -587,7 +622,7 @@ export function StorefrontProductDetailExperience({
                         {product.stockQuantity <= 10 ? (
                           <span className="font-semibold text-amber-400">{product.stockQuantity} in stock</span>
                         ) : (
-                          <span className="text-emerald-400 font-medium">Available</span>
+                          <span className="text-emerald-700 font-medium">Available</span>
                         )}
                       </div>
                     ) : product.stockQuantity === 0 ? (
@@ -599,30 +634,30 @@ export function StorefrontProductDetailExperience({
 	                          <AssuranceIcon className="h-6 w-6" strokeWidth={2.2} />
 	                        </div>
 	                        <div>
-	                          <p className="font-semibold text-white">{assurance.title}</p>
-	                          <p className="text-sm text-[var(--shresta-text-secondary)]">{assurance.description}</p>
+	                          <p className="font-semibold text-[var(--shresta-logo-text)]">{assurance.title}</p>
+	                          <p className="text-sm text-[var(--shresta-logo-muted)]">{assurance.description}</p>
 	                        </div>
 	                      </div>
 	                    </div>
 
 	                    <div className="mt-7 grid gap-3 sm:grid-cols-[160px_1fr_1fr]">
 	                      {product.stockQuantity !== 0 ? (
-	                        <div className="flex min-h-12 items-center justify-between rounded-xl border border-[var(--wine-700)] bg-[rgba(26,9,12,0.58)] px-2">
+	                        <div className="flex min-h-12 items-center justify-between rounded-xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-2">
 	                          <button
 	                            aria-label="Decrease quantity"
-	                            className="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--shresta-text-secondary)] hover:bg-[var(--wine-800)] disabled:opacity-40"
+	                            className="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--shresta-logo-muted)] hover:bg-[var(--shresta-logo-surface)] disabled:opacity-40"
 	                            disabled={quantity <= 1}
-	                            onClick={() => setQuantity((current) => Math.max(1, current - 1))}
+                              onClick={handleDecreaseQuantity}
 	                            type="button"
 	                          >
 	                            <Minus className="h-4 w-4" />
 	                          </button>
-	                          <span className="w-10 text-center font-semibold text-white">{quantity}</span>
+	                          <span className="w-10 text-center font-semibold text-[var(--shresta-logo-text)]">{quantity}</span>
 	                          <button
 	                            aria-label="Increase quantity"
-	                            className="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--shresta-text-secondary)] hover:bg-[var(--wine-800)] disabled:opacity-40"
+	                            className="flex h-10 w-10 items-center justify-center rounded-lg text-[var(--shresta-logo-muted)] hover:bg-[var(--shresta-logo-surface)] disabled:opacity-40"
 	                            disabled={product.stockQuantity > 0 && quantity >= product.stockQuantity}
-	                            onClick={() => setQuantity((current) => product.stockQuantity > 0 ? Math.min(product.stockQuantity, current + 1) : current + 1)}
+                              onClick={handleIncreaseQuantity}
 	                            type="button"
 	                          >
 	                            <Plus className="h-4 w-4" />
@@ -636,13 +671,13 @@ export function StorefrontProductDetailExperience({
 	                      <button
 	                        className="min-h-12 rounded-full bg-[var(--gold-500)] px-6 text-sm font-bold text-[var(--wine-950)] shadow-[0_14px_34px_rgba(212,175,55,0.24)] hover:bg-[var(--gold-600)] disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
 	                        disabled={product.stockQuantity === 0}
-	                        onClick={() => controls.addToCart(product.id, quantity)}
+                          onClick={() => controls.addToCart(product.id, quantity, product.stockQuantity)}
 	                        type="button"
 	                      >
 	                        Add to Cart
                       </button>
                       <button
-                        className={wishlisted ? "min-h-12 rounded-full border border-[var(--gold-500)] bg-[rgba(212,175,55,0.16)] px-6 text-sm font-bold text-[var(--gold-300)]" : "min-h-12 rounded-full border border-[var(--wine-700)] bg-[rgba(26,9,12,0.58)] px-6 text-sm font-bold text-[var(--shresta-text-primary)] hover:border-[var(--gold-500)]"}
+                        className={wishlisted ? "min-h-12 rounded-full border border-[var(--gold-500)] bg-[rgba(212,175,55,0.16)] px-6 text-sm font-bold text-[var(--gold-600)]" : "min-h-12 rounded-full border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-6 text-sm font-bold text-[var(--shresta-logo-text)] hover:border-[var(--gold-500)]"}
                         onClick={() => controls.toggleWishlist(product.id)}
                         type="button"
                       >
@@ -656,21 +691,21 @@ export function StorefrontProductDetailExperience({
                       <DetailMetric icon={ImageIcon} label="Media" value={product.image ? `${product.image.variants.length} variants` : "Media pending"} />
 	                    </div>
 
-	                    <div className="mt-6 grid grid-cols-3 gap-3 rounded-xl border border-[var(--wine-700)] bg-[rgba(26,9,12,0.42)] p-4">
+	                    <div className="mt-6 grid grid-cols-3 gap-3 rounded-xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-4">
 	                      <TrustItem icon={Truck} label="Fast Delivery" />
 	                      <TrustItem icon={RotateCcw} label="15-Day Returns" />
 	                      <TrustItem icon={PackageCheck} label="Secure Packaging" />
 	                    </div>
 
-	                    <div className="mt-6 border-t border-[var(--wine-700)] pt-6">
-	                      <h2 className="font-semibold text-white">Description</h2>
-	                      <p className="mt-2 text-sm leading-6 text-[var(--shresta-text-secondary)]">
+	                    <div className="mt-6 border-t border-[var(--shresta-logo-border)] pt-6">
+	                      <h2 className="font-semibold text-[var(--shresta-logo-text)]">Description</h2>
+	                      <p className="mt-2 text-sm leading-6 text-[var(--shresta-logo-muted)]">
 	                        {productLongDescription(product, category)}
 	                      </p>
 	                    </div>
 
-	                    <div className="mt-6 border-t border-[var(--wine-700)] pt-6">
-	                      <h2 className="font-semibold text-white">Specifications</h2>
+	                    <div className="mt-6 border-t border-[var(--shresta-logo-border)] pt-6">
+	                      <h2 className="font-semibold text-[var(--shresta-logo-text)]">Specifications</h2>
 	                      <dl className="mt-3 space-y-2 text-sm">
 	                        <SpecRow label="SKU" value={product.sku} />
 	                        <SpecRow label="Product Type" value={enumDisplayLabel(product.productType)} />
@@ -685,11 +720,11 @@ export function StorefrontProductDetailExperience({
 
             {category ? <CategoryRules category={category} /> : null}
             {related.length > 0 ? (
-              <section className="bg-[var(--wine-900)] px-4 py-16 sm:px-6">
+              <section className="bg-[var(--shresta-logo-surface)] px-4 py-12 sm:px-6">
                 <div className="mx-auto max-w-7xl">
                   <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--gold-400)]">More from SHRESTA</p>
-                  <h2 className="mt-2 font-serif text-3xl font-light text-white">Related products</h2>
-                  <div className="mt-8 grid grid-cols-1 gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+                  <h2 className="mt-2 font-serif text-3xl font-light text-[var(--shresta-logo-text)]">Related products</h2>
+                  <div className="mt-6 grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
                     {related.map((item, index) => (
                       <StorefrontProductCard controls={controls} eager={index < 4} key={item.id} product={item} />
                     ))}
@@ -716,15 +751,15 @@ export function StorefrontCollectionsExperience({
   const isCategories = surface === "categories";
   return (
     <StorefrontPageChrome home={home}>
-      <section className="border-b border-[var(--wine-800)] bg-[rgba(43,15,20,0.5)] px-4 py-12 sm:px-6">
+      <section className="border-b border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-4 py-12 sm:px-6">
         <div className="mx-auto max-w-7xl">
-          <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-[var(--shresta-text-muted)]">
+          <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-[var(--shresta-logo-muted)]">
             <Link className="hover:text-[var(--gold-400)]" href="/">Home</Link>
             <span>/</span>
-            <span className="text-[var(--shresta-text-primary)]">{isCategories ? "Categories" : "Collections"}</span>
+            <span className="text-[var(--shresta-logo-text)]">{isCategories ? "Categories" : "Collections"}</span>
           </nav>
-          <h1 className="mt-4 font-serif text-4xl font-light text-white sm:text-5xl">{isCategories ? "Shop by Category" : "Our Collections"}</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--shresta-text-secondary)]">
+          <h1 className="mt-4 font-serif text-4xl font-light text-[var(--shresta-logo-text)] sm:text-5xl">{isCategories ? "Shop by Category" : "Our Collections"}</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--shresta-logo-muted)]">
             {isCategories
               ? "Browse SHRESTA saree edits for weddings, festivals, and daily wear from one place."
               : "Curated SHRESTA saree edits across weave stories and occasion-led collections."}
@@ -732,11 +767,11 @@ export function StorefrontCollectionsExperience({
         </div>
       </section>
 
-      <section className="bg-[var(--wine-950)] px-4 py-12 sm:px-6">
+      <section className="bg-[var(--shresta-logo-bg)] px-4 py-12 sm:px-6">
         <div className="mx-auto grid max-w-7xl gap-6 md:grid-cols-2">
           {home.featuredCollections.map((collection) => (
             <Link
-              className="group relative overflow-hidden rounded-lg border border-[var(--wine-800)] bg-[var(--wine-900)]"
+              className="group relative overflow-hidden rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)]"
               href={`/collections/${collection.slug}`}
               key={collection.id}
             >
@@ -750,7 +785,7 @@ export function StorefrontCollectionsExperience({
               </div>
               <div className="absolute inset-0 flex flex-col justify-end p-6">
                 <h2 className="font-serif text-2xl font-light text-white transition group-hover:text-[var(--gold-300)]">{collection.title}</h2>
-                <p className="mt-2 max-w-xl text-sm leading-6 text-[var(--shresta-text-secondary)]">{collection.description}</p>
+                <p className="mt-2 max-w-xl text-sm leading-6 text-white/80">{collection.description}</p>
                 <p className="mt-3 text-sm font-semibold text-[var(--gold-400)]">{collection.itemCount} products</p>
               </div>
             </Link>
@@ -758,20 +793,20 @@ export function StorefrontCollectionsExperience({
         </div>
       </section>
 
-      <section className="bg-[var(--wine-900)] px-4 py-12 sm:px-6">
+      <section className="bg-[var(--shresta-logo-surface)] px-4 py-12 sm:px-6">
         <div className="mx-auto max-w-7xl">
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--gold-400)]">Category families</p>
-          <h2 className="mt-2 font-serif text-3xl font-light text-white">SHRESTA product families</h2>
+          <h2 className="mt-2 font-serif text-3xl font-light text-[var(--shresta-logo-text)]">SHRESTA product families</h2>
           <div className="mt-6 grid gap-4 md:grid-cols-3">
             {categories.map((category) => (
               <Link
-                className="rounded-lg border border-[var(--wine-800)] bg-[rgba(26,9,12,0.34)] p-5 hover:border-[var(--gold-500)]"
+                className="rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-5 hover:border-[var(--gold-500)]"
                 href={`/categories/${familyKeyToSlug(category.familyKey)}`}
                 key={category.familyKey}
               >
-                <h3 className="font-serif text-2xl font-light text-white">{category.displayName}</h3>
-                <p className="mt-2 text-sm leading-6 text-[var(--shresta-text-secondary)]">{category.description}</p>
-                <p className="mt-4 text-xs font-bold uppercase tracking-[0.12em] text-[var(--shresta-text-muted)]">
+                <h3 className="font-serif text-2xl font-light text-[var(--shresta-logo-text)]">{category.displayName}</h3>
+                <p className="mt-2 text-sm leading-6 text-[var(--shresta-logo-muted)]">{category.description}</p>
+                <p className="mt-4 text-xs font-bold uppercase tracking-[0.12em] text-[var(--shresta-logo-muted)]">
                   {category.productTypes.length} subcategories - {category.filters.length} filters
                 </p>
               </Link>
@@ -823,33 +858,33 @@ export function StorefrontStoresExperience({ home, stores }: { home: StorefrontH
 
   return (
     <StorefrontPageChrome home={home}>
-      <section className="border-b border-[var(--wine-700)] bg-[var(--wine-800)] px-4 py-8 sm:px-6">
+      <section className="border-b border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-4 py-8 sm:px-6">
         <div className="mx-auto max-w-7xl">
-          <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-white/70">
-            <Link className="hover:text-white" href="/">Home</Link>
+          <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-sm text-[var(--shresta-logo-muted)]">
+            <Link className="hover:text-[var(--shresta-logo-text)]" href="/">Home</Link>
             <span>/</span>
-            <span className="text-white">Store Locator</span>
+            <span className="text-[var(--shresta-logo-text)]">Store Locator</span>
           </nav>
           <div className="mt-4 flex items-center gap-3">
             <MapPin className="h-8 w-8 text-[var(--gold-500)]" />
-            <h1 className="text-3xl font-light text-white">{stores.section.title}</h1>
+            <h1 className="text-3xl font-light text-[var(--shresta-logo-text)]">{stores.section.title}</h1>
           </div>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/70">
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--shresta-logo-muted)]">
             {stores.section.description}
           </p>
         </div>
       </section>
 
-      <section className="bg-[var(--wine-950)] px-4 py-8 sm:px-6">
+      <section className="bg-[var(--shresta-logo-bg)] px-4 py-8 sm:px-6">
         <div className="mx-auto max-w-7xl">
-          <div className="mb-8 rounded-xl border border-[var(--wine-700)] bg-[var(--wine-800)] p-6">
+          <div className="mb-8 rounded-xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-              <label className="grid flex-1 gap-2 text-sm font-medium text-white/80">
+              <label className="grid flex-1 gap-2 text-sm font-medium text-[var(--shresta-logo-muted)]">
                 Search Stores
                 <span className="relative block">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/50" />
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--shresta-logo-muted)]" />
                   <input
-                    className="min-h-11 w-full rounded-lg border border-[var(--wine-600)] bg-[var(--wine-800)] px-10 text-sm text-white outline-none placeholder:text-white/50 focus:border-[var(--gold-500)]"
+                    className="min-h-11 w-full rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-10 text-sm text-[var(--shresta-logo-text)] outline-none placeholder:text-[var(--shresta-logo-muted)] focus:border-[var(--gold-500)]"
                     onChange={(event) => updateQuery(event.target.value)}
                     placeholder="Search by store name, city, or address..."
                     value={query}
@@ -857,7 +892,7 @@ export function StorefrontStoresExperience({ home, stores }: { home: StorefrontH
                   {query ? (
                     <button
                       aria-label="Clear store search"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-white/50 hover:text-white"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--shresta-logo-muted)] hover:text-[var(--shresta-logo-text)]"
                       onClick={() => updateQuery("")}
                       type="button"
                     >
@@ -866,10 +901,10 @@ export function StorefrontStoresExperience({ home, stores }: { home: StorefrontH
                   ) : null}
                 </span>
               </label>
-              <label className="grid gap-2 text-sm font-medium text-white/80 sm:w-48">
+              <label className="grid gap-2 text-sm font-medium text-[var(--shresta-logo-muted)] sm:w-48">
                 <span><MapPin className="mr-1 inline h-4 w-4" />City</span>
                 <select
-                  className="min-h-11 rounded-lg border border-[var(--wine-600)] bg-[var(--wine-800)] px-4 text-sm text-white outline-none focus:border-[var(--gold-500)]"
+                  className="min-h-11 rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-4 text-sm text-[var(--shresta-logo-text)] outline-none focus:border-[var(--gold-500)]"
                   onChange={(event) => updateCity(event.target.value)}
                   value={city}
                 >
@@ -879,10 +914,10 @@ export function StorefrontStoresExperience({ home, stores }: { home: StorefrontH
                   ))}
                 </select>
               </label>
-              <label className="grid gap-2 text-sm font-medium text-white/80 sm:w-48">
+              <label className="grid gap-2 text-sm font-medium text-[var(--shresta-logo-muted)] sm:w-48">
                 <span><Building2 className="mr-1 inline h-4 w-4" />State</span>
                 <select
-                  className="min-h-11 rounded-lg border border-[var(--wine-600)] bg-[var(--wine-800)] px-4 text-sm text-white outline-none focus:border-[var(--gold-500)]"
+                  className="min-h-11 rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-4 text-sm text-[var(--shresta-logo-text)] outline-none focus:border-[var(--gold-500)]"
                   onChange={(event) => updateState(event.target.value)}
                   value={state}
                 >
@@ -894,7 +929,7 @@ export function StorefrontStoresExperience({ home, stores }: { home: StorefrontH
               </label>
               {hasStoreFilters ? (
                 <button
-                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium text-white/70 transition hover:bg-[var(--wine-700)] hover:text-white"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 text-sm font-medium text-[var(--shresta-logo-muted)] transition hover:bg-[var(--shresta-logo-bg)] hover:text-[var(--shresta-logo-text)]"
                   onClick={clearStoreFilters}
                   type="button"
                 >
@@ -917,13 +952,13 @@ export function StorefrontStoresExperience({ home, stores }: { home: StorefrontH
           </div>
 
           <div className="grid gap-6 lg:grid-cols-[400px_1fr] xl:grid-cols-[450px_1fr]">
-            <div className="max-h-[calc(100vh-300px)] overflow-y-auto rounded-xl border border-[var(--wine-700)] bg-[var(--wine-800)] p-4 lg:max-h-[700px]">
+            <div className="max-h-[calc(100vh-300px)] overflow-y-auto rounded-xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-4 lg:max-h-[700px]">
               <div className="mb-4 flex items-center justify-between">
-                <p className="text-sm text-[var(--shresta-text-secondary)]">
+                <p className="text-sm text-[var(--shresta-logo-muted)]">
                   <MapPin className="mr-1 inline h-4 w-4" />
                   {filteredStores.length} store{filteredStores.length === 1 ? "" : "s"} found
                 </p>
-                <span className="text-xs text-white/45">{stores.stores.length} total</span>
+                <span className="text-xs text-[var(--shresta-logo-muted)]">{stores.stores.length} total</span>
               </div>
               <div className="space-y-4">
                 {filteredStores.map((store) => (
@@ -935,10 +970,10 @@ export function StorefrontStoresExperience({ home, stores }: { home: StorefrontH
                   />
                 ))}
                 {filteredStores.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center rounded-lg border border-[var(--wine-700)] bg-[rgba(26,9,12,0.34)] px-5 py-16 text-center">
-                    <MapPin className="mb-4 h-8 w-8 text-[var(--shresta-text-muted)]" />
-                    <h2 className="text-lg font-medium text-white">No stores found</h2>
-                    <p className="mt-2 max-w-sm text-sm leading-6 text-white/60">Try adjusting your search or filters.</p>
+                  <div className="flex flex-col items-center justify-center rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-bg)] px-5 py-16 text-center">
+                    <MapPin className="mb-4 h-8 w-8 text-[var(--shresta-logo-muted)]" />
+                    <h2 className="text-lg font-medium text-[var(--shresta-logo-text)]">No stores found</h2>
+                    <p className="mt-2 max-w-sm text-sm leading-6 text-[var(--shresta-logo-muted)]">Try adjusting your search or filters.</p>
                   </div>
                 ) : null}
               </div>
@@ -952,27 +987,27 @@ export function StorefrontStoresExperience({ home, stores }: { home: StorefrontH
             </div>
           </div>
 
-          <div className="mt-12 rounded-xl border border-[var(--wine-700)] bg-[var(--wine-800)] p-8">
-            <h2 className="text-xl font-medium text-white">Why Visit Our Stores?</h2>
+          <div className="mt-8 rounded-xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-6">
+            <h2 className="text-xl font-medium text-[var(--shresta-logo-text)]">Why Visit Our Stores?</h2>
             <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {visitHighlights.slice(0, 4).map((title, index) => (
                 <div className="space-y-2" key={title}>
                   <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-[rgba(212,175,55,0.14)] text-lg font-bold text-[var(--gold-400)]">{index + 1}</span>
-                  <h3 className="font-medium text-white">{title}</h3>
-                  <p className="text-sm leading-6 text-white/60">{stores.section.serviceNote}</p>
+                  <h3 className="font-medium text-[var(--shresta-logo-text)]">{title}</h3>
+                  <p className="text-sm leading-6 text-[var(--shresta-logo-muted)]">{stores.section.serviceNote}</p>
                 </div>
               ))}
             </div>
           </div>
 
           <div className="mt-8 text-center">
-            <p className="text-white/60">
+            <p className="text-[var(--shresta-logo-muted)]">
               Can&apos;t visit a store?{" "}
               <Link className="text-[var(--gold-500)] hover:text-[var(--gold-400)]" href="/support">
                 Contact us
               </Link>{" "}
               for a virtual appointment or visit our{" "}
-              <Link className="text-[var(--gold-400)] hover:text-[var(--gold-300)]" href="/products">
+              <Link className="text-[var(--gold-400)] hover:text-[var(--gold-600)]" href="/products">
                 online store
               </Link>
               .
@@ -986,10 +1021,10 @@ export function StorefrontStoresExperience({ home, stores }: { home: StorefrontH
 
 function StoreFilterChip({ icon: Icon, label, onRemove }: { icon: LucideIcon; label: string; onRemove: () => void }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-[rgba(212,175,55,0.18)] px-3 py-1 text-sm text-[var(--gold-300)]">
+    <span className="inline-flex items-center gap-1 rounded-full bg-[rgba(212,175,55,0.18)] px-3 py-1 text-sm text-[var(--gold-600)]">
       <Icon className="h-3 w-3" />
       {label}
-      <button aria-label={`Remove ${label}`} className="ml-1 hover:text-white" onClick={onRemove} type="button">
+      <button aria-label={`Remove ${label}`} className="ml-1 hover:text-[var(--shresta-logo-text)]" onClick={onRemove} type="button">
         <X className="h-3 w-3" />
       </button>
     </span>
@@ -1025,53 +1060,53 @@ function StoreCoverageMap({
   stores: StoreLocation[];
 }) {
   return (
-    <div className="relative h-full overflow-hidden rounded-xl border border-[var(--wine-700)] bg-[linear-gradient(135deg,rgba(72,16,37,0.74),rgba(26,9,12,0.96))]">
-      <div className="absolute inset-0 opacity-25 [background-image:linear-gradient(rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:44px_44px]" />
+    <div className="relative h-full overflow-hidden rounded-xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-bg)]">
+      <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(111,86,58,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(111,86,58,0.08)_1px,transparent_1px)] [background-size:44px_44px]" />
       <div className="relative flex h-full flex-col p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--gold-400)]">India Service Map</p>
-            <h2 className="mt-2 font-serif text-3xl font-light text-white sm:text-4xl">Coverage Map</h2>
-            <p className="mt-2 max-w-lg text-sm leading-6 text-white/65">
+            <h2 className="mt-2 font-serif text-3xl font-light text-[var(--shresta-logo-text)] sm:text-4xl">Coverage Map</h2>
+            <p className="mt-2 max-w-lg text-sm leading-6 text-[var(--shresta-logo-muted)]">
               Search or select a SHRESTA store to zoom into its nearby service area.
             </p>
           </div>
           {selectedStore ? (
-            <span className="rounded-full border border-[rgba(212,175,55,0.38)] bg-[rgba(212,175,55,0.12)] px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[var(--gold-300)]">
+            <span className="rounded-full border border-[rgba(212,175,55,0.38)] bg-[rgba(212,175,55,0.12)] px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[var(--gold-600)]">
               Zoomed: {selectedStore.shortName}
             </span>
           ) : null}
         </div>
 
-        <div className="relative mt-5 min-h-0 flex-1 overflow-hidden rounded-lg border border-white/10 bg-[rgba(26,9,12,0.7)]">
+        <div className="relative mt-5 min-h-0 flex-1 overflow-hidden rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)]">
           <StorefrontLeafletMap
             onSelect={onSelect}
             selectedStore={selectedStore}
             stores={stores}
           />
-          <div className="absolute bottom-4 left-4 right-4 rounded-lg border border-white/10 bg-[rgba(26,9,12,0.74)] p-4 shadow-[0_18px_48px_rgba(0,0,0,0.32)] backdrop-blur">
+          <div className="absolute bottom-4 left-4 right-4 rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-bg)] p-4 shadow-[0_18px_48px_rgba(47,33,21,0.12)] backdrop-blur">
             {selectedStore ? (
               <div>
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="font-medium text-white">{selectedStore.displayName}</p>
-                    <p className="mt-1 text-sm text-white/60">{selectedStore.address.city}, {selectedStore.address.state}</p>
+                    <p className="font-medium text-[var(--shresta-logo-text)]">{selectedStore.displayName}</p>
+                    <p className="mt-1 text-sm text-[var(--shresta-logo-muted)]">{selectedStore.address.city}, {selectedStore.address.state}</p>
                   </div>
-                  <span className="rounded-full border border-[rgba(212,175,55,0.38)] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gold-300)]">
+                  <span className="rounded-full border border-[rgba(212,175,55,0.38)] px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-[var(--gold-600)]">
                     {titleCase(selectedStore.status)}
                   </span>
                 </div>
-                <p className="mt-3 text-xs text-white/55">{selectedStore.fulfillment.deliveryPromise} - pickup {selectedStore.fulfillment.pickupPromise}</p>
+                <p className="mt-3 text-xs text-[var(--shresta-logo-muted)]">{selectedStore.fulfillment.deliveryPromise} - pickup {selectedStore.fulfillment.pickupPromise}</p>
               </div>
             ) : (
-              <p className="text-sm text-white/60">{stores.length} active SHRESTA service location{stores.length === 1 ? "" : "s"} available across India.</p>
+              <p className="text-sm text-[var(--shresta-logo-muted)]">{stores.length} active SHRESTA service location{stores.length === 1 ? "" : "s"} available across India.</p>
             )}
           </div>
         </div>
 
         <div className="mt-4 grid gap-2 text-xs sm:grid-cols-3">
           <MapLegend dotClass="bg-[var(--gold-500)]" label="Flagship / same-day" />
-          <MapLegend dotClass="bg-[var(--wine-950)] border-2 border-[var(--gold-400)]" label="Selected store" />
+          <MapLegend dotClass="bg-[var(--shresta-logo-bg)] border-2 border-[var(--gold-400)]" label="Selected store" />
           <MapLegend dotClass="bg-[var(--wine-600)] border-2 border-white" label="Regular store" />
         </div>
       </div>
@@ -1081,7 +1116,7 @@ function StoreCoverageMap({
 
 function MapLegend({ dotClass, label }: { dotClass: string; label: string }) {
   return (
-    <span className="flex items-center gap-2 rounded-lg bg-[rgba(26,9,12,0.52)] px-3 py-2 text-white/70">
+    <span className="flex items-center gap-2 rounded-lg bg-[var(--shresta-logo-surface)] px-3 py-2 text-[var(--shresta-logo-muted)]">
       <span className={`h-4 w-4 rounded-full ${dotClass}`} />
       {label}
     </span>
@@ -1103,42 +1138,42 @@ function StoreNetworkCard({
 
   return (
     <button
-      className={isSelected ? "block w-full rounded-xl border border-[var(--gold-500)] bg-[rgba(212,175,55,0.12)] p-4 text-left shadow-[0_0_0_1px_rgba(212,175,55,0.12)]" : "block w-full rounded-xl border border-[var(--wine-700)] bg-[rgba(26,9,12,0.34)] p-4 text-left transition hover:border-[var(--gold-500)]"}
+      className={isSelected ? "block w-full rounded-xl border border-[var(--gold-500)] bg-[rgba(212,175,55,0.12)] p-4 text-left shadow-[0_0_0_1px_rgba(212,175,55,0.12)]" : "block w-full rounded-xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-4 text-left transition hover:border-[var(--gold-500)]"}
       onClick={onSelect}
       type="button"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-medium text-white">{store.displayName}</p>
+          <p className="font-medium text-[var(--shresta-logo-text)]">{store.displayName}</p>
           <p className="mt-1 text-xs font-bold uppercase tracking-[0.12em] text-[var(--gold-400)]">{titleCase(store.status)}</p>
         </div>
         {store.fulfillment.sameDayAvailable ? (
-          <span className="shrink-0 whitespace-nowrap rounded-full bg-[rgba(212,175,55,0.16)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gold-300)]">
+          <span className="shrink-0 whitespace-nowrap rounded-full bg-[rgba(212,175,55,0.16)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[var(--gold-600)]">
             Same day
           </span>
         ) : null}
       </div>
-      <p className="mt-3 text-sm leading-6 text-white/65">
+      <p className="mt-3 text-sm leading-6 text-[var(--shresta-logo-muted)]">
         {store.address.addressLine1}{store.address.addressLine2 ? `, ${store.address.addressLine2}` : ""}, {store.address.locality}, {store.address.city} {store.address.postalCode}
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         {store.serviceModes.map((mode) => (
-          <span className="whitespace-nowrap rounded-full border border-white/10 px-2.5 py-1 text-[11px] font-semibold text-white/70" key={mode}>
+          <span className="whitespace-nowrap rounded-full border border-[var(--shresta-logo-border)] px-2.5 py-1 text-[11px] font-semibold text-[var(--shresta-logo-muted)]" key={mode}>
             {titleCase(mode)}
           </span>
         ))}
       </div>
-      <dl className="mt-4 grid gap-3 text-xs text-white/62">
+      <dl className="mt-4 grid gap-3 text-xs text-[var(--shresta-logo-muted)]">
         <div>
-          <dt className="font-bold uppercase tracking-[0.12em] text-white/35">Hours</dt>
+          <dt className="font-bold uppercase tracking-[0.12em] text-[var(--shresta-logo-muted)]">Hours</dt>
           <dd className="mt-1">{openHours}</dd>
         </div>
         <div>
-          <dt className="font-bold uppercase tracking-[0.12em] text-white/35">Delivery</dt>
+          <dt className="font-bold uppercase tracking-[0.12em] text-[var(--shresta-logo-muted)]">Delivery</dt>
           <dd className="mt-1">{store.fulfillment.deliveryPromise} - pickup {store.fulfillment.pickupPromise}</dd>
         </div>
         <div>
-          <dt className="font-bold uppercase tracking-[0.12em] text-white/35">Contact</dt>
+          <dt className="font-bold uppercase tracking-[0.12em] text-[var(--shresta-logo-muted)]">Contact</dt>
           <dd className="mt-1">{store.contact.phone ?? store.contact.email ?? "SHRESTA support"}</dd>
         </div>
       </dl>
@@ -1167,33 +1202,33 @@ export function StorefrontUtilityPageExperience({
     <StorefrontPageChrome home={home}>
       {(controls) => (
         <>
-          <section className="bg-[var(--wine-950)] px-4 py-14 sm:px-6 lg:py-20">
+          <section className="bg-[var(--shresta-logo-bg)] px-4 py-12 sm:px-6 lg:py-16">
             <div className="mx-auto max-w-5xl text-center">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--gold-400)]">{eyebrow}</p>
-              <h1 className="mt-3 font-serif text-4xl font-light leading-tight text-white sm:text-6xl">{title}</h1>
-              <p className="mx-auto mt-5 max-w-2xl text-sm leading-6 text-[var(--shresta-text-secondary)] sm:text-base">{description}</p>
-              <Link className="mt-8 inline-flex min-h-12 items-center rounded-full bg-[var(--gold-500)] px-7 text-sm font-bold text-[var(--wine-950)] hover:bg-[var(--gold-600)]" href={primaryHref}>
+              <h1 className="mt-3 font-serif text-4xl font-light leading-tight text-[var(--shresta-logo-text)] sm:text-6xl">{title}</h1>
+              <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-[var(--shresta-logo-muted)] sm:text-base">{description}</p>
+              <Link className="mt-6 inline-flex min-h-12 items-center rounded-full bg-[var(--gold-500)] px-7 text-sm font-bold text-[var(--wine-950)] hover:bg-[var(--gold-600)]" href={primaryHref}>
                 {primaryLabel}
               </Link>
             </div>
           </section>
 
-          <section className="bg-[var(--wine-900)] px-4 py-12 sm:px-6">
+          <section className="bg-[var(--shresta-logo-surface)] px-4 py-12 sm:px-6">
             <div className="mx-auto grid max-w-7xl gap-4 md:grid-cols-3">
               {panels.map((panel) => (
-                <article className="rounded-lg border border-[var(--wine-800)] bg-[rgba(26,9,12,0.34)] p-5" key={panel.title}>
-                  <h2 className="font-serif text-2xl font-light text-white">{panel.title}</h2>
-                  <p className="mt-3 text-sm leading-6 text-[var(--shresta-text-secondary)]">{panel.body}</p>
+                <article className="rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-5" key={panel.title}>
+                  <h2 className="font-serif text-2xl font-light text-[var(--shresta-logo-text)]">{panel.title}</h2>
+                  <p className="mt-3 text-sm leading-6 text-[var(--shresta-logo-muted)]">{panel.body}</p>
                 </article>
               ))}
             </div>
           </section>
 
-          <section className="bg-[var(--wine-950)] px-4 py-16 sm:px-6">
+          <section className="bg-[var(--shresta-logo-bg)] px-4 py-12 sm:px-6">
             <div className="mx-auto max-w-7xl">
               <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--gold-400)]">Recommended for you</p>
-              <h2 className="mt-2 font-serif text-3xl font-light text-white">Continue shopping</h2>
-              <div className="mt-8 grid grid-cols-1 gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+              <h2 className="mt-2 font-serif text-3xl font-light text-[var(--shresta-logo-text)]">Continue shopping</h2>
+              <div className="mt-6 grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
                 {home.bestsellers.slice(0, 4).map((product, index) => (
                   <StorefrontProductCard controls={controls} eager={index < 4} key={product.id} product={product} />
                 ))}
@@ -1220,12 +1255,12 @@ function ListingHero({
   query?: string;
 }) {
   return (
-    <section className="border-b border-[var(--wine-800)] bg-[rgba(43,15,20,0.5)] px-4 py-8 sm:px-6">
+    <section className="border-b border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-4 py-8 sm:px-6">
       <div className="mx-auto max-w-7xl">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--gold-300)]">{eyebrow}</p>
-        <h1 className="mt-3 font-serif text-4xl font-light leading-tight text-white sm:text-5xl">{title}</h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--shresta-text-secondary)]">{description}</p>
-        <p className="mt-3 text-sm text-[var(--shresta-text-muted)]">
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--gold-500)]">{eyebrow}</p>
+        <h1 className="mt-3 font-serif text-4xl font-light leading-tight text-[var(--shresta-logo-text)] sm:text-5xl">{title}</h1>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--shresta-logo-muted)]">{description}</p>
+        <p className="mt-3 text-sm text-[var(--shresta-logo-muted)]">
           {query ? `${productCount} results for "${query}"` : `${productCount} products`}
         </p>
       </div>
@@ -1303,7 +1338,7 @@ function CatalogMobileFilterDrawer({
         onClick={onClose}
         type="button"
       />
-      <div className="absolute inset-y-0 right-0 flex w-full max-w-[420px] flex-col border-l border-[var(--wine-800)] bg-[var(--wine-950)] shadow-2xl">
+      <div className="absolute inset-y-0 right-0 flex w-full max-w-[420px] flex-col border-l border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-bg)] shadow-2xl">
         <CatalogSidebar {...filterProps} onClose={onClose} variant="drawer" />
       </div>
     </div>
@@ -1347,17 +1382,17 @@ function CatalogSidebar({
 
   return (
     <aside className={isDrawer
-      ? "flex h-full min-h-0 flex-col overflow-hidden bg-[rgba(43,15,20,0.98)] backdrop-blur"
-      : "hidden flex-col overflow-hidden rounded-2xl border border-[var(--wine-800)] bg-[rgba(43,15,20,0.94)] shadow-2xl shadow-black/30 backdrop-blur lg:sticky lg:top-24 lg:flex lg:max-h-[calc(100vh-8rem)]"
+      ? "flex h-full min-h-0 flex-col overflow-hidden bg-[var(--shresta-logo-surface)] backdrop-blur"
+      : "hidden flex-col overflow-hidden rounded-2xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] shadow-2xl shadow-black/30 backdrop-blur lg:sticky lg:top-24 lg:flex lg:max-h-[calc(100vh-8rem)]"
     }>
-      <div className="shrink-0 flex items-center justify-between border-b border-[var(--wine-800)] bg-[rgba(26,9,12,0.5)] px-5 py-4">
+      <div className="shrink-0 flex items-center justify-between border-b border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-5 py-4">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[rgba(212,175,55,0.22)] bg-[rgba(212,175,55,0.14)]">
             <SlidersHorizontal className="h-4 w-4 text-[var(--gold-400)]" />
           </div>
           <div>
-            <h2 className="text-base font-semibold text-[var(--shresta-text-primary)]">Filters</h2>
-            <p className="text-xs text-[var(--shresta-text-muted)]">
+            <h2 className="text-base font-semibold text-[var(--shresta-logo-text)]">Filters</h2>
+            <p className="text-xs text-[var(--shresta-logo-muted)]">
               {activeFilterCount > 0 ? `${activeFilterCount} active` : "Refine results"}
             </p>
           </div>
@@ -1366,7 +1401,7 @@ function CatalogSidebar({
           {hasActiveFilters ? (
             <button
               aria-label="Clear all filters"
-              className="group flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-[var(--shresta-text-muted)] transition hover:bg-[var(--wine-800)] hover:text-[var(--shresta-text-primary)]"
+              className="group flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-xs font-medium text-[var(--shresta-logo-muted)] transition hover:bg-[var(--shresta-logo-surface)] hover:text-[var(--shresta-logo-text)]"
               onClick={onClearAllFilters}
               type="button"
             >
@@ -1377,7 +1412,7 @@ function CatalogSidebar({
           {onClose ? (
             <button
               aria-label="Close filters"
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--wine-800)] text-[var(--shresta-text-secondary)] transition hover:border-[var(--gold-500)] hover:text-[var(--gold-300)]"
+              className="flex h-9 w-9 items-center justify-center rounded-lg border border-[var(--shresta-logo-border)] text-[var(--shresta-logo-muted)] transition hover:border-[var(--gold-500)] hover:text-[var(--gold-600)]"
               onClick={onClose}
               type="button"
             >
@@ -1388,9 +1423,9 @@ function CatalogSidebar({
       </div>
 
       {activeFilterChips.length > 0 ? (
-        <div className="shrink-0 border-b border-[var(--wine-800)] bg-[rgba(43,15,20,0.54)] px-5 py-4">
+        <div className="shrink-0 border-b border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-5 py-4">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-medium uppercase tracking-wider text-[var(--shresta-text-muted)]">Active Filters</span>
+            <span className="text-xs font-medium uppercase tracking-wider text-[var(--shresta-logo-muted)]">Active Filters</span>
             <span className="text-xs font-medium text-[var(--gold-400)]">{activeFilterChips.length}</span>
           </div>
           <div className="flex max-h-28 flex-wrap gap-2 overflow-y-auto pr-1">
@@ -1448,8 +1483,8 @@ function CatalogSidebar({
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-[var(--wine-800)] bg-[rgba(26,9,12,0.72)] px-5 py-3">
-        <p className="text-center text-xs font-medium uppercase tracking-[0.14em] text-[var(--shresta-text-muted)]">
+      <div className="shrink-0 border-t border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-5 py-3">
+        <p className="text-center text-xs font-medium uppercase tracking-[0.14em] text-[var(--shresta-logo-muted)]">
           Showing <span className="text-[var(--gold-400)]">{resultCount}</span> SHRESTA products
         </p>
       </div>
@@ -1477,8 +1512,8 @@ function CatalogPager({
   const pageTokens = catalogPageTokens(currentPage, pageCount);
 
   return (
-    <nav aria-label="Catalog pagination" className="mt-12 space-y-4">
-      <div className="mx-auto flex w-full max-w-xl items-center justify-between gap-3 rounded-full border border-[var(--wine-700)] bg-[linear-gradient(135deg,rgba(26,9,12,0.88),rgba(72,16,37,0.74))] p-2 shadow-[0_18px_60px_rgba(0,0,0,0.28)]">
+    <nav aria-label="Catalog pagination" className="mt-8 space-y-3">
+      <div className="mx-auto flex w-full max-w-xl items-center justify-between gap-3 rounded-full border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-2 shadow-[0_16px_48px_rgba(47,33,21,0.16)]">
         <CatalogPagerButton
           direction="previous"
           disabled={currentPage <= 1}
@@ -1502,7 +1537,7 @@ function CatalogPager({
         />
       </div>
       <div className="mx-auto flex max-w-xl flex-col items-center gap-3">
-        <p className="text-center text-xs font-semibold uppercase tracking-[0.16em] text-[var(--shresta-text-muted)]">
+        <p className="text-center text-xs font-semibold uppercase tracking-[0.16em] text-[var(--shresta-logo-muted)]">
           Showing <span className="text-[var(--gold-400)]">{visibleFrom}-{visibleTo}</span> of <span className="text-[var(--gold-400)]">{resultCount}</span>
         </p>
         <div className="flex flex-wrap items-center justify-center gap-2">
@@ -1511,8 +1546,8 @@ function CatalogPager({
               aria-current={token === currentPage ? "page" : undefined}
               aria-label={`Go to catalog page ${token}`}
               className={token === currentPage
-                ? "flex h-9 min-w-9 items-center justify-center rounded-full border border-[var(--gold-500)] bg-[rgba(212,175,55,0.18)] px-3 text-sm font-black text-[var(--gold-300)]"
-                : "flex h-9 min-w-9 items-center justify-center rounded-full border border-[var(--wine-700)] bg-[rgba(255,255,255,0.04)] px-3 text-sm font-bold text-[var(--shresta-text-secondary)] transition hover:border-[var(--gold-500)] hover:text-[var(--gold-300)]"
+                ? "flex h-9 min-w-9 items-center justify-center rounded-full border border-[var(--gold-500)] bg-[rgba(212,175,55,0.18)] px-3 text-sm font-black text-[var(--gold-600)]"
+                : "flex h-9 min-w-9 items-center justify-center rounded-full border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-3 text-sm font-bold text-[var(--shresta-logo-muted)] transition hover:border-[var(--gold-500)] hover:text-[var(--gold-600)]"
               }
               key={token}
               onClick={() => onPageChange(token)}
@@ -1521,7 +1556,7 @@ function CatalogPager({
               {token}
             </button>
           ) : (
-            <span className="px-1 text-sm font-bold text-[var(--shresta-text-muted)]" key={`${token}-${index}`}>...</span>
+            <span className="px-1 text-sm font-bold text-[var(--shresta-logo-muted)]" key={`${token}-${index}`}>...</span>
           ))}
         </div>
       </div>
@@ -1544,8 +1579,8 @@ function CatalogPagerButton({
 }) {
   const Icon = direction === "previous" ? ChevronLeft : ChevronRight;
   const className = disabled
-    ? "flex min-h-14 flex-1 cursor-not-allowed items-center justify-center gap-2 rounded-full border border-[var(--wine-700)] bg-[rgba(255,255,255,0.045)] px-3 text-left text-[var(--shresta-text-muted)] opacity-60 transition sm:justify-start sm:px-4"
-    : "flex min-h-14 flex-1 items-center justify-center gap-2 rounded-full border border-[var(--wine-700)] bg-[rgba(255,255,255,0.055)] px-3 text-left text-[var(--shresta-text-secondary)] transition hover:border-[var(--gold-500)] hover:bg-[rgba(212,175,55,0.1)] hover:text-[var(--gold-300)] active:scale-[0.98] sm:justify-start sm:px-4";
+    ? "flex min-h-14 flex-1 cursor-not-allowed items-center justify-center gap-2 rounded-full border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-3 text-left text-[var(--shresta-logo-muted)] opacity-60 transition sm:justify-start sm:px-4"
+    : "flex min-h-14 flex-1 items-center justify-center gap-2 rounded-full border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-3 text-left text-[var(--shresta-logo-muted)] transition hover:border-[var(--gold-500)] hover:bg-[rgba(212,175,55,0.1)] hover:text-[var(--gold-600)] active:scale-[0.98] sm:justify-start sm:px-4";
 
   return (
     <button
@@ -1556,16 +1591,16 @@ function CatalogPagerButton({
       type="button"
     >
       {direction === "previous" ? (
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--gold-500)] bg-[rgba(212,175,55,0.12)] text-[var(--gold-300)]">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--gold-500)] bg-[rgba(212,175,55,0.12)] text-[var(--gold-600)]">
           <Icon className="h-4 w-4" />
         </span>
       ) : null}
       <span className={direction === "next" ? "hidden min-w-0 flex-1 text-right sm:block" : "hidden min-w-0 flex-1 sm:block"}>
-        <span className="block text-sm font-semibold text-[var(--shresta-text-secondary)]">{label}</span>
-        <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-[var(--shresta-text-muted)]">{helper}</span>
+        <span className="block text-sm font-semibold text-[var(--shresta-logo-muted)]">{label}</span>
+        <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-[var(--shresta-logo-muted)]">{helper}</span>
       </span>
       {direction === "next" ? (
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--gold-500)] bg-[rgba(212,175,55,0.12)] text-[var(--gold-300)]">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--gold-500)] bg-[rgba(212,175,55,0.12)] text-[var(--gold-600)]">
           <Icon className="h-4 w-4" />
         </span>
       ) : null}
@@ -1631,7 +1666,7 @@ function CheckboxFilterGroup({
             onToggle={() => onToggle(value)}
           />
         )) : (
-          <p className="rounded-lg px-2 py-2 text-sm text-[var(--shresta-text-muted)]">No filters for this view</p>
+          <p className="rounded-lg px-2 py-2 text-sm text-[var(--shresta-logo-muted)]">No filters for this view</p>
         )}
       </div>
     </CollapsibleFilterSection>
@@ -1666,15 +1701,15 @@ function ManualPriceRangeFilterGroup({
     >
       <div className="space-y-3">
         <div className="grid gap-3">
-          <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--shresta-text-muted)]">
+          <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--shresta-logo-muted)]">
             Min price
-            <span className="flex min-h-12 overflow-hidden rounded-lg border border-[var(--wine-700)] bg-[rgba(26,9,12,0.58)] transition-colors focus-within:border-[var(--gold-500)]">
-              <span className="flex min-w-12 items-center justify-center border-r border-[var(--wine-700)] bg-[rgba(255,255,255,0.04)] text-sm font-semibold text-[var(--gold-300)]">
+            <span className="flex min-h-12 overflow-hidden rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] transition-colors focus-within:border-[var(--gold-500)]">
+              <span className="flex min-w-12 items-center justify-center border-r border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-bg)] text-sm font-semibold text-[var(--gold-600)]">
                 ₹
               </span>
               <input
                 aria-label="Minimum price"
-                className="min-w-0 flex-1 bg-transparent px-3 text-right font-mono text-base text-white outline-none placeholder:text-right placeholder:text-[var(--shresta-text-muted)]"
+                className="min-w-0 flex-1 bg-transparent px-3 text-right font-mono text-base text-[var(--shresta-logo-text)] outline-none placeholder:text-right placeholder:text-[var(--shresta-logo-muted)]"
                 inputMode="numeric"
                 onChange={(event) => onChange(sanitizePriceInput(event.target.value), maxInput)}
                 placeholder=""
@@ -1683,15 +1718,15 @@ function ManualPriceRangeFilterGroup({
               />
             </span>
           </label>
-          <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--shresta-text-muted)]">
+          <label className="grid gap-1.5 text-xs font-semibold uppercase tracking-[0.1em] text-[var(--shresta-logo-muted)]">
             Max price
-            <span className="flex min-h-12 overflow-hidden rounded-lg border border-[var(--wine-700)] bg-[rgba(26,9,12,0.58)] transition-colors focus-within:border-[var(--gold-500)]">
-              <span className="flex min-w-12 items-center justify-center border-r border-[var(--wine-700)] bg-[rgba(255,255,255,0.04)] text-sm font-semibold text-[var(--gold-300)]">
+            <span className="flex min-h-12 overflow-hidden rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] transition-colors focus-within:border-[var(--gold-500)]">
+              <span className="flex min-w-12 items-center justify-center border-r border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-bg)] text-sm font-semibold text-[var(--gold-600)]">
                 ₹
               </span>
               <input
                 aria-label="Maximum price"
-                className="min-w-0 flex-1 bg-transparent px-3 text-right font-mono text-base text-white outline-none placeholder:text-right placeholder:text-[var(--shresta-text-muted)]"
+                className="min-w-0 flex-1 bg-transparent px-3 text-right font-mono text-base text-[var(--shresta-logo-text)] outline-none placeholder:text-right placeholder:text-[var(--shresta-logo-muted)]"
                 inputMode="numeric"
                 onChange={(event) => onChange(minInput, sanitizePriceInput(event.target.value))}
                 placeholder=""
@@ -1701,15 +1736,15 @@ function ManualPriceRangeFilterGroup({
             </span>
           </label>
         </div>
-        <div className="rounded-lg border border-[var(--wine-700)] bg-[rgba(255,255,255,0.035)] px-3 py-2">
-          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[var(--shresta-text-muted)]">Manual range</p>
-          <p className="mt-1 text-sm font-semibold leading-5 text-white [overflow-wrap:anywhere]">{previewLabel}</p>
+        <div className="rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-bg)] px-3 py-2">
+          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-[var(--shresta-logo-muted)]">Manual range</p>
+          <p className="mt-1 text-sm font-semibold leading-5 text-[var(--shresta-logo-text)] [overflow-wrap:anywhere]">{previewLabel}</p>
         </div>
         {isInvalid ? (
           <p className="text-xs font-medium text-rose-300">Minimum price should be less than maximum price.</p>
         ) : null}
         {selectedRange ? (
-          <button className="inline-flex min-h-9 items-center rounded-full border border-[var(--wine-700)] px-4 text-xs font-semibold text-[var(--shresta-text-secondary)] hover:border-[var(--gold-500)] hover:text-[var(--gold-300)]" onClick={onClear} type="button">
+          <button className="inline-flex min-h-9 items-center rounded-full border border-[var(--shresta-logo-border)] px-4 text-xs font-semibold text-[var(--shresta-logo-muted)] hover:border-[var(--gold-500)] hover:text-[var(--gold-600)]" onClick={onClear} type="button">
             Clear price
           </button>
         ) : null}
@@ -1746,36 +1781,36 @@ function CategoryNavigationFilterGroup({
         {/* All Products row */}
         {multiSelect ? (
           <button
-            className="group flex min-h-11 w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition hover:bg-[rgba(72,16,37,0.5)]"
+            className="group flex min-h-11 w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition hover:bg-[var(--shresta-logo-surface)]"
             onClick={onClearFamilyKeys}
             type="button"
           >
             <span className={allSelected ? selectedIconBoxClass : unselectedIconBoxClass}>
-              <Crown className={allSelected ? "h-4 w-4 text-[var(--gold-400)]" : "h-4 w-4 text-[var(--shresta-text-muted)]"} />
+              <Crown className={allSelected ? "h-4 w-4 text-[var(--gold-400)]" : "h-4 w-4 text-[var(--shresta-logo-muted)]"} />
             </span>
             <span className={allSelected ? selectedBoxClass : unselectedBoxClass}>
               {allSelected ? <Check className="h-3.5 w-3.5 text-[var(--wine-950)]" strokeWidth={3} /> : null}
             </span>
-            <span className={allSelected ? "min-w-0 flex-1 text-sm font-medium text-[var(--gold-400)]" : "min-w-0 flex-1 text-sm text-[var(--shresta-text-secondary)] group-hover:text-[var(--shresta-text-primary)]"}>
+            <span className={allSelected ? "min-w-0 flex-1 text-sm font-medium text-[var(--gold-400)]" : "min-w-0 flex-1 text-sm text-[var(--shresta-logo-muted)] group-hover:text-[var(--shresta-logo-text)]"}>
               All Products
             </span>
-            <span className="rounded-full bg-[rgba(255,255,255,0.08)] px-2 py-0.5 text-xs text-[var(--shresta-text-muted)]">
+            <span className="rounded-full bg-[var(--shresta-logo-bg)] px-2 py-0.5 text-xs text-[var(--shresta-logo-muted)]">
               {totalProductCount}
             </span>
           </button>
         ) : (
           <Link
-            className="group flex min-h-11 items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-[rgba(72,16,37,0.5)]"
+            className="group flex min-h-11 items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-[var(--shresta-logo-surface)]"
             href="/products"
           >
             <span className={unselectedIconBoxClass}>
-              <Crown className="h-4 w-4 text-[var(--shresta-text-muted)]" />
+              <Crown className="h-4 w-4 text-[var(--shresta-logo-muted)]" />
             </span>
             <span className={unselectedBoxClass} />
-            <span className="min-w-0 flex-1 text-sm text-[var(--shresta-text-secondary)] group-hover:text-[var(--shresta-text-primary)]">
+            <span className="min-w-0 flex-1 text-sm text-[var(--shresta-logo-muted)] group-hover:text-[var(--shresta-logo-text)]">
               All Products
             </span>
-            <span className="rounded-full bg-[rgba(255,255,255,0.08)] px-2 py-0.5 text-xs text-[var(--shresta-text-muted)]">
+            <span className="rounded-full bg-[var(--shresta-logo-bg)] px-2 py-0.5 text-xs text-[var(--shresta-logo-muted)]">
               {totalProductCount}
             </span>
           </Link>
@@ -1789,21 +1824,21 @@ function CategoryNavigationFilterGroup({
             const isSelected = selectedFamilyKeys.has(category.familyKey);
             return (
               <button
-                className="group flex min-h-11 w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition hover:bg-[rgba(72,16,37,0.5)]"
+                className="group flex min-h-11 w-full items-center gap-3 rounded-lg px-2 py-2 text-left transition hover:bg-[var(--shresta-logo-surface)]"
                 key={category.familyKey}
                 onClick={() => onToggleFamilyKey(category.familyKey)}
                 type="button"
               >
                 <span className={isSelected ? selectedIconBoxClass : unselectedIconBoxClass}>
-                  <CategoryIcon className={isSelected ? "h-4 w-4 text-[var(--gold-400)]" : "h-4 w-4 text-[var(--shresta-text-muted)]"} />
+                  <CategoryIcon className={isSelected ? "h-4 w-4 text-[var(--gold-400)]" : "h-4 w-4 text-[var(--shresta-logo-muted)]"} />
                 </span>
                 <span className={isSelected ? selectedBoxClass : unselectedBoxClass}>
                   {isSelected ? <Check className="h-3.5 w-3.5 text-[var(--wine-950)]" strokeWidth={3} /> : null}
                 </span>
-                <span className={isSelected ? "min-w-0 flex-1 text-sm font-medium text-[var(--gold-400)]" : "min-w-0 flex-1 text-sm text-[var(--shresta-text-secondary)] group-hover:text-[var(--shresta-text-primary)]"}>
+                <span className={isSelected ? "min-w-0 flex-1 text-sm font-medium text-[var(--gold-400)]" : "min-w-0 flex-1 text-sm text-[var(--shresta-logo-muted)] group-hover:text-[var(--shresta-logo-text)]"}>
                   {category.displayName}
                 </span>
-                <span className="rounded-full bg-[rgba(255,255,255,0.08)] px-2 py-0.5 text-xs text-[var(--shresta-text-muted)]">
+                <span className="rounded-full bg-[var(--shresta-logo-bg)] px-2 py-0.5 text-xs text-[var(--shresta-logo-muted)]">
                   {counts.get(category.familyKey) ?? 0}
                 </span>
               </button>
@@ -1814,20 +1849,20 @@ function CategoryNavigationFilterGroup({
           const isSelected = category.familyKey === selected?.familyKey;
           return (
             <Link
-              className="group flex min-h-11 items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-[rgba(72,16,37,0.5)]"
+              className="group flex min-h-11 items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-[var(--shresta-logo-surface)]"
               href={`/categories/${familyKeyToSlug(category.familyKey)}`}
               key={category.familyKey}
             >
               <span className={isSelected ? selectedIconBoxClass : unselectedIconBoxClass}>
-                <CategoryIcon className={isSelected ? "h-4 w-4 text-[var(--gold-400)]" : "h-4 w-4 text-[var(--shresta-text-muted)]"} />
+                <CategoryIcon className={isSelected ? "h-4 w-4 text-[var(--gold-400)]" : "h-4 w-4 text-[var(--shresta-logo-muted)]"} />
               </span>
               <span className={isSelected ? selectedBoxClass : unselectedBoxClass}>
                 {isSelected ? <Check className="h-3.5 w-3.5 text-[var(--wine-950)]" strokeWidth={3} /> : null}
               </span>
-              <span className={isSelected ? "min-w-0 flex-1 text-sm font-medium text-[var(--gold-400)]" : "min-w-0 flex-1 text-sm text-[var(--shresta-text-secondary)] group-hover:text-[var(--shresta-text-primary)]"}>
+              <span className={isSelected ? "min-w-0 flex-1 text-sm font-medium text-[var(--gold-400)]" : "min-w-0 flex-1 text-sm text-[var(--shresta-logo-muted)] group-hover:text-[var(--shresta-logo-text)]"}>
                 {category.displayName}
               </span>
-              <span className="rounded-full bg-[rgba(255,255,255,0.08)] px-2 py-0.5 text-xs text-[var(--shresta-text-muted)]">
+              <span className="rounded-full bg-[var(--shresta-logo-bg)] px-2 py-0.5 text-xs text-[var(--shresta-logo-muted)]">
                 {counts.get(category.familyKey) ?? 0}
               </span>
             </Link>
@@ -1857,7 +1892,7 @@ function CollapsibleFilterSection({
   const hasSelection = activeCount > 0;
 
   return (
-    <div className="rounded-xl border border-transparent transition-colors hover:bg-[rgba(72,16,37,0.3)]">
+    <div className="rounded-xl border border-transparent transition-colors hover:bg-[var(--shresta-logo-surface)]">
       <button
         aria-expanded={isOpen}
         aria-label={`${isOpen ? "Collapse" : "Expand"} ${title} filter`}
@@ -1867,10 +1902,10 @@ function CollapsibleFilterSection({
       >
         <span className="flex items-center gap-3">
           <span className={hasSelection ? selectedIconBoxClass : unselectedIconBoxClass}>
-            <Icon className={hasSelection ? "h-4 w-4 text-[var(--gold-400)]" : "h-4 w-4 text-[var(--shresta-text-muted)]"} />
+            <Icon className={hasSelection ? "h-4 w-4 text-[var(--gold-400)]" : "h-4 w-4 text-[var(--shresta-logo-muted)]"} />
           </span>
           <span className="flex items-center gap-2">
-            <span className={hasSelection ? "text-sm font-medium text-[var(--gold-400)]" : "text-sm font-medium text-[var(--shresta-text-primary)]"}>
+            <span className={hasSelection ? "text-sm font-medium text-[var(--gold-400)]" : "text-sm font-medium text-[var(--shresta-logo-text)]"}>
               {title}
             </span>
             {activeCount > 0 ? (
@@ -1880,7 +1915,7 @@ function CollapsibleFilterSection({
             ) : null}
           </span>
         </span>
-        <ChevronDown className={isOpen ? "h-4 w-4 rotate-180 text-[var(--shresta-text-muted)] transition-transform" : "h-4 w-4 text-[var(--shresta-text-muted)] transition-transform"} />
+        <ChevronDown className={isOpen ? "h-4 w-4 rotate-180 text-[var(--shresta-logo-muted)] transition-transform" : "h-4 w-4 text-[var(--shresta-logo-muted)] transition-transform"} />
       </button>
       {isOpen ? (
         <div className={`overflow-hidden pb-3 ${contentClassName ?? "pl-[3.25rem] pr-4"}`}>
@@ -1903,15 +1938,15 @@ function ReferenceCheckboxRow({
   onToggle: () => void;
 }) {
   return (
-    <label className="group flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-[rgba(72,16,37,0.5)] active:bg-[var(--wine-800)]">
+    <label className="group flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-2 py-2 transition hover:bg-[var(--shresta-logo-surface)] active:bg-[var(--shresta-logo-surface)]">
       <input checked={checked} className="peer sr-only" onChange={onToggle} type="checkbox" />
       <span className={checked ? selectedBoxClass : unselectedBoxClass}>
         {checked ? <Check className="h-3.5 w-3.5 text-[var(--wine-950)]" strokeWidth={3} /> : null}
       </span>
-      <span className={checked ? "min-w-0 flex-1 text-sm font-medium text-[var(--gold-400)]" : "min-w-0 flex-1 text-sm text-[var(--shresta-text-secondary)] group-hover:text-[var(--shresta-text-primary)]"}>
+      <span className={checked ? "min-w-0 flex-1 text-sm font-medium text-[var(--gold-400)]" : "min-w-0 flex-1 text-sm text-[var(--shresta-logo-muted)] group-hover:text-[var(--shresta-logo-text)]"}>
         {label}
       </span>
-      <span className="rounded-full bg-[rgba(255,255,255,0.08)] px-2 py-0.5 text-xs text-[var(--shresta-text-muted)]">{count}</span>
+      <span className="rounded-full bg-[var(--shresta-logo-bg)] px-2 py-0.5 text-xs text-[var(--shresta-logo-muted)]">{count}</span>
     </label>
   );
 }
@@ -1922,7 +1957,7 @@ function CatalogFilterChip({ label, onRemove }: { label: string; onRemove: () =>
       <span className="font-medium">{label}</span>
       <button
         aria-label={`Remove ${label} filter`}
-        className="ml-0.5 rounded-full p-1 text-[rgba(212,175,55,0.72)] transition hover:bg-[rgba(212,175,55,0.3)] hover:text-[var(--gold-300)]"
+        className="ml-0.5 rounded-full p-1 text-[rgba(212,175,55,0.72)] transition hover:bg-[rgba(212,175,55,0.3)] hover:text-[var(--gold-600)]"
         onClick={onRemove}
         type="button"
       >
@@ -1950,9 +1985,9 @@ function StorefrontProductCard({
 
   if (variant === "list") {
     return (
-      <article className="group rounded-lg border border-[var(--wine-800)] bg-[var(--wine-900)] p-4 transition hover:border-[var(--wine-700)]">
+      <article className="group rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-4 transition hover:border-[var(--shresta-logo-border)]">
         <div className="grid gap-4 sm:grid-cols-[160px_1fr_auto]">
-          <Link className="relative aspect-square overflow-hidden rounded-lg bg-[var(--wine-800)]" href={`/products/${product.slug}`}>
+          <Link className="relative aspect-square overflow-hidden rounded-lg bg-[var(--shresta-logo-surface)]" href={`/products/${product.slug}`}>
             <ResponsiveMedia
               className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
               eager={eager}
@@ -1962,35 +1997,35 @@ function StorefrontProductCard({
           </Link>
           <div className="min-w-0">
             <Link href={`/products/${product.slug}`}>
-              <h3 className="font-serif text-xl font-light text-white transition group-hover:text-[var(--gold-400)]">{product.name}</h3>
+              <h3 className="font-serif text-xl font-light text-[var(--shresta-logo-text)] transition group-hover:text-[var(--gold-400)]">{product.name}</h3>
             </Link>
-            <p className="mt-1 text-sm text-[var(--shresta-text-muted)]">{product.sku} - {enumDisplayLabel(product.productType)}</p>
+            <p className="mt-1 text-sm text-[var(--shresta-logo-muted)]">{product.sku} - {enumDisplayLabel(product.productType)}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {product.badges.slice(0, 3).map((badge) => (
-                <span className="rounded-full bg-[rgba(212,175,55,0.12)] px-2.5 py-1 text-xs font-semibold text-[var(--gold-300)]" key={badge}>
+                <span className="rounded-full bg-[rgba(212,175,55,0.12)] px-2.5 py-1 text-xs font-semibold text-[var(--gold-600)]" key={badge}>
                   {enumDisplayLabel(badge)}
                 </span>
               ))}
             </div>
-            <p className="mt-3 text-xs text-[var(--shresta-text-muted)]">{product.rating.toFixed(1)} rating - {product.reviewCount} reviews</p>
+            <p className="mt-3 text-xs text-[var(--shresta-logo-muted)]">{product.rating.toFixed(1)} rating - {product.reviewCount} reviews</p>
           </div>
           <div className="flex flex-col justify-between gap-4 sm:min-w-40 sm:items-end">
             <div className="flex flex-wrap items-baseline gap-2 sm:justify-end">
-              <span className="text-xl font-semibold text-white">{price}</span>
-              {hasDiscount ? <span className="text-sm text-[var(--shresta-text-muted)] line-through">{compareAt}</span> : null}
+              <span className="text-xl font-semibold text-[var(--shresta-logo-text)]">{price}</span>
+              {hasDiscount ? <span className="text-sm text-[var(--shresta-logo-muted)] line-through">{compareAt}</span> : null}
             </div>
             <div className="grid w-full grid-cols-[1fr_44px] gap-2">
               <button
                 className="min-h-11 rounded-full bg-[var(--gold-500)] px-4 text-sm font-bold text-[var(--wine-950)] hover:bg-[var(--gold-600)] disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={product.stockQuantity === 0}
-                onClick={() => controls.addToCart(product.id)}
+                onClick={() => controls.addToCart(product.id, 1, product.stockQuantity)}
                 type="button"
               >
                 {product.stockQuantity === 0 ? "Out of Stock" : "Add"}
               </button>
               <button
                 aria-label={wishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
-                className={wishlisted ? "flex h-11 items-center justify-center rounded-full border border-[var(--gold-500)] bg-[rgba(212,175,55,0.14)] text-[var(--gold-300)]" : "flex h-11 items-center justify-center rounded-full border border-[var(--wine-700)] text-[var(--shresta-text-secondary)] hover:border-[var(--gold-500)] hover:text-[var(--gold-400)]"}
+                className={wishlisted ? "flex h-11 items-center justify-center rounded-full border border-[var(--gold-500)] bg-[rgba(212,175,55,0.14)] text-[var(--gold-600)]" : "flex h-11 items-center justify-center rounded-full border border-[var(--shresta-logo-border)] text-[var(--shresta-logo-muted)] hover:border-[var(--gold-500)] hover:text-[var(--gold-400)]"}
                 onClick={() => controls.toggleWishlist(product.id)}
                 type="button"
               >
@@ -2006,7 +2041,7 @@ function StorefrontProductCard({
   return (
     <article className="group flex h-full flex-col">
       <Link className="block" href={`/products/${product.slug}`}>
-        <div className="relative aspect-square overflow-hidden rounded-lg border border-[var(--wine-800)] bg-[var(--wine-800)] shadow-[0_8px_18px_rgba(0,0,0,0.22)] transition group-hover:-translate-y-1 group-hover:border-[rgba(212,175,55,0.36)]">
+        <div className="relative aspect-square overflow-hidden rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] shadow-[0_8px_18px_rgba(0,0,0,0.22)] transition group-hover:-translate-y-1 group-hover:border-[rgba(212,175,55,0.36)]">
           <ResponsiveMedia
             className="h-full w-full object-cover transition duration-700 group-hover:scale-105"
             eager={eager}
@@ -2016,26 +2051,26 @@ function StorefrontProductCard({
           <ProductImageBadgeRow badges={product.badges} size="compact" />
         </div>
         <div className="mt-4">
-          <h3 className="min-h-10 text-sm font-medium leading-5 text-[var(--shresta-text-primary)] group-hover:text-[var(--gold-400)]">{product.name}</h3>
+          <h3 className="min-h-10 text-sm font-medium leading-5 text-[var(--shresta-logo-text)] group-hover:text-[var(--gold-400)]">{product.name}</h3>
           <div className="mt-2 flex flex-wrap items-baseline gap-2">
-            <span className="text-xl font-semibold text-white">{price}</span>
-            {hasDiscount ? <span className="text-sm text-[var(--shresta-text-muted)] line-through">{compareAt}</span> : null}
+            <span className="text-xl font-semibold text-[var(--shresta-logo-text)]">{price}</span>
+            {hasDiscount ? <span className="text-sm text-[var(--shresta-logo-muted)] line-through">{compareAt}</span> : null}
           </div>
-          <p className="mt-2 text-xs text-[var(--shresta-text-muted)]">{product.rating.toFixed(1)} rating - {product.reviewCount} reviews</p>
+          <p className="mt-2 text-xs text-[var(--shresta-logo-muted)]">{product.rating.toFixed(1)} rating - {product.reviewCount} reviews</p>
         </div>
       </Link>
       <div className="mt-4 grid grid-cols-[1fr_44px] gap-2">
         <button
           className="min-h-11 rounded-full bg-[var(--gold-500)] px-4 text-sm font-bold text-[var(--wine-950)] hover:bg-[var(--gold-600)] disabled:cursor-not-allowed disabled:opacity-50"
           disabled={product.stockQuantity === 0}
-          onClick={() => controls.addToCart(product.id)}
+          onClick={() => controls.addToCart(product.id, 1, product.stockQuantity)}
           type="button"
         >
           {product.stockQuantity === 0 ? "Out of Stock" : "Add"}
         </button>
         <button
           aria-label={wishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
-          className={wishlisted ? "flex h-11 items-center justify-center rounded-full border border-[var(--gold-500)] bg-[rgba(212,175,55,0.14)] text-[var(--gold-300)]" : "flex h-11 items-center justify-center rounded-full border border-[var(--wine-700)] text-[var(--shresta-text-secondary)] hover:border-[var(--gold-500)] hover:text-[var(--gold-400)]"}
+          className={wishlisted ? "flex h-11 items-center justify-center rounded-full border border-[var(--gold-500)] bg-[rgba(212,175,55,0.14)] text-[var(--gold-600)]" : "flex h-11 items-center justify-center rounded-full border border-[var(--shresta-logo-border)] text-[var(--shresta-logo-muted)] hover:border-[var(--gold-500)] hover:text-[var(--gold-400)]"}
           onClick={() => controls.toggleWishlist(product.id)}
           type="button"
         >
@@ -2048,19 +2083,19 @@ function StorefrontProductCard({
 
 function CategoryRules({ category }: { category: CategoryFamily }) {
   return (
-    <section className="bg-[var(--wine-950)] px-4 py-12 sm:px-6">
+    <section className="bg-[var(--shresta-logo-bg)] px-4 py-12 sm:px-6">
       <div className="mx-auto grid max-w-7xl gap-5 lg:grid-cols-2">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--gold-400)]">Category rules</p>
-          <h2 className="mt-2 font-serif text-3xl font-light text-white">{category.displayName}</h2>
-          <p className="mt-3 text-sm leading-6 text-[var(--shresta-text-secondary)]">{category.description}</p>
+          <h2 className="mt-2 font-serif text-3xl font-light text-[var(--shresta-logo-text)]">{category.displayName}</h2>
+          <p className="mt-3 text-sm leading-6 text-[var(--shresta-logo-muted)]">{category.description}</p>
         </div>
-        <div className="rounded-lg border border-[var(--wine-800)] bg-[rgba(43,15,20,0.72)] p-4">
-          <h3 className="font-semibold text-white">Attributes</h3>
+        <div className="rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-4">
+          <h3 className="font-semibold text-[var(--shresta-logo-text)]">Attributes</h3>
           <div className="mt-3 grid gap-2">
             {category.attributes.slice(0, 8).map((attribute) => (
-              <div className="rounded-lg bg-[rgba(212,175,55,0.1)] px-3 py-2 text-xs leading-5 text-[var(--shresta-text-secondary)]" key={attribute.attributeKey}>
-                <span className="font-bold text-[var(--gold-300)]">{categoryAttributeLabel(attribute.attributeKey, attribute.displayName)}</span>
+              <div className="rounded-lg bg-[rgba(212,175,55,0.1)] px-3 py-2 text-xs leading-5 text-[var(--shresta-logo-muted)]" key={attribute.attributeKey}>
+                <span className="font-bold text-[var(--gold-600)]">{categoryAttributeLabel(attribute.attributeKey, attribute.displayName)}</span>
                 <span className="block">{attributeSummary(attribute)}</span>
               </div>
             ))}
@@ -2155,13 +2190,13 @@ function categoryMetricIcon(familyKey: string): LucideIcon {
 
 function DetailMetric({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
   return (
-    <div className="flex items-start gap-3 rounded-lg border border-[var(--wine-800)] bg-[rgba(26,9,12,0.32)] p-3">
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[rgba(212,175,55,0.12)] text-[var(--gold-300)]">
+    <div className="flex items-start gap-3 rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-3">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[rgba(212,175,55,0.12)] text-[var(--gold-600)]">
         <Icon className="h-4 w-4" />
       </span>
       <span className="min-w-0">
-        <span className="block text-xs uppercase tracking-[0.12em] text-[var(--shresta-text-muted)]">{label}</span>
-        <span className="mt-1 block truncate text-sm font-semibold text-white">{value}</span>
+        <span className="block text-xs uppercase tracking-[0.12em] text-[var(--shresta-logo-muted)]">{label}</span>
+        <span className="mt-1 block truncate text-sm font-semibold text-[var(--shresta-logo-text)]">{value}</span>
       </span>
     </div>
   );
@@ -2173,7 +2208,7 @@ function TrustItem({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
       <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-[rgba(212,175,55,0.14)] text-[var(--gold-400)]">
         <Icon className="h-4 w-4" strokeWidth={2.2} />
       </span>
-      <span className="text-xs leading-4 text-[var(--shresta-text-secondary)]">{label}</span>
+      <span className="text-xs leading-4 text-[var(--shresta-logo-muted)]">{label}</span>
     </div>
   );
 }
@@ -2181,17 +2216,17 @@ function TrustItem({ icon: Icon, label }: { icon: LucideIcon; label: string }) {
 function SpecRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-4 border-b border-[rgba(92,51,36,0.5)] py-2">
-      <dt className="text-[var(--shresta-text-muted)]">{label}</dt>
-      <dd className="text-right font-medium text-[var(--shresta-text-primary)]">{value}</dd>
+      <dt className="text-[var(--shresta-logo-muted)]">{label}</dt>
+      <dd className="text-right font-medium text-[var(--shresta-logo-text)]">{value}</dd>
     </div>
   );
 }
 
 function EmptyCatalogState({ query }: { query?: string }) {
   return (
-    <div className="rounded-lg border border-[var(--wine-800)] bg-[rgba(43,15,20,0.72)] p-8 text-center">
-      <h2 className="font-serif text-3xl font-light text-white">No products found</h2>
-      <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-[var(--shresta-text-secondary)]">
+    <div className="rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-8 text-center">
+      <h2 className="font-serif text-3xl font-light text-[var(--shresta-logo-text)]">No products found</h2>
+      <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-[var(--shresta-logo-muted)]">
         {query ? "No SHRESTA products matched that search." : "No SHRESTA products are attached to this category yet."}
       </p>
       <Link className="mt-6 inline-flex min-h-11 items-center rounded-full bg-[var(--gold-500)] px-6 text-sm font-bold text-[var(--wine-950)]" href="/products">
@@ -2396,11 +2431,11 @@ function SortIcon() {
 }
 
 const activeChipClass = "inline-flex min-h-10 w-full shrink-0 snap-start items-center justify-center whitespace-nowrap rounded-full bg-[var(--gold-500)] px-3 py-2 text-[0.72rem] font-bold leading-none text-[var(--wine-950)] sm:min-h-11 sm:w-auto sm:px-4 sm:text-sm";
-const inactiveChipClass = "inline-flex min-h-10 w-full shrink-0 snap-start items-center justify-center whitespace-nowrap rounded-full border border-[var(--wine-700)] bg-[rgba(26,9,12,0.45)] px-3 py-2 text-[0.72rem] leading-none text-[var(--shresta-text-secondary)] hover:border-[var(--gold-500)] hover:text-[var(--gold-400)] sm:min-h-11 sm:w-auto sm:px-4 sm:text-sm";
-const activeIconButtonClass = "flex h-8 w-8 items-center justify-center rounded-md bg-[rgba(212,175,55,0.2)] text-[var(--gold-400)]";
-const inactiveIconButtonClass = "flex h-8 w-8 items-center justify-center rounded-md text-[var(--shresta-text-muted)] hover:text-[var(--shresta-text-primary)]";
-const activeFilterClass = "rounded-full border border-[rgba(212,175,55,0.3)] bg-[rgba(212,175,55,0.12)] px-3 py-1 text-xs font-semibold text-[var(--gold-300)]";
+const inactiveChipClass = "inline-flex min-h-10 w-full shrink-0 snap-start items-center justify-center whitespace-nowrap rounded-full border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-3 py-2 text-[0.72rem] leading-none text-[var(--shresta-logo-muted)] hover:border-[var(--gold-500)] hover:text-[var(--gold-400)] sm:min-h-11 sm:w-auto sm:px-4 sm:text-sm";
+const activeIconButtonClass = "flex h-8 w-8 items-center justify-center rounded-md bg-[var(--gold-500)] text-[var(--wine-950)]";
+const inactiveIconButtonClass = "flex h-8 w-8 items-center justify-center rounded-md text-[var(--shresta-logo-muted)] hover:text-[var(--shresta-logo-text)]";
+const activeFilterClass = "rounded-full border border-[rgba(212,175,55,0.3)] bg-[rgba(212,175,55,0.12)] px-3 py-1 text-xs font-semibold text-[var(--gold-600)]";
 const selectedBoxClass = "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 border-[var(--gold-500)] bg-[var(--gold-500)] transition";
-const unselectedBoxClass = "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 border-[var(--wine-600)] bg-[var(--wine-800)] transition group-hover:border-[var(--wine-500)]";
+const unselectedBoxClass = "flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] transition group-hover:border-[var(--gold-500)]";
 const selectedIconBoxClass = "flex h-8 w-8 items-center justify-center rounded-lg border border-[rgba(212,175,55,0.32)] bg-[rgba(212,175,55,0.18)] transition";
-const unselectedIconBoxClass = "flex h-8 w-8 items-center justify-center rounded-lg border border-transparent bg-[rgba(72,16,37,0.5)] transition";
+const unselectedIconBoxClass = "flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] transition";

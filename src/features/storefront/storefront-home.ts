@@ -20,6 +20,7 @@ export type Brand = {
   name: string;
   tagline: string;
   logo: MediaAsset | null;
+  demoVideoUrl: string | null;
 };
 
 export type NavigationItem = {

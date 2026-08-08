@@ -30,7 +30,7 @@ type FeedbackButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onClic
 
 const VARIANT_BASE: Record<Variant, string> = {
   storefront:
-    "inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-8 text-sm font-semibold tracking-wide text-white bg-gradient-to-br from-wine-700 to-wine-900 transition-all duration-700 ease-out hover:scale-[1.03] hover:shadow-[0_4px_44px_rgba(212,175,55,0.5)] active:scale-[0.97] active:duration-100 disabled:cursor-not-allowed disabled:opacity-60",
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-full px-8 text-sm font-semibold tracking-wide text-[var(--shresta-logo-surface)] bg-gradient-to-br from-wine-700 to-wine-900 transition-all duration-700 ease-out hover:scale-[1.03] hover:shadow-[0_4px_44px_rgba(212,175,55,0.5)] active:scale-[0.97] active:duration-100 disabled:cursor-not-allowed disabled:opacity-60",
   admin:
     "admin-button",
   "admin-secondary":

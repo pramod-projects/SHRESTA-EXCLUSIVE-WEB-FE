@@ -168,7 +168,7 @@ export function ImageFilePreview({
             src={displaySrc}
           />
         ) : (
-          <div className="flex aspect-square items-center justify-center rounded-lg border border-dashed border-[var(--wine-700)] text-xs text-[var(--shresta-text-muted)]">
+          <div className="flex aspect-square items-center justify-center rounded-lg border border-dashed border-[var(--shresta-logo-border)] text-xs text-[var(--shresta-logo-muted)]">
             Empty
           </div>
         )}
@@ -189,12 +189,12 @@ export function ImageFilePreview({
       {/* ── Crop modal ────────────────────────────────────────────────────────── */}
       {cropSrc && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-2xl border border-[var(--wine-700)] bg-[var(--wine-950)] shadow-2xl">
+          <div className="flex max-h-[90vh] w-full max-w-2xl flex-col rounded-2xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-bg)] shadow-2xl">
             {/* Header */}
-            <div className="flex items-start justify-between border-b border-[var(--wine-800)] px-5 py-4">
+            <div className="flex items-start justify-between border-b border-[var(--shresta-logo-border)] px-5 py-4">
               <div>
-                <p className="text-sm font-semibold text-white">Crop Image</p>
-                <p className="mt-1 text-xs text-[var(--shresta-text-muted)]">
+                <p className="text-sm font-semibold text-[var(--shresta-logo-text)]">Crop Image</p>
+                <p className="mt-1 text-xs text-[var(--shresta-logo-muted)]">
                   Drag the handles to frame a <span className="text-[var(--gold-400)]">{ratioLabel}</span> crop.
                   The crop is applied at full native resolution — no quality loss.
                 </p>
@@ -202,7 +202,7 @@ export function ImageFilePreview({
               <button
                 type="button"
                 aria-label="Cancel crop"
-                className="ml-4 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--shresta-text-muted)] transition hover:bg-[var(--wine-800)] hover:text-white"
+                className="ml-4 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[var(--shresta-logo-muted)] transition hover:bg-[var(--shresta-logo-surface)] hover:text-[var(--shresta-logo-text)]"
                 onClick={cancelCrop}
               >
                 ✕
@@ -231,8 +231,8 @@ export function ImageFilePreview({
             </div>
 
             {/* Footer */}
-            <div className="flex items-center justify-between border-t border-[var(--wine-800)] px-5 py-4">
-              <p className="text-xs text-[var(--shresta-text-muted)]">
+            <div className="flex items-center justify-between border-t border-[var(--shresta-logo-border)] px-5 py-4">
+              <p className="text-xs text-[var(--shresta-logo-muted)]">
                 {completedCrop?.width && completedCrop?.height
                   ? `Crop: ${Math.round(completedCrop.width)} × ${Math.round(completedCrop.height)} px (display) — output at native scale`
                   : "Drag to select crop region"}

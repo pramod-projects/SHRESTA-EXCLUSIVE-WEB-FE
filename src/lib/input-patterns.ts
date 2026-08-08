@@ -1,6 +1,6 @@
 export const INPUT_PATTERNS = {
   backendMapping: "^attribute_facets\\.[a-z][a-z0-9_]*$",
-  email: "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$",
+  email: "^[A-Za-z0-9._%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}$",
   indianMobile: "^[6-9][0-9]{9}$",
   indianPinCode: "^[0-9]{6}$",
   personName: "^[A-Za-z][A-Za-z .'-]{1,79}$",
@@ -8,7 +8,7 @@ export const INPUT_PATTERNS = {
   optionalAddressLine: "^(?:[A-Za-z0-9][A-Za-z0-9 .,#'/-]{1,239})?$",
   cityOrState: "^[A-Za-z][A-Za-z .'-]{1,119}$",
   hsnCode: "^[0-9]{4,8}$",
-  loginIdentity: "^(?:[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}|(?:\\+91[ -]?)?[6-9][0-9]{9})$",
+  loginIdentity: "^(?:(?:[A-Za-z0-9._%+]|-)+@(?:[A-Za-z0-9.]|-)+\\.[A-Za-z]{2,}|(?:\\+91 ?)?[6-9][0-9]{9})$",
   otpSixDigits: "^[0-9]{6}$",
   relativePath: "^/[A-Za-z0-9._~/?#:@%=-]*$",
   slug: "^[a-z0-9]+(?:-[a-z0-9]+)*$",

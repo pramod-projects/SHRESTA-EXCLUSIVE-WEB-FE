@@ -24,17 +24,17 @@ export function DisplayItemEditor({ itemKey, title, sectionLabel, currentImage, 
     asset.variants.find((v) => v.variantKey === "thumbnail")?.url ?? asset.assetUrl;
 
   return (
-    <div className="rounded-lg border border-[var(--wine-800)] bg-[rgba(26,9,12,0.3)] p-4">
+    <div className="rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-4">
       {/* Item header */}
       <div className="flex items-start gap-3">
         {currentImage ? (
           <img
             alt={currentImage.altText}
-            className="h-16 w-16 shrink-0 rounded-lg border border-[var(--wine-700)] object-cover"
+            className="h-16 w-16 shrink-0 rounded-lg border border-[var(--shresta-logo-border)] object-cover"
             src={currentImage.url}
           />
         ) : (
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-dashed border-[var(--wine-700)] text-[10px] text-[var(--shresta-text-muted)]">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-dashed border-[var(--shresta-logo-border)] text-[10px] text-[var(--shresta-logo-muted)]">
             No image
           </div>
         )}
@@ -42,9 +42,9 @@ export function DisplayItemEditor({ itemKey, title, sectionLabel, currentImage, 
           <span className="rounded-full bg-[rgba(212,175,55,0.1)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--gold-400)]">
             {sectionLabel}
           </span>
-          <p className="mt-1 truncate font-serif text-lg font-light text-white">{title}</p>
+          <p className="mt-1 truncate font-serif text-lg font-light text-[var(--shresta-logo-text)]">{title}</p>
           {currentImage && (
-            <p className="mt-0.5 truncate text-[10px] text-[var(--shresta-text-muted)]">{currentImage.assetKey}</p>
+            <p className="mt-0.5 truncate text-[10px] text-[var(--shresta-logo-muted)]">{currentImage.assetKey}</p>
           )}
         </div>
         <button
@@ -60,16 +60,16 @@ export function DisplayItemEditor({ itemKey, title, sectionLabel, currentImage, 
       {open && (
         <div className="mt-4 space-y-4">
           {/* Mode tabs */}
-          <div className="flex gap-3 border-b border-[var(--wine-800)] pb-2">
+          <div className="flex gap-3 border-b border-[var(--shresta-logo-border)] pb-2">
             <button
-              className={`text-sm font-medium ${mode === "grid" ? "text-[var(--gold-400)]" : "text-[var(--shresta-text-muted)] hover:text-white"}`}
+              className={`text-sm font-medium ${mode === "grid" ? "text-[var(--gold-400)]" : "text-[var(--shresta-logo-muted)] hover:text-[var(--shresta-logo-text)]"}`}
               onClick={() => setMode("grid")}
               type="button"
             >
               Choose from library
             </button>
             <button
-              className={`text-sm font-medium ${mode === "upload" ? "text-[var(--gold-400)]" : "text-[var(--shresta-text-muted)] hover:text-white"}`}
+              className={`text-sm font-medium ${mode === "upload" ? "text-[var(--gold-400)]" : "text-[var(--shresta-logo-muted)] hover:text-[var(--shresta-logo-text)]"}`}
               onClick={() => setMode("upload")}
               type="button"
             >
@@ -90,7 +90,7 @@ export function DisplayItemEditor({ itemKey, title, sectionLabel, currentImage, 
                       className={`group relative overflow-hidden rounded-lg border transition-all ${
                         selected?.assetKey === asset.assetKey
                           ? "border-[var(--gold-400)] ring-1 ring-[var(--gold-400)]"
-                          : "border-[var(--wine-700)] hover:border-[var(--gold-600)]"
+                          : "border-[var(--shresta-logo-border)] hover:border-[var(--gold-600)]"
                       }`}
                       key={asset.assetKey}
                       onClick={() => setSelected(asset)}
@@ -104,7 +104,7 @@ export function DisplayItemEditor({ itemKey, title, sectionLabel, currentImage, 
                       />
                       {selected?.assetKey === asset.assetKey && (
                         <div className="absolute inset-0 flex items-center justify-center bg-[rgba(212,175,55,0.3)]">
-                          <span className="text-lg text-white">✓</span>
+                          <span className="text-lg text-[var(--shresta-logo-text)]">✓</span>
                         </div>
                       )}
                     </button>
@@ -112,7 +112,7 @@ export function DisplayItemEditor({ itemKey, title, sectionLabel, currentImage, 
                 </div>
 
                 {selected && (
-                  <p className="mt-2 text-xs text-[var(--gold-300)]">
+                  <p className="mt-2 text-xs text-[var(--gold-600)]">
                     Selected: <strong>{selected.assetKey}</strong> · {selected.widthPx}×{selected.heightPx}
                   </p>
                 )}

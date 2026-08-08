@@ -10,7 +10,7 @@ describe("storefront-home", () => {
       return new Response(JSON.stringify({
         success: true,
         data: {
-          brand: { name: "SHRESTA EXCLUSIVE", tagline: "Premium", logo: media() },
+          brand: { name: "SHRESTA EXCLUSIVE", tagline: "Premium", logo: media(), demoVideoUrl: null },
           navigation: [],
           heroSlides: [],
           trustBadges: [],
@@ -32,7 +32,8 @@ describe("storefront-home", () => {
     const home = await fetchStorefrontHome({ apiBaseUrl: "http://localhost:8090", fetchImpl });
 
     expect(home.brand.name).toBe("SHRESTA EXCLUSIVE");
-    expect(home.brand.logo.variants[0]?.variantKey).toBe("thumbnail");
+    expect(home.brand.logo).not.toBeNull();
+    expect(home.brand.logo?.variants[0]?.variantKey).toBe("thumbnail");
   });
 });
 

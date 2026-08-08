@@ -41,18 +41,21 @@ export function AdminSubmitButton({
   label = "Submit for Review",
   className,
   confirmMessage,
+  disabled = false,
 }: {
   label?: string;
   className?: string;
   confirmMessage?: string;
+  disabled?: boolean;
 }) {
   const { pending } = useFormStatus();
+  const isDisabled = pending || disabled;
   return (
     <button
       className={`admin-button ${className ?? ""}`}
-      disabled={pending}
+      disabled={isDisabled}
       type="submit"
-      onClick={confirmMessage ? (e) => {
+      onClick={confirmMessage && !isDisabled ? (e) => {
         if (!window.confirm(confirmMessage)) {
           e.preventDefault();
         }

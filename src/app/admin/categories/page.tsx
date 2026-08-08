@@ -38,21 +38,21 @@ export default async function AdminCategoriesPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-3 border-b border-[var(--wine-800)] pb-5 md:flex-row md:items-end md:justify-between">
+      <header className="flex flex-col gap-3 border-b border-[var(--shresta-logo-border)] pb-5 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--gold-400)]">Catalog Configuration</p>
-          <h1 className="mt-2 font-serif text-4xl font-light text-white">Categories</h1>
+          <h1 className="mt-2 font-serif text-4xl font-light text-[var(--shresta-logo-text)]">Categories</h1>
         </div>
-        <div className="text-sm text-[var(--shresta-text-muted)]">{categories.length} active families</div>
+        <div className="text-sm text-[var(--shresta-logo-muted)]">{categories.length} active families</div>
       </header>
 
       <details className="admin-panel rounded-lg p-4" open>
         <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
           <div>
-            <h2 className="font-serif text-2xl font-light text-white">Create Category Family</h2>
-            <p className="mt-1 text-sm text-[var(--shresta-text-muted)]">Add a new top-level catalog family with its operational details.</p>
+            <h2 className="font-serif text-2xl font-light text-[var(--shresta-logo-text)]">Create Category Family</h2>
+            <p className="mt-1 text-sm text-[var(--shresta-logo-muted)]">Add a new top-level catalog family with its operational details.</p>
           </div>
-          <span className="rounded-full bg-[rgba(212,175,55,0.14)] px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[var(--gold-300)]">New family</span>
+          <span className="rounded-full bg-[rgba(212,175,55,0.14)] px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[var(--gold-600)]">New family</span>
         </summary>
         <form action={createCategoryFamilyAction} className="mt-5 grid gap-3 lg:grid-cols-6">
           <HiddenMutationKey />
@@ -68,11 +68,11 @@ export default async function AdminCategoriesPage() {
       <section className="space-y-5">
         {categories.map((family) => (
           <article className="admin-panel rounded-lg p-4" key={family.familyKey}>
-            <div className="flex flex-col gap-3 border-b border-[var(--wine-800)] pb-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex flex-col gap-3 border-b border-[var(--shresta-logo-border)] pb-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
-                <h2 className="font-serif text-3xl font-light text-white">{family.displayName}</h2>
-                <p className="mt-1 text-sm text-[var(--shresta-text-muted)]">{family.familyKey} - sort {family.sortOrder}</p>
-                {family.description ? <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--shresta-text-secondary)]">{family.description}</p> : null}
+                <h2 className="font-serif text-3xl font-light text-[var(--shresta-logo-text)]">{family.displayName}</h2>
+                <p className="mt-1 text-sm text-[var(--shresta-logo-muted)]">{family.familyKey} - sort {family.sortOrder}</p>
+                {family.description ? <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--shresta-logo-muted)]">{family.description}</p> : null}
               </div>
               <ReviewRemovalForms
                 entityKey={family.familyKey}
@@ -91,7 +91,7 @@ export default async function AdminCategoriesPage() {
             </div>
 
             <details className="admin-surface mt-5 rounded-lg p-4" open>
-              <summary className="cursor-pointer list-none font-serif text-xl font-light text-white">Family Details</summary>
+              <summary className="cursor-pointer list-none font-serif text-xl font-light text-[var(--shresta-logo-text)]">Family Details</summary>
               <form action={updateCategoryFamilyAction} className="mt-4 grid gap-3 lg:grid-cols-6">
                 <HiddenMutationKey />
                 <input name="familyKey" type="hidden" value={family.familyKey} />
@@ -203,7 +203,7 @@ export default async function AdminCategoriesPage() {
 
 function ProductTypeRow({ family, productType }: { family: CategoryFamily; productType: CategoryProductType }) {
   return (
-    <div className="rounded-lg border border-[var(--wine-800)] p-3">
+    <div className="rounded-lg border border-[var(--shresta-logo-border)] p-3">
       <form action={updateProductTypeAction} className="grid gap-3 lg:grid-cols-5">
         <HiddenMutationKey />
         <input name="familyKey" type="hidden" value={family.familyKey} />
@@ -226,7 +226,7 @@ function ProductTypeRow({ family, productType }: { family: CategoryFamily; produ
 
 function AttributeRow({ family, attribute }: { family: CategoryFamily; attribute: CategoryAttribute }) {
   return (
-    <div className="rounded-lg border border-[var(--wine-800)] p-3">
+    <div className="rounded-lg border border-[var(--shresta-logo-border)] p-3">
       <form action={updateAttributeAction} className="grid gap-3 lg:grid-cols-7">
         <HiddenMutationKey />
         <input name="familyKey" type="hidden" value={family.familyKey} />
@@ -253,7 +253,7 @@ function AttributeRow({ family, attribute }: { family: CategoryFamily; attribute
 
 function FilterRow({ family, filter }: { family: CategoryFamily; filter: CategoryFilter }) {
   return (
-    <div className="rounded-lg border border-[var(--wine-800)] p-3">
+    <div className="rounded-lg border border-[var(--shresta-logo-border)] p-3">
       <form action={updateFilterAction} className="grid gap-3 lg:grid-cols-6">
         <HiddenMutationKey />
         <input name="familyKey" type="hidden" value={family.familyKey} />
@@ -278,7 +278,7 @@ function FilterRow({ family, filter }: { family: CategoryFamily; filter: Categor
 
 function TaxRow({ family, tax }: { family: CategoryFamily; tax: CategoryTax }) {
   return (
-    <div className="rounded-lg border border-[var(--wine-800)] p-3">
+    <div className="rounded-lg border border-[var(--shresta-logo-border)] p-3">
       <form action={updateTaxAction} className="grid gap-3 lg:grid-cols-5">
         <HiddenMutationKey />
         <input name="familyKey" type="hidden" value={family.familyKey} />
@@ -302,7 +302,7 @@ function TaxRow({ family, tax }: { family: CategoryFamily; tax: CategoryTax }) {
 
 function StylingRow({ family, styling }: { family: CategoryFamily; styling: CategoryStyling }) {
   return (
-    <div className="rounded-lg border border-[var(--wine-800)] p-3">
+    <div className="rounded-lg border border-[var(--shresta-logo-border)] p-3">
       <form action={updateStylingAction} className="grid gap-3 lg:grid-cols-5">
         <HiddenMutationKey />
         <input name="familyKey" type="hidden" value={family.familyKey} />
@@ -365,19 +365,19 @@ function ConfigBlock({ title, children }: { title: string; children: ReactNode }
   return (
     <details className="admin-surface mt-4 rounded-lg p-4">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
-        <h3 className="font-serif text-xl font-light text-white">{title}</h3>
-        <span className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--shresta-text-muted)]">Open editor</span>
+        <h3 className="font-serif text-xl font-light text-[var(--shresta-logo-text)]">{title}</h3>
+        <span className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--shresta-logo-muted)]">Open editor</span>
       </summary>
-      <div className="mt-4 border-t border-[var(--wine-800)] pt-4">{children}</div>
+      <div className="mt-4 border-t border-[var(--shresta-logo-border)] pt-4">{children}</div>
     </details>
   );
 }
 
 function MetricTile({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-[var(--wine-800)] bg-[rgba(26,9,12,0.32)] p-3">
-      <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--shresta-text-muted)]">{label}</p>
-      <p className="mt-1 font-serif text-2xl font-light text-white">{value}</p>
+    <div className="rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-3">
+      <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--shresta-logo-muted)]">{label}</p>
+      <p className="mt-1 font-serif text-2xl font-light text-[var(--shresta-logo-text)]">{value}</p>
     </div>
   );
 }
@@ -393,7 +393,7 @@ function Label({ title, className = "", children }: { title: string; className?:
 
 function Checkbox({ name, title, defaultChecked = false }: { name: string; title: string; defaultChecked?: boolean }) {
   return (
-    <label className="flex min-h-[42px] items-center gap-2 rounded-lg border border-[var(--wine-800)] px-3 text-sm text-[var(--shresta-text-secondary)]">
+    <label className="flex min-h-[42px] items-center gap-2 rounded-lg border border-[var(--shresta-logo-border)] px-3 text-sm text-[var(--shresta-logo-muted)]">
       <input defaultChecked={defaultChecked} name={name} type="checkbox" />
       {title}
     </label>

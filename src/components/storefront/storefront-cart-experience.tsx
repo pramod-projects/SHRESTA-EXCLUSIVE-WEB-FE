@@ -192,6 +192,9 @@ const PAYMENT_OPTIONS: Array<{
 export function StorefrontCartExperience({ home, products }: CommercePageProps) {
   const router = useRouter();
   const cart = useBrowserCart();
+  useReconcileCartInventory(cart.lines, cart.replaceLines, products);
+  const wishlist = useBrowserWishlist();
+  useReconcileWishlistInventory(wishlist.productIds, wishlist.replaceItems, products);
   const items = resolveCartItems(cart.lines, products);
   const totals = calculateCartTotals(items);
   const { isLoading: profileLoading, session } = useCustomerSession();
@@ -254,7 +257,13 @@ export function StorefrontCartExperience({ home, products }: CommercePageProps) 
   function handleCartQuantityChange(productId: string, quantity: number) {
     clearStoredCheckoutDraft();
     clearStoredDraftIdempotencyKey();
-    cart.updateQuantity(productId, quantity);
+    const item = items.find((entry) => entry.product.id === productId);
+    const maxQuantity = item?.product.stockQuantity;
+    if ((maxQuantity ?? 1) <= 0) {
+      cart.removeItem(productId);
+      return;
+    }
+    cart.updateQuantity(productId, quantity, maxQuantity);
   }
 
   function handleCartLineRemove(productId: string) {
@@ -272,7 +281,7 @@ export function StorefrontCartExperience({ home, products }: CommercePageProps) 
         description="Your selected SHRESTA pieces stay visible while you browse, with current pricing, images, and availability refreshed before checkout."
       />
 
-      <section className="bg-[var(--wine-950)] px-4 py-10 sm:px-6 lg:py-14">
+      <section className="bg-[var(--shresta-logo-bg)] px-4 py-10 sm:px-6 lg:py-14">
         {items.length === 0 ? (
           <EmptyCommerceState
             ctaHref="/products"
@@ -283,11 +292,11 @@ export function StorefrontCartExperience({ home, products }: CommercePageProps) 
           />
         ) : (
           <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
-            <div className="rounded-2xl border border-[var(--wine-800)] bg-[rgba(43,15,20,0.78)] shadow-[0_22px_70px_rgba(0,0,0,0.26)]">
-              <div className="flex items-center justify-between border-b border-[var(--wine-800)] px-5 py-4">
+            <div className="rounded-2xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] shadow-[0_16px_42px_rgba(47,33,21,0.12)]">
+              <div className="flex items-center justify-between border-b border-[var(--shresta-logo-border)] px-5 py-4">
                 <div>
-                  <h2 className="font-serif text-2xl font-light text-white">Shopping Cart</h2>
-                  <p className="mt-1 text-sm text-[var(--shresta-text-muted)]">{cart.itemCount} SHRESTA-priced item{cart.itemCount === 1 ? "" : "s"}</p>
+                  <h2 className="font-serif text-2xl font-light text-[var(--shresta-logo-text)]">Shopping Cart</h2>
+                  <p className="mt-1 text-sm text-[var(--shresta-logo-muted)]">{cart.itemCount} SHRESTA-priced item{cart.itemCount === 1 ? "" : "s"}</p>
                 </div>
                 <button
                   className="inline-flex min-h-9 items-center gap-2 rounded-full border border-rose-500/30 px-3 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/10"
@@ -298,7 +307,7 @@ export function StorefrontCartExperience({ home, products }: CommercePageProps) 
                   Clear
                 </button>
               </div>
-              <div className="divide-y divide-[var(--wine-800)] px-5">
+              <div className="divide-y divide-[var(--shresta-logo-border)] px-5">
                 {items.map((item) => (
                   <CartLineRow
                     item={item}
@@ -321,7 +330,7 @@ export function StorefrontCartExperience({ home, products }: CommercePageProps) 
                 totals={totals}
               />
               {checkoutDraftError ? (
-                <p className="mt-3 rounded-xl border border-rose-400/35 bg-rose-950/30 px-4 py-3 text-sm leading-6 text-rose-100">
+                <p className="mt-3 rounded-xl border border-rose-400/35 bg-rose-950/30 px-4 py-3 text-sm leading-6 text-rose-700">
                   {checkoutDraftError}
                 </p>
               ) : null}
@@ -344,6 +353,8 @@ export function StorefrontCartExperience({ home, products }: CommercePageProps) 
 export function StorefrontWishlistExperience({ home, products }: CommercePageProps) {
   const wishlist = useBrowserWishlist();
   const cart = useBrowserCart();
+  useReconcileCartInventory(cart.lines, cart.replaceLines, products);
+  useReconcileWishlistInventory(wishlist.productIds, wishlist.replaceItems, products);
   const productById = productMap(products);
   const savedProducts = wishlist.productIds
     .map((productId) => productById.get(productId))
@@ -358,7 +369,7 @@ export function StorefrontWishlistExperience({ home, products }: CommercePagePro
         description="Keep your shortlist close while you compare SHRESTA sarees and occasion-ready favourites."
       />
 
-      <section className="bg-[var(--wine-950)] px-4 py-10 sm:px-6 lg:py-14">
+      <section className="bg-[var(--shresta-logo-bg)] px-4 py-10 sm:px-6 lg:py-14">
         {savedProducts.length === 0 ? (
           <EmptyCommerceState
             ctaHref="/products"
@@ -371,8 +382,8 @@ export function StorefrontWishlistExperience({ home, products }: CommercePagePro
           <div className="mx-auto max-w-7xl">
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h2 className="font-serif text-3xl font-light text-white">My Wishlist</h2>
-                <p className="mt-1 text-sm text-[var(--shresta-text-muted)]">{savedProducts.length} product{savedProducts.length === 1 ? "" : "s"} saved</p>
+                <h2 className="font-serif text-3xl font-light text-[var(--shresta-logo-text)]">My Wishlist</h2>
+                <p className="mt-1 text-sm text-[var(--shresta-logo-muted)]">{savedProducts.length} product{savedProducts.length === 1 ? "" : "s"} saved</p>
               </div>
               <button
                 className="inline-flex min-h-10 w-fit items-center gap-2 rounded-full border border-rose-500/30 px-4 text-sm font-semibold text-rose-300 transition hover:bg-rose-500/10"
@@ -387,7 +398,7 @@ export function StorefrontWishlistExperience({ home, products }: CommercePagePro
               {savedProducts.map((product) => (
                 <WishlistProductCard
                   key={product.id}
-                  onAddToCart={() => cart.addItem(product.id)}
+                  onAddToCart={() => cart.addItem(product.id, 1, product.stockQuantity)}
                   onRemove={() => wishlist.removeItem(product.id)}
                   product={product}
                 />
@@ -402,6 +413,9 @@ export function StorefrontWishlistExperience({ home, products }: CommercePagePro
 
 export function StorefrontCheckoutExperience({ home, products }: CommercePageProps) {
   const cart = useBrowserCart();
+  useReconcileCartInventory(cart.lines, cart.replaceLines, products);
+  const wishlist = useBrowserWishlist();
+  useReconcileWishlistInventory(wishlist.productIds, wishlist.replaceItems, products);
   const items = resolveCartItems(cart.lines, products);
   const totals = calculateCartTotals(items);
   const [loginPromptOpen, setLoginPromptOpen] = useState(false);
@@ -547,7 +561,13 @@ export function StorefrontCheckoutExperience({ home, products }: CommercePagePro
     clearStoredCheckoutDraft();
     clearStoredDraftIdempotencyKey();
     setCheckoutDraft(null);
-    cart.updateQuantity(productId, quantity);
+    const item = items.find((entry) => entry.product.id === productId);
+    const maxQuantity = item?.product.stockQuantity;
+    if ((maxQuantity ?? 1) <= 0) {
+      cart.removeItem(productId);
+      return;
+    }
+    cart.updateQuantity(productId, quantity, maxQuantity);
   }
 
   function handleCheckoutLineRemove(productId: string) {
@@ -566,7 +586,7 @@ export function StorefrontCheckoutExperience({ home, products }: CommercePagePro
         description="Your bag stays saved while you review delivery readiness and payment intent. Sign in only when you confirm the order."
       />
 
-      <section className="bg-[var(--wine-950)] px-4 py-10 sm:px-6 lg:py-14">
+      <section className="bg-[var(--shresta-logo-bg)] px-4 py-10 sm:px-6 lg:py-14">
         {checkoutStep === "processing" ? (
           <CheckoutProcessingState />
         ) : checkoutStep === "success" && completedOrder ? (
@@ -615,7 +635,7 @@ export function StorefrontCheckoutExperience({ home, products }: CommercePagePro
                   />
                 ) : null}
                 {checkoutError ? (
-                  <div className="mt-5 rounded-lg border border-rose-400/35 bg-rose-950/30 px-3 py-2 text-sm leading-6 text-rose-100">
+                  <div className="mt-5 rounded-lg border border-rose-400/35 bg-rose-100 px-3 py-2 text-sm leading-6 text-rose-700">
                     {checkoutError}
                   </div>
                 ) : null}
@@ -625,7 +645,7 @@ export function StorefrontCheckoutExperience({ home, products }: CommercePagePro
                 icon={Package}
                 title="Order Items"
               >
-                <div className="divide-y divide-[var(--wine-800)]">
+                <div className="divide-y divide-[var(--shresta-logo-border)]">
                   {items.map((item) => (
                     <CartLineRow
                       compact
@@ -667,14 +687,14 @@ function CommerceHero({
   title: string;
 }) {
   return (
-    <section className="border-b border-[var(--wine-800)] bg-[linear-gradient(135deg,var(--wine-900),var(--wine-950))] px-4 py-10 sm:px-6">
+    <section className="border-b border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-4 py-10 sm:px-6">
       <div className="mx-auto flex max-w-7xl flex-col gap-5 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--gold-400)]">{eyebrow}</p>
-          <h1 className="mt-3 font-serif text-4xl font-light text-white md:text-5xl">{title}</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--shresta-text-secondary)]">{description}</p>
+          <h1 className="mt-3 font-serif text-4xl font-light text-[var(--shresta-logo-text)] md:text-5xl">{title}</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--shresta-logo-muted)]">{description}</p>
         </div>
-        <div className="w-fit rounded-full border border-[var(--gold-500)] bg-[rgba(212,175,55,0.12)] px-5 py-2 text-sm font-semibold text-[var(--gold-300)]">
+        <div className="w-fit rounded-full border border-[var(--gold-500)] bg-[rgba(212,175,55,0.12)] px-5 py-2 text-sm font-semibold text-[var(--gold-600)]">
           {metric}
         </div>
       </div>
@@ -696,22 +716,24 @@ function CartLineRow({
   const { line, product } = item;
   const unitPrice = formatPaise(asPriceInPaise(product.pricePaise));
   const linePrice = formatPaise(asPriceInPaise(product.pricePaise * line.quantity));
+  const hasStockLimit = product.stockQuantity > 0;
+  const isAtStockLimit = hasStockLimit && line.quantity >= product.stockQuantity;
 
   return (
     <article className={compact ? "flex gap-4 py-4" : "flex flex-col gap-4 py-5 sm:flex-row"}>
-      <Link className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-[var(--wine-800)] bg-[var(--wine-800)]" href={`/products/${product.slug}`}>
+      <Link className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)]" href={`/products/${product.slug}`}>
         <ResponsiveMedia className="h-full w-full object-cover transition duration-300 hover:scale-105" media={product.image} sizes="96px" />
       </Link>
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <Link className="line-clamp-2 font-medium text-white transition hover:text-[var(--gold-400)]" href={`/products/${product.slug}`}>
+            <Link className="line-clamp-2 font-medium text-[var(--shresta-logo-text)] transition hover:text-[var(--gold-400)]" href={`/products/${product.slug}`}>
               {product.name}
             </Link>
-            <p className="mt-1 text-xs text-[var(--shresta-text-muted)]">{product.sku} - {enumDisplayLabel(product.productType)}</p>
+            <p className="mt-1 text-xs text-[var(--shresta-logo-muted)]">{product.sku} - {enumDisplayLabel(product.productType)}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {product.badges.slice(0, 2).map((badge) => (
-                <span className="rounded-full bg-[rgba(212,175,55,0.12)] px-2.5 py-1 text-xs font-semibold text-[var(--gold-300)]" key={badge}>
+                <span className="rounded-full bg-[rgba(212,175,55,0.12)] px-2.5 py-1 text-xs font-semibold text-[var(--gold-600)]" key={badge}>
                   {enumDisplayLabel(badge)}
                 </span>
               ))}
@@ -719,7 +741,7 @@ function CartLineRow({
           </div>
           <button
             aria-label={`Remove ${product.name} from cart`}
-            className="rounded-full p-2 text-[var(--shresta-text-muted)] transition hover:bg-rose-500/10 hover:text-rose-300"
+            className="rounded-full p-2 text-[var(--shresta-logo-muted)] transition hover:bg-rose-500/10 hover:text-rose-300"
             onClick={onRemove}
             type="button"
           >
@@ -731,10 +753,12 @@ function CartLineRow({
             onDecrease={() => onUpdateQuantity(Math.max(1, line.quantity - 1))}
             onIncrease={() => onUpdateQuantity(line.quantity + 1)}
             quantity={line.quantity}
+            disableIncrease={isAtStockLimit}
           />
           <div className="text-right">
-            <p className="font-semibold text-white">{linePrice}</p>
-            {line.quantity > 1 ? <p className="text-xs text-[var(--shresta-text-muted)]">{unitPrice} each</p> : null}
+            <p className="font-semibold text-[var(--shresta-logo-text)]">{linePrice}</p>
+            {line.quantity > 1 ? <p className="text-xs text-[var(--shresta-logo-muted)]">{unitPrice} each</p> : null}
+            {isAtStockLimit ? <p className="text-xs font-medium text-amber-600">Stock limit reached</p> : null}
           </div>
         </div>
       </div>
@@ -743,21 +767,23 @@ function CartLineRow({
 }
 
 function QuantityStepper({
+  disableIncrease = false,
   onDecrease,
   onIncrease,
   quantity
 }: {
+  disableIncrease?: boolean;
   onDecrease: () => void;
   onIncrease: () => void;
   quantity: number;
 }) {
   return (
-    <div className="flex overflow-hidden rounded-lg border border-[var(--wine-800)] bg-[rgba(26,9,12,0.58)]">
-      <button aria-label="Decrease quantity" className="flex h-9 w-9 items-center justify-center text-[var(--shresta-text-secondary)] transition hover:bg-[var(--wine-800)]" disabled={quantity <= 1} onClick={onDecrease} type="button">
+    <div className="flex overflow-hidden rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)]">
+      <button aria-label="Decrease quantity" className="flex h-9 w-9 items-center justify-center text-[var(--shresta-logo-muted)] transition hover:bg-[var(--shresta-logo-surface)]" disabled={quantity <= 1} onClick={onDecrease} type="button">
         <Minus className="h-3.5 w-3.5" />
       </button>
-      <span className="flex h-9 w-11 items-center justify-center border-x border-[var(--wine-800)] text-sm font-semibold text-white">{quantity}</span>
-      <button aria-label="Increase quantity" className="flex h-9 w-9 items-center justify-center text-[var(--shresta-text-secondary)] transition hover:bg-[var(--wine-800)]" onClick={onIncrease} type="button">
+      <span className="flex h-9 w-11 items-center justify-center border-x border-[var(--shresta-logo-border)] text-sm font-semibold text-[var(--shresta-logo-text)]">{quantity}</span>
+      <button aria-label="Increase quantity" className="flex h-9 w-9 items-center justify-center text-[var(--shresta-logo-muted)] transition hover:bg-[var(--shresta-logo-surface)]" disabled={disableIncrease} onClick={onIncrease} type="button">
         <Plus className="h-3.5 w-3.5" />
       </button>
     </div>
@@ -786,32 +812,32 @@ function CartSummaryPanel({
   const freeDeliveryUnlocked = totals.subtotalPaise >= FREE_DELIVERY_THRESHOLD_PAISE;
 
   return (
-    <aside className="h-fit rounded-2xl border border-[var(--wine-800)] bg-[rgba(43,15,20,0.88)] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.26)] lg:sticky lg:top-24">
+    <aside className="h-fit rounded-2xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.26)] lg:sticky lg:top-24">
       <div className="flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[rgba(212,175,55,0.12)] text-[var(--gold-300)]">
+        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[rgba(212,175,55,0.12)] text-[var(--gold-600)]">
           {locked ? <Lock className="h-5 w-5" /> : <ShoppingBag className="h-5 w-5" />}
         </div>
         <div>
-          <h2 className="font-serif text-2xl font-light text-white">Order Summary</h2>
-          <p className="text-sm text-[var(--shresta-text-muted)]">{itemCount} item{itemCount === 1 ? "" : "s"}</p>
+          <h2 className="font-serif text-2xl font-light text-[var(--shresta-logo-text)]">Order Summary</h2>
+          <p className="text-sm text-[var(--shresta-logo-muted)]">{itemCount} item{itemCount === 1 ? "" : "s"}</p>
         </div>
       </div>
 
       <div className="mt-6 space-y-3 text-sm">
         <SummaryRow label="Estimated subtotal" value={formatPaise(asPriceInPaise(totals.subtotalPaise))} />
-        <SummaryRow label="Delivery" value={totals.deliveryPaise === 0 ? "FREE" : formatPaise(asPriceInPaise(totals.deliveryPaise))} valueClassName={totals.deliveryPaise === 0 ? "text-emerald-300" : undefined} />
+        <SummaryRow label="Delivery" value={totals.deliveryPaise === 0 ? "FREE" : formatPaise(asPriceInPaise(totals.deliveryPaise))} valueClassName={totals.deliveryPaise === 0 ? "text-emerald-700" : undefined} />
         <SummaryRow label="Taxes" value="Included" />
-        <div className="border-t border-[var(--wine-800)] pt-3">
+        <div className="border-t border-[var(--shresta-logo-border)] pt-3">
           <SummaryRow strong label="Estimated total" value={formatPaise(asPriceInPaise(totals.totalPaise))} />
         </div>
       </div>
 
-      <div className="mt-5 rounded-xl border border-[var(--wine-800)] bg-[rgba(26,9,12,0.42)] p-4">
-        <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-[var(--shresta-text-secondary)]">
-          <Truck className={freeDeliveryUnlocked ? "h-4 w-4 text-emerald-300" : "h-4 w-4 text-[var(--gold-400)]"} />
+      <div className="mt-5 rounded-xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-4">
+        <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-[var(--shresta-logo-muted)]">
+          <Truck className={freeDeliveryUnlocked ? "h-4 w-4 text-emerald-700" : "h-4 w-4 text-[var(--gold-400)]"} />
           {freeDeliveryUnlocked ? "Free delivery unlocked" : `${formatPaise(asPriceInPaise(totals.freeDeliveryRemainingPaise))} more for free delivery`}
         </div>
-        <div className="h-1.5 overflow-hidden rounded-full bg-[var(--wine-800)]">
+        <div className="h-1.5 overflow-hidden rounded-full bg-[var(--shresta-logo-surface)]">
           <div className={freeDeliveryUnlocked ? "h-full rounded-full bg-emerald-400" : "h-full rounded-full bg-[var(--gold-500)]"} style={{ width: `${totals.freeDeliveryProgress}%` }} />
         </div>
       </div>
@@ -833,7 +859,7 @@ function CartSummaryPanel({
         </Link>
       ) : null}
       {locked ? (
-        <p className="mt-3 text-center text-xs leading-5 text-[var(--shresta-text-muted)]">
+        <p className="mt-3 text-center text-xs leading-5 text-[var(--shresta-logo-muted)]">
           {lockedMessage}
         </p>
       ) : null}
@@ -854,18 +880,18 @@ function LoginRequiredDialog({
 }) {
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
-      <section aria-modal="true" className="w-full max-w-md rounded-2xl border border-[var(--wine-700)] bg-[var(--wine-900)] p-6 text-center shadow-[0_28px_90px_rgba(0,0,0,0.48)]" role="dialog">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-[var(--gold-500)] bg-[rgba(212,175,55,0.12)] text-[var(--gold-300)]">
+      <section aria-modal="true" className="w-full max-w-md rounded-2xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-6 text-center shadow-[0_28px_90px_rgba(0,0,0,0.48)]" role="dialog">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-[var(--gold-500)] bg-[rgba(212,175,55,0.12)] text-[var(--gold-600)]">
           <Lock className="h-7 w-7" />
         </div>
         <p className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-[var(--gold-400)]">Login Required</p>
-        <h2 className="mt-2 font-serif text-3xl font-light text-white">{title}</h2>
-        <p className="mt-3 text-sm leading-6 text-[var(--shresta-text-secondary)]">
+        <h2 className="mt-2 font-serif text-3xl font-light text-[var(--shresta-logo-text)]">{title}</h2>
+        <p className="mt-3 text-sm leading-6 text-[var(--shresta-logo-muted)]">
           {description}
         </p>
         <div className="mt-7 grid gap-3 sm:grid-cols-2">
           <Link
-            className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--wine-700)] px-5 text-sm font-bold text-[var(--shresta-text-primary)] transition hover:border-[var(--gold-500)] hover:text-[var(--gold-300)]"
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--shresta-logo-border)] px-5 text-sm font-bold text-[var(--shresta-logo-text)] transition hover:border-[var(--gold-500)] hover:text-[var(--gold-600)]"
             href="/products"
             onClick={onClose}
           >
@@ -878,7 +904,7 @@ function LoginRequiredDialog({
             Login
           </Link>
         </div>
-        <button className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--shresta-text-muted)] hover:text-white" onClick={onClose} type="button">
+        <button className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--shresta-logo-muted)] hover:text-[var(--shresta-logo-text)]" onClick={onClose} type="button">
           Close
         </button>
       </section>
@@ -899,8 +925,8 @@ function SummaryRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-4">
-      <span className={strong ? "font-semibold text-white" : "text-[var(--shresta-text-secondary)]"}>{label}</span>
-      <span className={valueClassName ?? (strong ? "text-lg font-bold text-white" : "font-semibold text-white")}>{value}</span>
+      <span className={strong ? "font-semibold text-[var(--shresta-logo-text)]" : "text-[var(--shresta-logo-muted)]"}>{label}</span>
+      <span className={valueClassName ?? (strong ? "text-lg font-bold text-[var(--shresta-logo-text)]" : "font-semibold text-[var(--shresta-logo-text)]")}>{value}</span>
     </div>
   );
 }
@@ -914,15 +940,17 @@ function WishlistProductCard({
   onRemove: () => void;
   product: ProductCard;
 }) {
+  const isOutOfStock = product.stockQuantity <= 0;
+
   return (
-    <article className="group rounded-xl border border-[var(--wine-800)] bg-[rgba(43,15,20,0.76)] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.2)] transition hover:-translate-y-1 hover:border-[rgba(212,175,55,0.36)]">
-      <div className="relative aspect-square overflow-hidden rounded-lg border border-[var(--wine-800)] bg-[var(--wine-800)]">
+    <article className="group rounded-xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.2)] transition hover:-translate-y-1 hover:border-[rgba(212,175,55,0.36)]">
+      <div className="relative aspect-square overflow-hidden rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)]">
         <Link href={`/products/${product.slug}`}>
           <ResponsiveMedia className="h-full w-full object-cover transition duration-500 group-hover:scale-105" media={product.image} sizes="(max-width: 640px) 92vw, 25vw" />
         </Link>
         <button
           aria-label={`Remove ${product.name} from wishlist`}
-          className="absolute right-2 top-2 rounded-full bg-[rgba(26,9,12,0.82)] p-2 text-rose-300 opacity-100 shadow-lg backdrop-blur transition hover:bg-rose-500/20 sm:opacity-0 sm:group-hover:opacity-100"
+          className="absolute right-2 top-2 rounded-full bg-[var(--shresta-logo-surface)] p-2 text-rose-300 opacity-100 shadow-lg backdrop-blur transition hover:bg-rose-500/20 sm:opacity-0 sm:group-hover:opacity-100"
           onClick={onRemove}
           type="button"
         >
@@ -931,17 +959,21 @@ function WishlistProductCard({
       </div>
       <div className="mt-4">
         <Link href={`/products/${product.slug}`}>
-          <h3 className="line-clamp-2 min-h-10 text-sm font-medium leading-5 text-white transition hover:text-[var(--gold-400)]">{product.name}</h3>
+          <h3 className="line-clamp-2 min-h-10 text-sm font-medium leading-5 text-[var(--shresta-logo-text)] transition hover:text-[var(--gold-400)]">{product.name}</h3>
         </Link>
-        <p className="mt-1 text-xs text-[var(--shresta-text-muted)]">{product.sku} - {enumDisplayLabel(product.productType)}</p>
-        <p className="mt-3 text-lg font-semibold text-white">{formatPaise(asPriceInPaise(product.pricePaise))}</p>
+        <p className="mt-1 text-xs text-[var(--shresta-logo-muted)]">{product.sku} - {enumDisplayLabel(product.productType)}</p>
+        <p className="mt-3 text-lg font-semibold text-[var(--shresta-logo-text)]">{formatPaise(asPriceInPaise(product.pricePaise))}</p>
+        {isOutOfStock ? <p className="mt-1 text-xs font-semibold text-rose-700">Out of Stock</p> : null}
         <button
-          className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--gold-500)] px-4 text-sm font-bold text-[var(--wine-950)] transition hover:bg-[var(--gold-600)]"
+          className={isOutOfStock
+            ? "mt-4 inline-flex min-h-11 w-full cursor-not-allowed items-center justify-center gap-2 rounded-full bg-[var(--gold-500)] px-4 text-sm font-bold text-[var(--wine-950)] opacity-55"
+            : "mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--gold-500)] px-4 text-sm font-bold text-[var(--wine-950)] transition hover:bg-[var(--gold-600)]"}
+          disabled={isOutOfStock}
           onClick={onAddToCart}
           type="button"
         >
           <ShoppingBag className="h-4 w-4" />
-          Add to Cart
+          {isOutOfStock ? "Out of Stock" : "Add to Cart"}
         </button>
       </div>
     </article>
@@ -959,16 +991,16 @@ function CheckoutStepper({ currentStep }: { currentStep: CheckoutJourneyStep }) 
   ] as const;
 
   return (
-    <div className="rounded-2xl border border-[var(--wine-800)] bg-[rgba(43,15,20,0.78)] p-5">
+    <div className="rounded-2xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-5">
       <div className="grid gap-3 sm:grid-cols-4">
         {steps.map((step, index) => (
           <div className="flex items-center gap-3" key={step.label}>
-            <div className={index < currentIndex ? "flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-[var(--wine-950)]" : index === currentIndex ? "flex h-9 w-9 items-center justify-center rounded-full bg-[var(--gold-500)] text-[var(--wine-950)]" : "flex h-9 w-9 items-center justify-center rounded-full border border-[var(--wine-700)] bg-[rgba(26,9,12,0.52)] text-[var(--shresta-text-muted)]"}>
+            <div className={index < currentIndex ? "flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-[var(--wine-950)]" : index === currentIndex ? "flex h-9 w-9 items-center justify-center rounded-full bg-[var(--gold-500)] text-[var(--wine-950)]" : "flex h-9 w-9 items-center justify-center rounded-full border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] text-[var(--shresta-logo-muted)]"}>
               {index < currentIndex ? <Check className="h-4 w-4" /> : renderCheckoutStepIcon(step.key)}
             </div>
             <div>
-              <p className={index > currentIndex ? "text-sm font-semibold text-[var(--shresta-text-muted)]" : "text-sm font-semibold text-white"}>{step.label}</p>
-              <p className="text-[0.65rem] uppercase tracking-[0.12em] text-[var(--shresta-text-muted)]">{index < currentIndex ? "complete" : index === currentIndex ? "active" : "locked"}</p>
+              <p className={index > currentIndex ? "text-sm font-semibold text-[var(--shresta-logo-muted)]" : "text-sm font-semibold text-[var(--shresta-logo-text)]"}>{step.label}</p>
+              <p className="text-[0.65rem] uppercase tracking-[0.12em] text-[var(--shresta-logo-muted)]">{index < currentIndex ? "complete" : index === currentIndex ? "active" : "locked"}</p>
             </div>
           </div>
         ))}
@@ -1004,14 +1036,14 @@ function CheckoutPanel({
   title: string;
 }) {
   return (
-    <section className="rounded-2xl border border-[var(--wine-800)] bg-[rgba(43,15,20,0.78)] p-5 shadow-[0_18px_60px_rgba(0,0,0,0.22)]">
+    <section className="rounded-2xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-5 shadow-[0_18px_60px_rgba(0,0,0,0.22)]">
       <div className="mb-5 flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(212,175,55,0.12)] text-[var(--gold-300)]">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(212,175,55,0.12)] text-[var(--gold-600)]">
           <Icon className="h-5 w-5" />
         </div>
         <div>
-          <h2 className="font-serif text-2xl font-light text-white">{title}</h2>
-          <p className="mt-1 text-sm leading-6 text-[var(--shresta-text-muted)]">{description}</p>
+          <h2 className="font-serif text-2xl font-light text-[var(--shresta-logo-text)]">{title}</h2>
+          <p className="mt-1 text-sm leading-6 text-[var(--shresta-logo-muted)]">{description}</p>
         </div>
       </div>
       {children}
@@ -1021,9 +1053,9 @@ function CheckoutPanel({
 
 function CheckoutField({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-[var(--wine-800)] bg-[rgba(26,9,12,0.42)] p-4">
-      <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-text-muted)]">{label}</p>
-      <p className="mt-2 text-sm font-semibold text-white">{value}</p>
+    <div className="rounded-xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-4">
+      <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-logo-muted)]">{label}</p>
+      <p className="mt-2 text-sm font-semibold text-[var(--shresta-logo-text)]">{value}</p>
     </div>
   );
 }
@@ -1044,12 +1076,12 @@ function EmptyCommerceState({
   const Icon = icon === "cart" ? ShoppingBag : Heart;
 
   return (
-    <div className="mx-auto max-w-md rounded-2xl border border-[var(--wine-800)] bg-[rgba(43,15,20,0.78)] px-6 py-12 text-center shadow-[0_22px_70px_rgba(0,0,0,0.26)]">
-      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-[var(--gold-500)] bg-[rgba(212,175,55,0.12)] text-[var(--gold-300)]">
+    <div className="mx-auto max-w-md rounded-2xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-6 py-12 text-center shadow-[0_22px_70px_rgba(0,0,0,0.26)]">
+      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-[var(--gold-500)] bg-[rgba(212,175,55,0.12)] text-[var(--gold-600)]">
         <Icon className="h-9 w-9" />
       </div>
-      <h2 className="mt-6 font-serif text-3xl font-light text-white">{title}</h2>
-      <p className="mt-3 text-sm leading-6 text-[var(--shresta-text-secondary)]">{description}</p>
+      <h2 className="mt-6 font-serif text-3xl font-light text-[var(--shresta-logo-text)]">{title}</h2>
+      <p className="mt-3 text-sm leading-6 text-[var(--shresta-logo-muted)]">{description}</p>
       <Link className="mt-7 inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--gold-500)] px-6 text-sm font-bold text-[var(--wine-950)] transition hover:bg-[var(--gold-600)]" href={ctaHref}>
         {ctaLabel}
       </Link>
@@ -1105,14 +1137,14 @@ function CheckoutDetailsForm({ form, onChange }: { form: CheckoutFormState; onCh
         </p>
       ) : null}
       <div className="md:col-span-2">
-        <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-text-muted)]">Address type</p>
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-logo-muted)]">Address type</p>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           {(["home", "work", "other"] as AddressType[]).map((type) => {
             const selected = form.addressType === type;
             const Icon = addressTypeIcon(type);
             return (
               <button
-                className={selected ? "flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[var(--gold-500)] bg-[rgba(212,175,55,0.16)] text-sm font-bold text-[var(--gold-300)]" : "flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[var(--wine-700)] bg-[rgba(26,9,12,0.42)] text-sm font-semibold text-[var(--shresta-text-secondary)] hover:border-[rgba(212,175,55,0.45)] hover:text-white"}
+                className={selected ? "flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[var(--gold-500)] bg-[rgba(212,175,55,0.16)] text-sm font-bold text-[var(--gold-600)]" : "flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] text-sm font-semibold text-[var(--shresta-logo-muted)] hover:border-[rgba(212,175,55,0.45)] hover:text-[var(--shresta-logo-text)]"}
                 key={type}
                 onClick={() => onChange({ addressType: type })}
                 type="button"
@@ -1147,21 +1179,21 @@ function CheckoutDeliveryStep({
         const pricePaise = option.id === "standard" && subtotalPaise >= FREE_DELIVERY_THRESHOLD_PAISE ? 0 : option.pricePaise;
         return (
           <button
-            className={selected ? "flex w-full items-start gap-4 rounded-xl border border-[var(--gold-500)] bg-[rgba(212,175,55,0.14)] p-4 text-left" : "flex w-full items-start gap-4 rounded-xl border border-[var(--wine-800)] bg-[rgba(26,9,12,0.42)] p-4 text-left transition hover:border-[rgba(212,175,55,0.36)]"}
+            className={selected ? "flex w-full items-start gap-4 rounded-xl border border-[var(--gold-500)] bg-[rgba(212,175,55,0.14)] p-4 text-left" : "flex w-full items-start gap-4 rounded-xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-4 text-left transition hover:border-[rgba(212,175,55,0.36)]"}
             key={option.id}
             onClick={() => onChange({ deliveryMode: option.id })}
             type="button"
           >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(212,175,55,0.12)] text-[var(--gold-300)]">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(212,175,55,0.12)] text-[var(--gold-600)]">
               <Icon className="h-5 w-5" />
             </span>
             <span className="min-w-0 flex-1">
               <span className="flex items-start justify-between gap-4">
-                <span className="font-semibold text-white">{option.name}</span>
-                <span className="font-semibold text-[var(--gold-300)]">{pricePaise === 0 ? "FREE" : formatPaise(asPriceInPaise(pricePaise))}</span>
+                <span className="font-semibold text-[var(--shresta-logo-text)]">{option.name}</span>
+                <span className="font-semibold text-[var(--gold-600)]">{pricePaise === 0 ? "FREE" : formatPaise(asPriceInPaise(pricePaise))}</span>
               </span>
-              <span className="mt-1 block text-sm leading-6 text-[var(--shresta-text-secondary)]">{option.description}</span>
-              <span className="mt-1 block text-xs font-bold uppercase tracking-[0.12em] text-[var(--shresta-text-muted)]">{option.estimatedDays}</span>
+              <span className="mt-1 block text-sm leading-6 text-[var(--shresta-logo-muted)]">{option.description}</span>
+              <span className="mt-1 block text-xs font-bold uppercase tracking-[0.12em] text-[var(--shresta-logo-muted)]">{option.estimatedDays}</span>
             </span>
           </button>
         );
@@ -1186,8 +1218,8 @@ function CheckoutPaymentStep({
     <div className="space-y-4">
       <div className="rounded-xl border border-[rgba(212,175,55,0.22)] bg-[rgba(212,175,55,0.08)] p-4">
         <div className="flex items-center justify-between gap-4">
-          <span className="text-sm font-semibold text-[var(--shresta-text-secondary)]">Amount to confirm</span>
-          <span className="text-2xl font-bold text-white">{formatPaise(asPriceInPaise(totalPaise))}</span>
+          <span className="text-sm font-semibold text-[var(--shresta-logo-muted)]">Amount to confirm</span>
+          <span className="text-2xl font-bold text-[var(--shresta-logo-text)]">{formatPaise(asPriceInPaise(totalPaise))}</span>
         </div>
       </div>
       {PAYMENT_OPTIONS.map((option) => {
@@ -1195,15 +1227,15 @@ function CheckoutPaymentStep({
         const selected = form.paymentMethod === option.id;
         return (
           <button
-            className={selected ? "flex w-full items-center gap-4 rounded-xl border border-[var(--gold-500)] bg-[rgba(212,175,55,0.14)] p-4 text-left" : "flex w-full items-center gap-4 rounded-xl border border-[var(--wine-800)] bg-[rgba(26,9,12,0.42)] p-4 text-left transition hover:border-[rgba(212,175,55,0.36)]"}
+            className={selected ? "flex w-full items-center gap-4 rounded-xl border border-[var(--gold-500)] bg-[rgba(212,175,55,0.14)] p-4 text-left" : "flex w-full items-center gap-4 rounded-xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-4 text-left transition hover:border-[rgba(212,175,55,0.36)]"}
             key={option.id}
             onClick={() => onChange({ paymentMethod: option.id })}
             type="button"
           >
-            <Icon className="h-5 w-5 shrink-0 text-[var(--gold-300)]" />
+            <Icon className="h-5 w-5 shrink-0 text-[var(--gold-600)]" />
             <span className="min-w-0">
-              <span className="block font-semibold text-white">{option.name}</span>
-              <span className="mt-1 block text-sm text-[var(--shresta-text-secondary)]">{option.description}</span>
+              <span className="block font-semibold text-[var(--shresta-logo-text)]">{option.name}</span>
+              <span className="mt-1 block text-sm text-[var(--shresta-logo-muted)]">{option.description}</span>
             </span>
           </button>
         );
@@ -1235,40 +1267,40 @@ function CheckoutReviewStep({
   return (
     <div className="space-y-4">
       <ReviewBlock icon={MapPin} onEdit={() => onEdit("details")} title="Delivery address">
-        <p className="font-semibold text-white">{form.fullName}</p>
+        <p className="font-semibold text-[var(--shresta-logo-text)]">{form.fullName}</p>
         <p>{form.addressLine1}{form.addressLine2 ? `, ${form.addressLine2}` : ""}</p>
         <p>{form.city}, {form.state} {form.postalCode}</p>
         <p>+91 {form.phone} - {form.email}</p>
       </ReviewBlock>
       <ReviewBlock icon={Truck} onEdit={() => onEdit("delivery")} title="Delivery mode">
-        <p className="font-semibold text-white">{deliveryLabel(form.deliveryMode)}</p>
+        <p className="font-semibold text-[var(--shresta-logo-text)]">{deliveryLabel(form.deliveryMode)}</p>
         <p>{totals.deliveryPaise === 0 ? "Free delivery applied" : `${formatPaise(asPriceInPaise(totals.deliveryPaise))} delivery charge`}</p>
       </ReviewBlock>
       <ReviewBlock icon={CreditCard} onEdit={() => onEdit("payment")} title="Payment intent">
-        <p className="font-semibold text-white">{paymentLabel(form.paymentMethod)}</p>
+        <p className="font-semibold text-[var(--shresta-logo-text)]">{paymentLabel(form.paymentMethod)}</p>
         <p>{sessionEmail ? `Logged in as ${sessionEmail}` : "Login required before final confirmation"}</p>
       </ReviewBlock>
       <ReviewBlock icon={Lock} title="Checkout order ID">
         {draft ? (
           <>
-            <p className="font-semibold text-white">{draft.orderNumber}</p>
+            <p className="font-semibold text-[var(--shresta-logo-text)]">{draft.orderNumber}</p>
             <p>Valid until {formatDraftExpiry(draft.expiresAt)}. Cart changes require a fresh order ID.</p>
           </>
         ) : (
           <>
-            <p className="font-semibold text-white">Not created for this cart</p>
+            <p className="font-semibold text-[var(--shresta-logo-text)]">Not created for this cart</p>
             <p>Return to cart and click Proceed To Checkout to create a 15-minute checkout order ID.</p>
           </>
         )}
       </ReviewBlock>
-      <div className="rounded-xl border border-[var(--wine-800)] bg-[rgba(26,9,12,0.42)] p-4">
-        <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-text-muted)]">Final order</p>
+      <div className="rounded-xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-4">
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-logo-muted)]">Final order</p>
         <div className="mt-3 space-y-2 text-sm">
           <SummaryRow label={`${items.length} product line${items.length === 1 ? "" : "s"}`} value={formatPaise(asPriceInPaise(totals.subtotalPaise))} />
           <SummaryRow label="Delivery" value={totals.deliveryPaise === 0 ? "FREE" : formatPaise(asPriceInPaise(totals.deliveryPaise))} />
           <SummaryRow strong label="Total" value={formatPaise(asPriceInPaise(totals.totalPaise))} />
         </div>
-        <label className="mt-4 flex cursor-pointer items-start gap-3 text-sm leading-6 text-[var(--shresta-text-secondary)]">
+        <label className="mt-4 flex cursor-pointer items-start gap-3 text-sm leading-6 text-[var(--shresta-logo-muted)]">
           <input
             checked={form.acceptedTerms}
             className="mt-1 h-4 w-4 accent-[var(--gold-500)]"
@@ -1285,14 +1317,14 @@ function CheckoutReviewStep({
 
 function ReviewBlock({ children, icon: Icon, onEdit, title }: { children: ReactNode; icon: LucideIcon; onEdit?: () => void; title: string }) {
   return (
-    <section className="rounded-xl border border-[var(--wine-800)] bg-[rgba(26,9,12,0.42)] p-4 text-sm leading-6 text-[var(--shresta-text-secondary)]">
+    <section className="rounded-xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-4 text-sm leading-6 text-[var(--shresta-logo-muted)]">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Icon className="h-4 w-4 text-[var(--gold-300)]" />
-          <p className="font-semibold text-white">{title}</p>
+          <Icon className="h-4 w-4 text-[var(--gold-600)]" />
+          <p className="font-semibold text-[var(--shresta-logo-text)]">{title}</p>
         </div>
         {onEdit ? (
-          <button className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-[0.12em] text-[var(--gold-300)] hover:text-[var(--gold-400)]" onClick={onEdit} type="button">
+          <button className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-[0.12em] text-[var(--gold-600)] hover:text-[var(--gold-500)]" onClick={onEdit} type="button">
             <Pencil className="h-3 w-3" />
             Edit
           </button>
@@ -1305,39 +1337,39 @@ function ReviewBlock({ children, icon: Icon, onEdit, title }: { children: ReactN
 
 function CheckoutProcessingState() {
   return (
-    <div className="mx-auto flex max-w-md flex-col items-center rounded-2xl border border-[var(--wine-800)] bg-[rgba(43,15,20,0.78)] px-6 py-12 text-center">
-      <div className="h-12 w-12 animate-spin rounded-full border-4 border-[var(--wine-700)] border-t-[var(--gold-500)]" />
-      <h2 className="mt-6 font-serif text-3xl font-light text-white">Placing your order</h2>
-      <p className="mt-3 text-sm leading-6 text-[var(--shresta-text-secondary)]">Securing your items and preparing your order timeline.</p>
+    <div className="mx-auto flex max-w-md flex-col items-center rounded-2xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-6 py-12 text-center">
+      <div className="h-12 w-12 animate-spin rounded-full border-4 border-[var(--shresta-logo-border)] border-t-[var(--gold-500)]" />
+      <h2 className="mt-6 font-serif text-3xl font-light text-[var(--shresta-logo-text)]">Placing your order</h2>
+      <p className="mt-3 text-sm leading-6 text-[var(--shresta-logo-muted)]">Securing your items and preparing your order timeline.</p>
     </div>
   );
 }
 
 function CheckoutSuccessState({ order }: { order: CompletedOrder }) {
   return (
-    <div className="mx-auto max-w-2xl rounded-2xl border border-[rgba(34,197,94,0.32)] bg-[rgba(43,15,20,0.82)] p-6 text-center shadow-[0_22px_70px_rgba(0,0,0,0.28)]">
-      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-300">
+    <div className="mx-auto max-w-2xl rounded-2xl border border-[rgba(34,197,94,0.32)] bg-[var(--shresta-logo-surface)] p-6 text-center shadow-[0_22px_70px_rgba(0,0,0,0.28)]">
+      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-700">
         <CheckCircle2 className="h-8 w-8" />
       </div>
-      <h2 className="mt-5 font-serif text-3xl font-light text-white">Order placed</h2>
-      <p className="mt-2 text-sm text-[var(--shresta-text-secondary)]">Order {order.orderNumber} is saved for {order.email}.</p>
+      <h2 className="mt-5 font-serif text-3xl font-light text-[var(--shresta-logo-text)]">Order placed</h2>
+      <p className="mt-2 text-sm text-[var(--shresta-logo-muted)]">Order {order.orderNumber} is saved for {order.email}.</p>
       <div className="mt-5 grid gap-3 text-left sm:grid-cols-3">
         <CheckoutField label="Order" value={order.orderStatus} />
         <CheckoutField label="Payment" value={order.paymentStatus} />
         <CheckoutField label="Fulfillment" value={order.fulfillmentStatus} />
       </div>
-      <div className="mt-5 rounded-xl border border-[var(--wine-800)] bg-[rgba(26,9,12,0.42)] p-4 text-left">
-        <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-text-muted)]">Status history</p>
+      <div className="mt-5 rounded-xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-4 text-left">
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-logo-muted)]">Status history</p>
         <div className="mt-3 space-y-2">
           {order.statusEvents.map((event) => (
             <div className="flex items-center justify-between gap-3 text-sm" key={`${event.eventType}-${event.toStatus}-${event.createdAt}`}>
-              <span className="text-[var(--shresta-text-secondary)]">{enumDisplayLabel(event.eventType)}</span>
-              <span className="font-semibold text-white">{event.toStatus}</span>
+              <span className="text-[var(--shresta-logo-muted)]">{enumDisplayLabel(event.eventType)}</span>
+              <span className="font-semibold text-[var(--shresta-logo-text)]">{event.toStatus}</span>
             </div>
           ))}
         </div>
       </div>
-      <p className="mt-5 text-lg font-bold text-white">{order.totalLabel}</p>
+      <p className="mt-5 text-lg font-bold text-[var(--shresta-logo-text)]">{order.totalLabel}</p>
       <Link className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--gold-500)] px-6 text-sm font-bold text-[var(--wine-950)]" href="/products">
         Continue Shopping
       </Link>
@@ -1347,13 +1379,13 @@ function CheckoutSuccessState({ order }: { order: CompletedOrder }) {
 
 function CheckoutErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
-    <div className="mx-auto max-w-md rounded-2xl border border-rose-400/30 bg-[rgba(43,15,20,0.82)] p-6 text-center">
-      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-rose-500/15 text-rose-200">
+    <div className="mx-auto max-w-md rounded-2xl border border-rose-400/30 bg-[var(--shresta-logo-surface)] p-6 text-center">
+      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-rose-500/15 text-rose-700">
         <AlertCircle className="h-8 w-8" />
       </div>
-      <h2 className="mt-5 font-serif text-3xl font-light text-white">Order not placed</h2>
-      <p className="mt-3 text-sm leading-6 text-[var(--shresta-text-secondary)]">{message}</p>
-      <button className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[var(--gold-500)] px-6 text-sm font-bold text-[var(--gold-300)]" onClick={onRetry} type="button">
+      <h2 className="mt-5 font-serif text-3xl font-light text-[var(--shresta-logo-text)]">Order not placed</h2>
+      <p className="mt-3 text-sm leading-6 text-[var(--shresta-logo-muted)]">{message}</p>
+      <button className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[var(--gold-500)] px-6 text-sm font-bold text-[var(--gold-600)]" onClick={onRetry} type="button">
         <RefreshCw className="h-4 w-4" />
         Review Again
       </button>
@@ -1399,7 +1431,7 @@ function CheckoutInput({
   const errorId = error ? `${name}-error` : undefined;
 
   return (
-    <label className={`grid gap-2 text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-text-muted)] ${className}`}>
+    <label className={`grid gap-2 text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-logo-muted)] ${className}`}>
       {label}
       <span className="checkout-input-shell">
         <input
@@ -1442,7 +1474,7 @@ function CheckoutPhoneInput({
   const errorId = error ? "checkout-phone-error" : undefined;
 
   return (
-    <label className="grid gap-2 text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-text-muted)]">
+    <label className="grid gap-2 text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-logo-muted)]">
       Mobile number
       <span className={`checkout-phone-control ${error ? "checkout-phone-control-error" : ""}`}>
         <span aria-hidden="true" className="checkout-phone-country">
@@ -1478,7 +1510,7 @@ function CheckoutPhoneInput({
 
 function CheckoutBackButton({ onBack }: { onBack: () => void }) {
   return (
-    <button className="inline-flex min-h-10 items-center justify-center rounded-full border border-[var(--wine-700)] px-5 text-sm font-bold text-[var(--shresta-text-secondary)] hover:border-[var(--gold-500)] hover:text-[var(--gold-300)]" onClick={onBack} type="button">
+    <button className="inline-flex min-h-10 items-center justify-center rounded-full border border-[var(--shresta-logo-border)] px-5 text-sm font-bold text-[var(--shresta-logo-muted)] hover:border-[var(--gold-500)] hover:text-[var(--gold-600)]" onClick={onBack} type="button">
       Back
     </button>
   );
@@ -1761,6 +1793,78 @@ function resolveCartItems(lines: BrowserCartLine[], products: ProductCard[]): Ca
       return product ? { line, product } : null;
     })
     .filter((item): item is CartProductLine => Boolean(item));
+}
+
+function useReconcileCartInventory(
+  lines: BrowserCartLine[],
+  replaceLines: (nextLines: BrowserCartLine[]) => void,
+  products: ProductCard[]
+) {
+  useEffect(() => {
+    const reconciled = reconcileCartLinesWithInventory(lines, products);
+    if (!reconciled) {
+      return;
+    }
+    replaceLines(reconciled);
+  }, [lines, replaceLines, products]);
+}
+
+function useReconcileWishlistInventory(
+  productIds: string[],
+  replaceItems: (nextProductIds: string[]) => void,
+  products: ProductCard[]
+) {
+  useEffect(() => {
+    const reconciled = reconcileWishlistWithInventory(productIds, products);
+    if (!reconciled) {
+      return;
+    }
+    replaceItems(reconciled);
+  }, [productIds, replaceItems, products]);
+}
+
+function reconcileCartLinesWithInventory(lines: BrowserCartLine[], products: ProductCard[]): BrowserCartLine[] | null {
+  const productsById = productMap(products);
+  let changed = false;
+  const next: BrowserCartLine[] = [];
+
+  for (const line of lines) {
+    const product = productsById.get(line.productId);
+    if (!product || product.stockQuantity <= 0) {
+      changed = true;
+      continue;
+    }
+
+    const clampedQuantity = Math.max(1, Math.min(product.stockQuantity, Math.floor(line.quantity)));
+    if (clampedQuantity !== line.quantity) {
+      changed = true;
+    }
+    next.push({ productId: line.productId, quantity: clampedQuantity });
+  }
+
+  if (!changed && next.length === lines.length) {
+    return null;
+  }
+  return next;
+}
+
+function reconcileWishlistWithInventory(productIds: string[], products: ProductCard[]): string[] | null {
+  const productsById = productMap(products);
+  const next = productIds.filter((productId) => {
+    const product = productsById.get(productId);
+    return Boolean(product && product.stockQuantity > 0);
+  });
+
+  if (next.length !== productIds.length) {
+    return next;
+  }
+
+  for (let i = 0; i < next.length; i += 1) {
+    if (next[i] !== productIds[i]) {
+      return next;
+    }
+  }
+  return null;
 }
 
 function productMap(products: ProductCard[]): Map<string, ProductCard> {

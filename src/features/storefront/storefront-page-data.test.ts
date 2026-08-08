@@ -49,7 +49,7 @@ describe("storefront-page-data", () => {
 
 function storefrontHomeFixture(products: Array<{ badges?: string[]; id: string; familyKey: string }>): StorefrontHome {
   return {
-    brand: { itemKey: "brand-shresta-exclusive", name: "SHRESTA EXCLUSIVE", tagline: "Premium", logo: null },
+    brand: { itemKey: "brand-shresta-exclusive", name: "SHRESTA EXCLUSIVE", tagline: "Premium", logo: null, demoVideoUrl: null },
     navigation: [],
     heroSlides: [],
     trustBadges: [],

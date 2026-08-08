@@ -49,6 +49,12 @@ export function useBrowserWishlist() {
     window.dispatchEvent(new Event(WISHLIST_UPDATED_EVENT));
   }, []);
 
+  const replaceItems = useCallback((productIds: string[]) => {
+    wishlistSnapshot = normalizeWishlistIds(productIds);
+    writeStoredWishlist(wishlistSnapshot);
+    window.dispatchEvent(new Event(WISHLIST_UPDATED_EVENT));
+  }, []);
+
   const productIdSet = useMemo(() => new Set(productIds), [productIds]);
 
   return {
@@ -56,6 +62,7 @@ export function useBrowserWishlist() {
     itemCount: productIds.length,
     productIds,
     productIdSet,
+    replaceItems,
     removeItem,
     toggleItem
   };

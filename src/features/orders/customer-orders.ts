@@ -72,6 +72,11 @@ export type CustomerOrderResponse = {
   orderStatus: string;
   paymentStatus: string;
   fulfillmentStatus: string;
+  customerStageCode: string;
+  customerStageLabel: string;
+  customerStageIndex: number;
+  customerStageMeaning: string;
+  customerStageTerminal: boolean;
   currency: string;
   subtotalPaise: number;
   deliveryPaise: number;
@@ -96,6 +101,11 @@ export type CustomerOrderSummary = {
   orderStatus: string;
   paymentStatus: string;
   fulfillmentStatus: string;
+  customerStageCode: string;
+  customerStageLabel: string;
+  customerStageIndex: number;
+  customerStageMeaning: string;
+  customerStageTerminal: boolean;
   currency: string;
   totalPaise: number;
   deliveryMode: string;
@@ -114,6 +124,10 @@ export type CustomerOrderDraftResult =
 
 export type CustomerOrdersResult =
   | { ok: true; orders: CustomerOrderSummary[] }
+  | { ok: false; message: string; status?: number };
+
+export type CustomerOrderCancelResult =
+  | { ok: true; order: CustomerOrderResponse }
   | { ok: false; message: string; status?: number };
 
 export async function createCustomerOrderDraft(payload: CustomerOrderDraftPayload, idempotencyKey: string): Promise<CustomerOrderDraftResult> {
@@ -201,5 +215,63 @@ export async function fetchCustomerOrders(): Promise<CustomerOrdersResult> {
     return { ok: true, orders: envelope.data };
   } catch {
     return { ok: false, message: "We could not load your orders right now. Please try again shortly." };
+  }
+}
+
+export async function fetchCustomerOrder(orderNumber: string): Promise<CustomerOrderResult> {
+  try {
+    const response = await fetch(`/api/customer-orders/${encodeURIComponent(orderNumber)}`, {
+      cache: "no-store",
+      method: "GET"
+    });
+    const envelope = await response.json() as {
+      success?: boolean;
+      data?: CustomerOrderResponse;
+      error?: { message?: string };
+    };
+
+    if (!response.ok || !envelope.success || !envelope.data) {
+      return {
+        ok: false,
+        message: envelope.error?.message ?? "Order details are not available right now.",
+        status: response.status
+      };
+    }
+
+    return { ok: true, order: envelope.data };
+  } catch {
+    return { ok: false, message: "We could not load this order right now. Please try again shortly." };
+  }
+}
+
+export async function cancelCustomerOrder(orderNumber: string, idempotencyKey: string, note?: string): Promise<CustomerOrderCancelResult> {
+  try {
+    const response = await fetch(`/api/customer-orders/${encodeURIComponent(orderNumber)}`, {
+      body: JSON.stringify({ note }),
+      cache: "no-store",
+      headers: {
+        "Content-Type": "application/json",
+        "Idempotency-Key": idempotencyKey
+      },
+      method: "POST"
+    });
+
+    const envelope = await response.json() as {
+      success?: boolean;
+      data?: CustomerOrderResponse;
+      error?: { message?: string };
+    };
+
+    if (!response.ok || !envelope.success || !envelope.data) {
+      return {
+        ok: false,
+        message: envelope.error?.message ?? "Order cancellation failed. Please try again.",
+        status: response.status
+      };
+    }
+
+    return { ok: true, order: envelope.data };
+  } catch {
+    return { ok: false, message: "We could not cancel this order right now. Please try again shortly." };
   }
 }

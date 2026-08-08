@@ -54,7 +54,9 @@ describe("fetchStorefrontStores", () => {
     const stores = await fetchStorefrontStores({ apiBaseUrl: "http://localhost:8090", fetchImpl });
 
     expect(stores.section.title).toBe("Store Locator");
-    expect(stores.stores[0].address.city).toBe("Bengaluru");
+    expect(stores.stores).toHaveLength(1);
+    const firstStore = stores.stores[0]!;
+    expect(firstStore.address.city).toBe("Bengaluru");
     expect(fetchImpl).toHaveBeenCalledWith("http://localhost:8090/api/v1/storefront/stores", expect.any(Object));
   });
 });

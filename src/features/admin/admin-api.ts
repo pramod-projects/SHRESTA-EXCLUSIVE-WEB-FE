@@ -183,6 +183,66 @@ export type AdminChangeRequestCreatePayload = {
   payload?: Record<string, unknown>;
 };
 
+export type AdminOrderSummary = {
+  orderNumber: string;
+  customerId: string;
+  customerEmail: string;
+  customerDisplayName: string;
+  orderStatus: string;
+  paymentStatus: string;
+  fulfillmentStatus: string;
+  deliveryMode: string;
+  paymentMethod: string;
+  totalPaise: number;
+  itemCount: number;
+  placedAt: string;
+};
+
+export type AdminCustomerOrderSummary = {
+  customerId: string;
+  customerEmail: string;
+  customerDisplayName: string;
+  totalOrders: number;
+  deliveredOrders: number;
+  cancelledOrders: number;
+  activeOrders: number;
+  grossOrderValuePaise: number;
+  lastOrderAt: string | null;
+};
+
+export type AdminOrderStatusUpdatePayload = {
+  orderStatus?: string;
+  paymentStatus?: string;
+  fulfillmentStatus?: string;
+  note?: string;
+};
+
+export type AdminOrderDetail = {
+  orderNumber: string;
+  customerId: string;
+  customerEmail: string;
+  orderStatus: string;
+  paymentStatus: string;
+  fulfillmentStatus: string;
+  currency: string;
+  subtotalPaise: number;
+  deliveryPaise: number;
+  discountPaise: number;
+  taxPaise: number;
+  totalPaise: number;
+  deliveryMode: string;
+  paymentMethod: string;
+  placedAt: string;
+  statusEvents: Array<{
+    eventType: string;
+    fromStatus: string | null;
+    toStatus: string;
+    actorType: string;
+    note: string | null;
+    createdAt: string;
+  }>;
+};
+
 export async function fetchAdminAssets(params: AssetSearchParams = {}): Promise<AssetSearchResponse> {
   const query = new URLSearchParams();
   appendQuery(query, "query", params.query);
@@ -213,6 +273,45 @@ export function fetchAdminStorefrontHome(): Promise<StorefrontHome> {
 
 export function fetchAdminAcl(role: AdminRole = "CHANGE_MANAGER"): Promise<AdminAclResponse> {
   return requestAdminApi<AdminAclResponse>("/api/v1/admin/acl/me", { role });
+}
+
+export function fetchAdminOrders(params: { limit?: number; offset?: number; customerEmail?: string; orderNumber?: string } = {}): Promise<AdminOrderSummary[]> {
+  const query = new URLSearchParams();
+  appendQuery(query, "limit", params.limit?.toString());
+  appendQuery(query, "offset", params.offset?.toString());
+  appendQuery(query, "customerEmail", params.customerEmail);
+  appendQuery(query, "orderNumber", params.orderNumber);
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
+
+  return requestAdminApi<AdminOrderSummary[]>(`/api/v1/admin/orders${suffix}`, {
+    role: "CHANGE_MANAGER"
+  });
+}
+
+export function fetchAdminOrderCustomers(params: { limit?: number; offset?: number } = {}): Promise<AdminCustomerOrderSummary[]> {
+  const query = new URLSearchParams();
+  appendQuery(query, "limit", params.limit?.toString());
+  appendQuery(query, "offset", params.offset?.toString());
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
+
+  return requestAdminApi<AdminCustomerOrderSummary[]>(`/api/v1/admin/orders/customers${suffix}`, {
+    role: "CHANGE_MANAGER"
+  });
+}
+
+export function fetchAdminOrder(orderNumber: string): Promise<AdminOrderDetail> {
+  return requestAdminApi<AdminOrderDetail>(`/api/v1/admin/orders/${encodeURIComponent(orderNumber)}`, {
+    role: "CHANGE_MANAGER"
+  });
+}
+
+export function updateAdminOrderStatus(orderNumber: string, payload: AdminOrderStatusUpdatePayload, options: MutationOptions): Promise<Record<string, unknown>> {
+  return requestAdminApi<Record<string, unknown>>(`/api/v1/admin/orders/${encodeURIComponent(orderNumber)}/status`, {
+    method: "PATCH",
+    role: "CHANGE_MANAGER",
+    body: payload,
+    idempotencyKey: options.idempotencyKey
+  });
 }
 
 export function fetchAdminChangeRequests(status = "PENDING_REVIEW"): Promise<AdminChangeRequestResponse[]> {

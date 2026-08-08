@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   ArrowRight,
@@ -61,9 +61,11 @@ type StorefrontHomeExperienceProps = {
 export type StorefrontChromeControls = {
   cartCount: number;
   wishlistKeys: ReadonlySet<string>;
-  addToCart: (productId: string, quantity?: number) => void;
+  addToCart: (productId: string, quantity?: number, maxQuantity?: number) => void;
   toggleWishlist: (productId: string) => void;
 };
+
+const SHOW_CUSTOMER_CHAT_WIDGET = false;
 
 type StorefrontPageChromeProps = {
   home: StorefrontHome;
@@ -71,27 +73,56 @@ type StorefrontPageChromeProps = {
 };
 
 const HERO_INTERVAL_MS = 6000;
+const LOCAL_MEDIA_PROXY_PATH = "/api/media-proxy/";
+const LOCAL_MEDIA_HOSTS = new Set(["localhost", "127.0.0.1"]);
+
+type BrandLogoVariant = "header" | "mobile" | "footer";
+
+const BRAND_LOGO_STYLES: Record<BrandLogoVariant, { wrapper: string; media: string; sizes: string }> = {
+  header: {
+    wrapper: "inline-flex h-[4.8rem] w-[186px] items-center overflow-hidden sm:h-[4.9rem] sm:w-[220px] md:h-[4.9rem] md:w-[250px] lg:h-[5.9rem] lg:w-[356px] xl:h-[6.1rem] xl:w-[388px]",
+    media: "h-full w-auto origin-left scale-[1.16] select-none object-contain object-left lg:scale-[1.15]",
+    sizes: "388px"
+  },
+  mobile: {
+    wrapper: "inline-flex h-[4.8rem] w-full max-w-[224px] items-center overflow-hidden",
+    media: "h-full w-auto origin-left scale-[1.16] object-contain object-left",
+    sizes: "250px"
+  },
+  footer: {
+    wrapper: "inline-flex h-[6.8rem] w-full max-w-[320px] overflow-hidden sm:h-[7.4rem] sm:max-w-[336px] lg:h-[8.2rem] lg:max-w-[348px]",
+    media: "h-full w-full origin-left object-contain object-left",
+    sizes: "468px"
+  }
+};
+
+function BrandLogo({ eager = true, media, variant }: { eager?: boolean; media: StorefrontHome["brand"]["logo"]; variant: BrandLogoVariant }) {
+  const style = BRAND_LOGO_STYLES[variant];
+  return (
+    <span className={style.wrapper}>
+      <ResponsiveMedia eager={eager} className={style.media} media={media} sizes={style.sizes} />
+    </span>
+  );
+}
 
 export function StorefrontPageChrome({ home, children }: StorefrontPageChromeProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const { itemCount: wishlistCount, productIdSet: wishlistKeys, toggleItem: toggleWishlist } = useBrowserWishlist();
   const { addItem, itemCount: cartCount } = useBrowserCart();
-  const trustBadges = home.trustBadges.slice(0, 4);
 
   const controls: StorefrontChromeControls = {
     cartCount,
     wishlistKeys,
-    addToCart: addItem,
+    addToCart: (productId, quantity = 1, maxQuantity) => addItem(productId, quantity, maxQuantity),
     toggleWishlist
   };
 
   return (
-    <main className="min-h-screen bg-[var(--wine-950)] text-[var(--shresta-text-primary)]">
+    <main className="min-h-screen bg-[var(--shresta-logo-bg)] text-[var(--shresta-logo-text)]">
       {prefetchMedia(home.heroSlides[0]?.image)}
       {prefetchMedia(home.featuredCollections[0]?.image)}
 
-      <AnnouncementBar badges={trustBadges} />
       <CustomerHeader
         cartCount={cartCount}
         home={home}
@@ -113,7 +144,7 @@ export function StorefrontPageChrome({ home, children }: StorefrontPageChromePro
         searchOpen={searchOpen}
         wishlistCount={wishlistCount}
       />
-      <CustomerChatWidget />
+      {SHOW_CUSTOMER_CHAT_WIDGET ? <CustomerChatWidget /> : null}
     </main>
   );
 }
@@ -144,11 +175,10 @@ export function StorefrontHomeExperience({ home }: StorefrontHomeExperienceProps
   }, [heroSlides.length]);
 
   return (
-    <main className="min-h-screen bg-[var(--wine-950)] text-[var(--shresta-text-primary)]">
+    <main className="min-h-screen bg-[var(--shresta-logo-bg)] text-[var(--shresta-logo-text)]">
       {prefetchMedia(heroSlides[1]?.image)}
       {prefetchMedia(collections[0]?.image)}
 
-      <AnnouncementBar badges={trustBadges} />
       <CustomerHeader
         cartCount={cartCount}
         home={home}
@@ -171,14 +201,18 @@ export function StorefrontHomeExperience({ home }: StorefrontHomeExperienceProps
 
       <TrustBadges badges={trustBadges} />
 
-      <section className="bg-gradient-to-b from-[var(--wine-950)] to-[var(--wine-900)] py-20 lg:py-28">
+      {home.brand.demoVideoUrl ? (
+        <BrandIntroVideo brandName={home.brand.name} videoUrl={home.brand.demoVideoUrl} />
+      ) : null}
+
+      <section className="bg-gradient-to-b from-[var(--shresta-logo-bg)] to-[var(--shresta-logo-surface)] py-14 lg:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <SectionHeader
             eyebrow={home.featuredCollectionsSection.eyebrow}
             title={home.featuredCollectionsSection.title}
             subtitle={home.featuredCollectionsSection.description}
           />
-          <div className="mt-12 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-6">
+          <div className="mt-8 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 lg:grid-cols-6">
             {collections.map((collection, index) => (
               <CollectionCard collection={collection} index={index} key={collection.id} />
             ))}
@@ -188,7 +222,7 @@ export function StorefrontHomeExperience({ home }: StorefrontHomeExperienceProps
 
       <WhyShrestaSection features={home.whyShresta} section={home.whyShrestaSection} />
 
-      <section className="bg-[var(--wine-950)] py-20 lg:py-28">
+      <section className="bg-[var(--shresta-logo-bg)] py-14 lg:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6">
           <SectionHeader
             eyebrow={home.bestsellersSection.eyebrow}
@@ -200,22 +234,22 @@ export function StorefrontHomeExperience({ home }: StorefrontHomeExperienceProps
             const visibleBestsellers = showAllBestsellers ? featuredBestsellers : featuredBestsellers.slice(0, 8);
             return (
               <>
-                <div className="mt-12 grid grid-cols-1 gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="mt-8 grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 lg:grid-cols-4">
                   {visibleBestsellers.map((product, index) => (
                     <ProductTile
                       eager={index < 4}
                       isWishlisted={wishlistKeys.has(product.id)}
                       key={product.id}
-                      onAddToCart={() => addItem(product.id)}
+                      onAddToCart={() => addItem(product.id, 1, product.stockQuantity)}
                       onToggleWishlist={() => toggleWishlist(product.id)}
                       product={product}
                     />
                   ))}
                 </div>
                 {featuredBestsellers.length > 8 && (
-                  <div className="mt-12 flex justify-center">
+                  <div className="mt-8 flex justify-center">
                     <button
-                      className="group flex items-center gap-2.5 rounded-full border border-[rgba(212,175,55,0.35)] bg-transparent px-8 py-3 font-serif text-sm font-light tracking-[0.12em] text-[var(--gold-300)] transition-all duration-300 hover:border-[var(--gold-400)] hover:bg-[rgba(212,175,55,0.07)] hover:text-[var(--gold-200)]"
+                      className="group flex items-center gap-2.5 rounded-full border border-[rgba(212,175,55,0.35)] bg-transparent px-8 py-3 font-serif text-sm font-light tracking-[0.12em] text-[var(--gold-600)] transition-all duration-300 hover:border-[var(--gold-500)] hover:bg-[rgba(212,175,55,0.07)] hover:text-[var(--gold-500)]"
                       onClick={() => setShowAllBestsellers(!showAllBestsellers)}
                       type="button"
                     >
@@ -248,72 +282,13 @@ export function StorefrontHomeExperience({ home }: StorefrontHomeExperienceProps
         searchOpen={searchOpen}
         wishlistCount={wishlistCount}
       />
-      <CustomerChatWidget />
+      {SHOW_CUSTOMER_CHAT_WIDGET ? <CustomerChatWidget /> : null}
     </main>
   );
 }
 
 export function StorefrontBackendUnavailable() {
   return <BackendApiUnavailable surface="Storefront" />;
-}
-
-function AnnouncementBar({ badges }: { badges: TrustBadge[] }) {
-  const items = badges.length > 0 ? badges : [];
-
-  return (
-    <motion.div
-      animate={{ opacity: 1, y: 0 }}
-      className="border-b border-wine-800/50 bg-wine-950"
-      initial={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-    >
-      <div className="container mx-auto px-4 py-3">
-        <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-2 md:gap-4 lg:gap-6">
-        {items.map((item, index) => (
-          <TrustBarItem item={item} key={item.title} separator={index > 0} />
-        ))}
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-function TrustBarItem({ item, separator }: { item: TrustBadge; separator: boolean }) {
-  return (
-    <>
-      {separator ? <AnimatedSeparator /> : null}
-      <motion.div
-        className="group flex max-w-[16rem] cursor-default items-center gap-2 rounded-lg px-2 py-1.5 transition-all duration-300 hover:bg-wine-900/40"
-        transition={{ duration: 0.2 }}
-        whileHover={{ scale: 1.03 }}
-      >
-        <motion.div
-          animate={{ scale: [1, 1.08, 1], opacity: [1, 0.85, 1] }}
-          transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-        >
-          <ReferenceIcon className="h-4 w-4 text-gold-500 transition-colors duration-300 group-hover:text-gold-400 sm:h-5 sm:w-5" iconKey={item.iconKey} />
-        </motion.div>
-        <div className="flex min-w-0 flex-col">
-          <span className="text-wrap text-xs font-medium leading-tight text-shresta-text-primary transition-colors duration-300 group-hover:text-white sm:text-sm">
-            {item.title}
-          </span>
-          <span className="mt-0.5 hidden max-w-[13.5rem] text-wrap text-[10px] leading-4 text-shresta-text-muted transition-colors duration-300 group-hover:text-shresta-text-secondary lg:block">
-            {item.description}
-          </span>
-        </div>
-      </motion.div>
-    </>
-  );
-}
-
-function AnimatedSeparator() {
-  return (
-    <motion.div
-      animate={{ opacity: [0.3, 0.6, 0.3] }}
-      className="hidden h-6 w-px bg-gradient-to-b from-transparent via-gold-500/30 to-transparent sm:block"
-      transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-    />
-  );
 }
 
 type CustomerHeaderProps = {
@@ -354,25 +329,23 @@ function CustomerHeader({
   const prefersReducedMotion = useReducedMotion();
 
   return (
-    <header className="sticky top-0 z-50 border-b border-gold-500/20 bg-[var(--shresta-navy)] shadow-[0_14px_34px_rgba(0,0,0,0.34)]">
-      <div className="container mx-auto px-4">
-        <div className="flex h-20 items-center justify-between">
+    <header className="sticky top-0 z-50 border-b border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-bg)] shadow-[0_10px_24px_rgba(47,33,21,0.12)]">
+      <div className="container mx-auto px-3 sm:px-4">
+        <div className="relative flex h-20 items-center justify-between lg:h-[6.4rem] xl:h-[6.8rem]">
           <button
             aria-label="Open menu"
-            className="reference-icon-button flex lg:hidden"
+            className="reference-icon-button !h-9 !w-9 flex lg:hidden"
             onClick={() => setMobileOpen(true)}
             type="button"
           >
             <Menu className="h-5 w-5" />
           </button>
 
-          <Link aria-label={`${home.brand.name} home`} className="flex items-center" href="/">
-            <span className="inline-flex items-center">
-              <ResponsiveMedia eager className="h-[3.9rem] w-auto select-none object-contain" media={home.brand.logo} sizes="184px" />
-            </span>
+          <Link aria-label={`${home.brand.name} home`} className="flex min-w-0 items-center" href="/">
+            <BrandLogo media={home.brand.logo} variant="header" />
           </Link>
 
-          <nav className="hidden items-center gap-1 lg:flex">
+          <nav className="hidden items-center gap-3 lg:absolute lg:left-1/2 lg:flex lg:-translate-x-1/2 xl:gap-4">
             {home.navigation.map((item) => (
               <div
                 className="relative"
@@ -381,11 +354,11 @@ function CustomerHeader({
                 onMouseLeave={() => setActiveMegaMenu(null)}
               >
                 <Link
-                  className="flex items-center gap-1 px-4 py-2 text-sm font-medium text-shresta-text-secondary transition-colors duration-300 hover:text-gold-400"
+                  className="flex items-center gap-1.5 px-5 py-2.5 text-base font-medium text-[var(--shresta-logo-muted)] transition-colors duration-300 hover:text-[var(--shresta-logo-text)]"
                   href={item.href}
                 >
                   {item.label}
-                  {item.label.toLowerCase() === "shop" ? <ChevronDown className="ml-1 h-4 w-4 transition-transform duration-300" /> : null}
+                  {item.label.toLowerCase() === "shop" ? <ChevronDown className="h-[1.1rem] w-[1.1rem] transition-transform duration-300" /> : null}
                 </Link>
                 <AnimatePresence>
                 {item.label.toLowerCase() === "shop" && activeMegaMenu === item.label ? (
@@ -400,14 +373,14 @@ function CustomerHeader({
                       exit: { opacity: 0, y: -10, transition: { duration: 0.2 } }
                     }}
                   >
-                    <div className="w-[760px] overflow-hidden rounded-2xl border border-wine-800 bg-[rgba(18,6,9,0.97)] shadow-2xl shadow-black/60 backdrop-blur">
+                    <div className="w-[760px] overflow-hidden rounded-2xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-bg)] shadow-2xl shadow-[rgba(47,33,21,0.12)] backdrop-blur">
                       {/* Top accent line */}
                       <div className="h-px w-full bg-gradient-to-r from-transparent via-gold-500/40 to-transparent" />
 
-                      <div className="grid grid-cols-[1.1fr_0.9fr_1fr] divide-x divide-wine-800/70 p-6">
+                      <div className="grid grid-cols-[1.1fr_0.9fr_1fr] divide-x divide-[var(--shresta-logo-border)] p-6">
                         {/* Column 1 — Explore */}
                         <div className="pr-6">
-                          <p className="mb-4 flex items-center gap-2 text-[0.6rem] font-bold uppercase tracking-[0.2em] text-shresta-text-muted">
+                          <p className="mb-4 flex items-center gap-2 text-[0.6rem] font-bold uppercase tracking-[0.2em] text-[var(--shresta-logo-muted)]">
                             <span className="h-1.5 w-1.5 rounded-full bg-gold-500" />
                             Explore
                           </p>
@@ -415,7 +388,7 @@ function CustomerHeader({
                             {exploreLinks.map((link) => (
                               <li key={link.href}>
                                 <Link
-                                  className="group flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-shresta-text-secondary transition-all duration-200 hover:bg-[rgba(212,175,55,0.06)] hover:text-gold-400"
+                                  className="group flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-[var(--shresta-logo-muted)] transition-all duration-200 hover:bg-[var(--shresta-logo-surface)] hover:text-[var(--shresta-logo-text)]"
                                   href={link.href}
                                 >
                                   <ChevronRight className="h-3 w-3 shrink-0 -translate-x-1 text-gold-500 opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100" />
@@ -428,7 +401,7 @@ function CustomerHeader({
 
                         {/* Column 2 — Collections */}
                         <div className="px-6">
-                          <p className="mb-4 flex items-center gap-2 text-[0.6rem] font-bold uppercase tracking-[0.2em] text-shresta-text-muted">
+                          <p className="mb-4 flex items-center gap-2 text-[0.6rem] font-bold uppercase tracking-[0.2em] text-[var(--shresta-logo-muted)]">
                             <span className="h-1.5 w-1.5 rounded-full bg-gold-500" />
                             Collections
                           </p>
@@ -436,7 +409,7 @@ function CustomerHeader({
                             {productTypeCollections.map((collection) => (
                               <li key={collection.key}>
                                 <Link
-                                  className="group flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-shresta-text-secondary transition-all duration-200 hover:bg-[rgba(212,175,55,0.06)] hover:text-gold-400"
+                                  className="group flex items-center gap-2 rounded-lg px-2 py-2 text-sm text-[var(--shresta-logo-muted)] transition-all duration-200 hover:bg-[var(--shresta-logo-surface)] hover:text-[var(--shresta-logo-text)]"
                                   href={collection.href}
                                 >
                                   <ChevronRight className="h-3 w-3 shrink-0 -translate-x-1 text-gold-500 opacity-0 transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100" />
@@ -449,7 +422,7 @@ function CustomerHeader({
 
                         {/* Column 3 — By Occasion */}
                         <div className="pl-6">
-                          <p className="mb-4 flex items-center gap-2 text-[0.6rem] font-bold uppercase tracking-[0.2em] text-shresta-text-muted">
+                          <p className="mb-4 flex items-center gap-2 text-[0.6rem] font-bold uppercase tracking-[0.2em] text-[var(--shresta-logo-muted)]">
                             <span className="h-1.5 w-1.5 rounded-full bg-gold-500" />
                             By Occasion
                           </p>
@@ -461,12 +434,12 @@ function CustomerHeader({
                               { label: "Daily Wear Sarees", query: "Daily Wear Edit", Icon: Shirt }
                             ] as const).map(({ label, query, Icon }) => (
                               <Link
-                                className="group flex items-center gap-3 rounded-xl border border-wine-700/70 px-3 py-2.5 text-sm text-shresta-text-secondary transition-all duration-200 hover:border-gold-500/30 hover:bg-[rgba(212,175,55,0.05)] hover:text-gold-400"
+                                className="group flex items-center gap-3 rounded-xl border border-[var(--shresta-logo-border)] px-3 py-2.5 text-sm text-[var(--shresta-logo-muted)] transition-all duration-200 hover:border-gold-500/30 hover:bg-[var(--shresta-logo-surface)] hover:text-[var(--shresta-logo-text)]"
                                 href={`/products?occasion=${encodeURIComponent(query)}`}
                                 key={label}
                               >
-                                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-wine-800 transition-colors duration-200 group-hover:bg-[rgba(212,175,55,0.12)]">
-                                  <Icon className="h-3.5 w-3.5 text-shresta-text-muted transition-colors duration-200 group-hover:text-gold-400" />
+                                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-[var(--shresta-logo-surface)] transition-colors duration-200 group-hover:bg-[rgba(212,175,55,0.12)]">
+                                  <Icon className="h-3.5 w-3.5 text-[var(--shresta-logo-muted)] transition-colors duration-200 group-hover:text-gold-400" />
                                 </span>
                                 {label}
                               </Link>
@@ -476,10 +449,10 @@ function CustomerHeader({
                       </div>
 
                       {/* Bottom strip */}
-                      <div className="flex items-center justify-between border-t border-wine-800/60 bg-[rgba(26,9,12,0.6)] px-6 py-3">
-                        <p className="text-[0.65rem] font-medium uppercase tracking-[0.14em] text-shresta-text-muted">SHRESTA EXCLUSIVE — Sarees</p>
+                      <div className="flex items-center justify-between border-t border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-6 py-3">
+                        <p className="text-[0.65rem] font-medium uppercase tracking-[0.14em] text-[var(--shresta-logo-muted)]">SHRESTA EXCLUSIVE — Sarees</p>
                         <Link
-                          className="group flex items-center gap-1.5 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-gold-400 transition-colors hover:text-gold-300"
+                          className="group flex items-center gap-1.5 text-[0.65rem] font-bold uppercase tracking-[0.12em] text-[var(--shresta-logo-text)] transition-colors hover:text-gold-600"
                           href="/products"
                         >
                           All Products
@@ -494,7 +467,7 @@ function CustomerHeader({
             ))}
           </nav>
 
-          <div className="flex items-center gap-1">
+          <div className="flex shrink-0 items-center gap-0 sm:gap-1 lg:ml-auto lg:justify-end">
             <AnimatePresence>
             {searchOpen ? (
               <motion.form
@@ -507,7 +480,7 @@ function CustomerHeader({
               >
                 <input
                   autoFocus
-                  className="h-9 w-full rounded-full border border-wine-700 bg-wine-800/50 px-4 text-sm text-shresta-text-primary outline-none placeholder:text-shresta-text-muted focus:border-gold-500"
+                  className="h-9 w-full rounded-full border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-4 text-sm text-[var(--shresta-logo-text)] outline-none placeholder:text-[var(--shresta-logo-muted)] focus:border-gold-500"
                   name="query"
                   placeholder="Search..."
                   type="search"
@@ -517,37 +490,37 @@ function CustomerHeader({
             </AnimatePresence>
             <button
               aria-label={searchOpen ? "Close search" : "Open search"}
-              className="reference-icon-button hidden md:flex"
+              className="reference-icon-button hidden md:flex lg:scale-110"
               onClick={() => setSearchOpen(!searchOpen)}
               type="button"
             >
               <motion.span animate={{ rotate: searchOpen ? 90 : 0 }} transition={{ duration: 0.2 }}>
-                {searchOpen ? <X className="h-5 w-5" /> : <Search className="h-5 w-5" />}
+                {searchOpen ? <X className="h-5 w-5 lg:h-[1.35rem] lg:w-[1.35rem]" /> : <Search className="h-5 w-5 lg:h-[1.35rem] lg:w-[1.35rem]" />}
               </motion.span>
             </button>
             <Link
               aria-label="View wishlist"
-              className="reference-icon-button relative inline-flex"
+              className="reference-icon-button !h-9 !w-9 relative inline-flex lg:scale-110"
               href="/wishlist"
             >
-              <Heart className="h-5 w-5" />
+              <Heart className="h-5 w-5 lg:h-[1.35rem] lg:w-[1.35rem]" />
               {wishlistCount > 0 ? <CounterBadge count={wishlistCount} /> : null}
             </Link>
             <Link
               aria-label={`Cart with ${cartCount} items`}
-              className="reference-icon-button relative inline-flex"
+              className="reference-icon-button !h-9 !w-9 relative inline-flex lg:scale-110"
               href="/cart"
             >
-              <ShoppingBag className="h-5 w-5" />
+              <ShoppingBag className="h-5 w-5 lg:h-[1.35rem] lg:w-[1.35rem]" />
               {cartCount > 0 ? <CounterBadge count={cartCount} /> : null}
             </Link>
             <Link
               aria-label="Account, login, and profile"
-              className="reference-icon-button relative inline-flex"
+              className="reference-icon-button !h-9 !w-9 relative inline-flex lg:scale-110"
               href="/account"
               title="Account"
             >
-              <User className="h-5 w-5" />
+              <User className="h-5 w-5 lg:h-[1.35rem] lg:w-[1.35rem]" />
             </Link>
           </div>
         </div>
@@ -556,11 +529,9 @@ function CustomerHeader({
       {mobileOpen ? (
         <div className="fixed inset-0 z-50 lg:hidden">
           <button className="absolute inset-0 bg-black/60" aria-label="Close menu" onClick={() => setMobileOpen(false)} type="button" />
-          <aside className="relative h-full w-80 max-w-[86vw] border-r border-wine-800 bg-wine-900 p-4 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-wine-800 pb-4">
-              <span className="inline-flex items-center">
-                <ResponsiveMedia eager className="h-[3.9rem] w-auto object-contain object-left" media={home.brand.logo} sizes="160px" />
-              </span>
+          <aside className="relative h-full w-80 max-w-[86vw] border-r border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-bg)] p-4 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-[var(--shresta-logo-border)] pb-4">
+              <BrandLogo media={home.brand.logo} variant="mobile" />
               <button className="reference-icon-button inline-flex" onClick={() => setMobileOpen(false)} type="button">
                 <X className="h-5 w-5" />
               </button>
@@ -568,7 +539,7 @@ function CustomerHeader({
             <nav className="mt-6 space-y-2">
               {home.navigation.map((item) => (
                 <Link
-                  className="block rounded-lg px-3 py-3 text-lg font-medium text-shresta-text-primary transition-colors hover:bg-wine-800/50"
+                  className="block rounded-lg px-3 py-3 text-lg font-medium text-[var(--shresta-logo-text)] transition-colors hover:bg-[var(--shresta-logo-surface)]"
                   href={item.href}
                   key={item.href}
                   onClick={() => setMobileOpen(false)}
@@ -577,12 +548,12 @@ function CustomerHeader({
                 </Link>
               ))}
             </nav>
-            <div className="mt-8 border-t border-wine-800 pt-5">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-shresta-text-muted">Categories</p>
+            <div className="mt-8 border-t border-[var(--shresta-logo-border)] pt-5">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-[var(--shresta-logo-muted)]">Categories</p>
               <div className="mt-3 max-h-[17rem] space-y-1 overflow-y-auto pr-1">
                 {productTypeCollections.map((collection) => (
                   <Link
-                    className="block rounded-lg px-3 py-2 text-shresta-text-secondary transition-colors hover:bg-wine-800/50 hover:text-gold-400"
+                    className="block rounded-lg px-3 py-2 text-[var(--shresta-logo-muted)] transition-colors hover:bg-[var(--shresta-logo-surface)] hover:text-[var(--shresta-logo-text)]"
                     href={collection.href}
                     key={collection.key}
                     onClick={() => setMobileOpen(false)}
@@ -626,7 +597,7 @@ function HeroCarousel({
   return (
     <section
       aria-label="Featured Collections"
-      className="relative w-full overflow-hidden bg-wine-950"
+      className="relative w-full overflow-hidden bg-[var(--shresta-logo-bg)]"
       style={{ height: "calc(100vh - 125px)", minHeight: "500px", maxHeight: "900px" }}
     >
       <AnimatePresence initial={false} mode="wait">
@@ -682,7 +653,7 @@ function HeroCarousel({
           </motion.h1>
           <motion.p
             animate={{ y: 0, opacity: 1 }}
-            className="mt-5 max-w-xl text-base leading-7 text-shresta-text-secondary sm:text-lg"
+            className="mt-5 max-w-xl text-base leading-7 text-white/80 sm:text-lg"
             initial={{ y: 40, opacity: 0 }}
             transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.8, delay: 0.16, ease: [0.25, 0.1, 0.25, 1] }}
           >
@@ -701,7 +672,7 @@ function HeroCarousel({
               {activeHero.ctaLabel}
               <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
             </Link>
-            <span className="text-sm font-medium text-shresta-text-secondary">+ {activeHero.trustNote}</span>
+            <span className="text-sm font-medium text-white/75">+ {activeHero.trustNote}</span>
           </motion.div>
         </motion.div>
       </div>
@@ -718,7 +689,7 @@ function HeroCarousel({
                 <button
                   aria-current={index === activeHeroIndex ? "true" : undefined}
                   aria-label={`Go to slide ${index + 1}: ${slide.title}`}
-                  className={index === activeHeroIndex ? "h-2 w-9 rounded-full bg-gold-400 transition-all" : "h-2 w-2 rounded-full bg-white/45 transition-all hover:bg-white/70"}
+                  className={index === activeHeroIndex ? "h-2 w-9 rounded-full bg-gold-400 transition-all" : "h-2 w-2 rounded-full bg-[rgba(253,246,235,0.5)] transition-all hover:bg-[rgba(253,246,235,0.74)]"}
                   key={slide.id}
                   onClick={() => setActiveHeroIndex(index)}
                   type="button"
@@ -750,13 +721,13 @@ function HeroCarouselArrowButton({
   return (
     <motion.button
       aria-label={label}
-      className="pointer-events-auto group relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-gold-500/45 bg-[rgba(26,9,12,0.58)] text-gold-200 shadow-[0_18px_45px_rgba(0,0,0,0.34)] backdrop-blur-xl transition-colors duration-300 hover:border-gold-300 hover:bg-gold-500 hover:text-wine-950 md:h-16 md:w-16"
+      className="pointer-events-auto group relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-gold-500/60 bg-[rgba(253,246,235,0.95)] text-[var(--wine-800)] shadow-[0_18px_45px_rgba(0,0,0,0.34)] backdrop-blur-xl transition-colors duration-300 hover:border-gold-500 hover:bg-gold-500 hover:text-wine-950 md:h-16 md:w-16"
       onClick={onClick}
       type="button"
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.96 }}
     >
-      <span className="absolute inset-1 rounded-full border border-white/10 transition-colors group-hover:border-wine-950/20" />
+      <span className="absolute inset-1 rounded-full border border-[rgba(253,246,235,0.18)] transition-colors group-hover:border-wine-950/20" />
       <span className="absolute left-3 right-3 top-2 h-px bg-gradient-to-r from-transparent via-gold-200/70 to-transparent opacity-80 transition group-hover:via-wine-950/50" />
       <Icon className="relative z-10 h-6 w-6 transition-transform duration-300 group-hover:scale-110" />
     </motion.button>
@@ -765,12 +736,12 @@ function HeroCarouselArrowButton({
 
 function TrustBadges({ badges }: { badges: TrustBadge[] }) {
   return (
-    <section className="relative overflow-hidden border-y border-wine-800 bg-wine-900">
+    <section className="relative overflow-hidden border-y border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(212,175,55,0.04)_0%,_transparent_70%)]" />
       <div className="relative mx-auto grid max-w-7xl grid-cols-2 md:grid-cols-4">
         {badges.map((badge, index) => (
           <motion.article
-            className="group relative flex min-h-32 flex-col items-center justify-center p-6 text-center transition hover:bg-wine-800/60 sm:p-8 md:min-h-36"
+            className="group relative flex min-h-24 flex-col items-center justify-center p-5 text-center transition hover:bg-[var(--shresta-logo-surface)]/60 sm:p-6 md:min-h-28"
             initial={{ opacity: 0, y: 20 }}
             key={badge.title}
             transition={{ duration: 0.5, delay: index * 0.08, ease: [0.25, 0.4, 0.25, 1] }}
@@ -781,16 +752,189 @@ function TrustBadges({ badges }: { badges: TrustBadge[] }) {
               <ReferenceIcon className="h-6 w-6" iconKey={badge.iconKey} />
             </div>
             <div className="mx-auto flex max-w-[10rem] flex-col items-center">
-              <h2 className="text-wrap text-sm font-semibold tracking-wide text-shresta-text-primary transition group-hover:text-gold-400 md:text-base">
+              <h2 className="text-wrap text-sm font-semibold tracking-wide text-[var(--shresta-logo-text)] transition group-hover:text-gold-400 md:text-base">
                 {badge.title}
               </h2>
-              <p className="mt-1 max-w-full text-wrap text-xs leading-5 text-shresta-text-secondary md:text-sm">{badge.description}</p>
+              <p className="mt-1 max-w-full text-wrap text-xs leading-5 text-[var(--shresta-logo-muted)] md:text-sm">{badge.description}</p>
             </div>
           </motion.article>
         ))}
       </div>
     </section>
   );
+}
+
+function BrandIntroVideo({ brandName, videoUrl }: { brandName: string; videoUrl: string }) {
+  const AUTO_PLAY_VISIBILITY = 0.7;
+  const AUTO_PAUSE_VISIBILITY = 0.15;
+  const VISIBILITY_DEBOUNCE_MS = 180;
+
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const autoplayAttemptedRef = useRef<string | null>(null);
+  const autoPausedByVisibilityRef = useRef(false);
+  const isAutoPauseInProgressRef = useRef(false);
+  const userPausedRef = useRef(false);
+  const visibilityActionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const normalizedVideoUrl = normalizeVideoUrl(videoUrl);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    const section = sectionRef.current;
+    if (!video || !section) {
+      return;
+    }
+
+    let cancelled = false;
+
+    autoplayAttemptedRef.current = null;
+    autoPausedByVisibilityRef.current = false;
+    userPausedRef.current = false;
+
+    const handlePause = () => {
+      if (isAutoPauseInProgressRef.current) {
+        isAutoPauseInProgressRef.current = false;
+        return;
+      }
+
+      userPausedRef.current = true;
+    };
+
+    const handlePlay = () => {
+      userPausedRef.current = false;
+      autoPausedByVisibilityRef.current = false;
+    };
+
+    video.addEventListener("pause", handlePause);
+    video.addEventListener("play", handlePlay);
+
+    const attemptAutoplay = async () => {
+      autoplayAttemptedRef.current = normalizedVideoUrl;
+      video.muted = false;
+      try {
+        await video.play();
+        return;
+      } catch {
+        if (cancelled) {
+          return;
+        }
+      }
+
+      video.muted = true;
+      try {
+        await video.play();
+      } catch {
+        // Ignore blocked autoplay; user can still start playback manually.
+      }
+    };
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (!entry) {
+          return;
+        }
+
+        const isHighlyVisible = entry.isIntersecting && entry.intersectionRatio >= AUTO_PLAY_VISIBILITY;
+        const isBarelyVisible = !entry.isIntersecting || entry.intersectionRatio < AUTO_PAUSE_VISIBILITY;
+
+        if (visibilityActionTimeoutRef.current) {
+          clearTimeout(visibilityActionTimeoutRef.current);
+          visibilityActionTimeoutRef.current = null;
+        }
+
+        visibilityActionTimeoutRef.current = setTimeout(() => {
+          if (cancelled) {
+            return;
+          }
+
+          if (isHighlyVisible && autoplayAttemptedRef.current !== normalizedVideoUrl) {
+            void attemptAutoplay();
+            return;
+          }
+
+          if (isHighlyVisible
+            && autoplayAttemptedRef.current === normalizedVideoUrl
+            && autoPausedByVisibilityRef.current
+            && video.paused
+            && !userPausedRef.current
+          ) {
+            void video.play().then(() => {
+              autoPausedByVisibilityRef.current = false;
+            }).catch(() => {
+              // Ignore blocked resume; user can still tap play.
+            });
+            return;
+          }
+
+          if (isBarelyVisible && !video.paused) {
+            autoPausedByVisibilityRef.current = true;
+            isAutoPauseInProgressRef.current = true;
+            video.pause();
+          }
+        }, VISIBILITY_DEBOUNCE_MS);
+      },
+      { threshold: [0, AUTO_PAUSE_VISIBILITY, AUTO_PLAY_VISIBILITY, 0.95] }
+    );
+
+    observer.observe(section);
+
+    return () => {
+      cancelled = true;
+      observer.disconnect();
+      video.removeEventListener("pause", handlePause);
+      video.removeEventListener("play", handlePlay);
+      if (visibilityActionTimeoutRef.current) {
+        clearTimeout(visibilityActionTimeoutRef.current);
+        visibilityActionTimeoutRef.current = null;
+      }
+    };
+  }, [normalizedVideoUrl]);
+
+  return (
+    <section className="bg-[var(--shresta-logo-bg)] py-12 md:py-14" ref={sectionRef}>
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="overflow-hidden rounded-2xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] shadow-[0_20px_50px_rgba(47,33,21,0.14)]">
+          <div className="border-b border-[var(--shresta-logo-border)] px-5 py-4 sm:px-6">
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-gold-500">Brand Intro</p>
+            <h2 className="mt-1 font-serif text-2xl font-light text-[var(--shresta-logo-text)] sm:text-3xl">{brandName} Story in Motion</h2>
+          </div>
+          <div className="relative aspect-video w-full bg-black">
+            <video
+              autoPlay
+              className="h-full w-full object-cover"
+              controls
+              controlsList="nodownload"
+              onContextMenu={(event) => event.preventDefault()}
+              playsInline
+              preload="metadata"
+              ref={videoRef}
+            >
+              <source src={normalizedVideoUrl} type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function normalizeVideoUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    const isLocalMediaHost = LOCAL_MEDIA_HOSTS.has(parsed.hostname);
+    const isLocalMediaPort = parsed.port === "9010";
+
+    if (isLocalMediaHost && isLocalMediaPort) {
+      const normalizedPath = parsed.pathname.startsWith("/") ? parsed.pathname.slice(1) : parsed.pathname;
+      return `${LOCAL_MEDIA_PROXY_PATH}${normalizedPath}${parsed.search}`;
+    }
+  } catch {
+    // Keep relative URLs unchanged.
+  }
+
+  return encodeURI(url);
 }
 
 function CollectionCard({ collection, index }: { collection: FeaturedCollection; index: number }) {
@@ -806,7 +950,7 @@ function CollectionCard({ collection, index }: { collection: FeaturedCollection;
     >
       <Link className="block" href={`/categories/${collection.slug}`}>
       <motion.article
-        className="reference-card-glow relative aspect-[4/5] overflow-hidden rounded-lg border border-wine-800 bg-wine-700 transition-colors duration-500 group-hover:border-gold-500/30"
+        className="reference-card-glow relative aspect-[4/5] overflow-hidden rounded-lg border border-[var(--shresta-logo-border)] bg-wine-700 transition-colors duration-500 group-hover:border-gold-500/30"
         whileHover={prefersReducedMotion ? undefined : { y: -6 }}
       >
         <motion.div
@@ -831,8 +975,8 @@ function CollectionCard({ collection, index }: { collection: FeaturedCollection;
             <span className="text-xs font-medium text-gold-300">Popular</span>
           </motion.div>
         ) : null}
-        <motion.div className="absolute right-3 top-3 rounded-full bg-wine-950/60 px-2.5 py-1 backdrop-blur-sm" whileHover={{ y: -2 }}>
-          <span className="text-xs text-shresta-text-secondary">
+        <motion.div className="absolute right-3 top-3 rounded-full bg-[var(--shresta-logo-bg)]/60 px-2.5 py-1 backdrop-blur-sm" whileHover={{ y: -2 }}>
+          <span className="text-xs text-white/80">
           {collection.itemCount} item{collection.itemCount === 1 ? "" : "s"}
           </span>
         </motion.div>
@@ -840,7 +984,7 @@ function CollectionCard({ collection, index }: { collection: FeaturedCollection;
           <motion.h3 className="font-serif text-lg font-light tracking-luxury text-white sm:text-xl" whileHover={{ y: -4 }}>
             {collection.title}
           </motion.h3>
-          <p className="mt-1 text-sm text-shresta-text-secondary">{collection.description}</p>
+          <p className="mt-1 text-sm text-white/80">{collection.description}</p>
           <motion.div
             className="mt-4 flex items-center gap-2 text-gold-400"
             initial={{ opacity: 0, y: 10 }}
@@ -859,10 +1003,10 @@ function CollectionCard({ collection, index }: { collection: FeaturedCollection;
 
 function WhyShrestaSection({ features, section }: { features: WhyShrestaFeature[]; section: StorefrontHome["whyShrestaSection"] }) {
   return (
-    <section className="bg-wine-900 py-16 md:py-20 lg:py-24">
+    <section className="bg-[var(--shresta-logo-surface)] py-12 md:py-14 lg:py-16">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionHeader eyebrow={section.eyebrow} title={section.title} subtitle={section.description} />
-        <div className="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((feature, index) => (
             <motion.article
               className="group text-center"
@@ -875,8 +1019,8 @@ function WhyShrestaSection({ features, section }: { features: WhyShrestaFeature[
               <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gold-500/10 text-gold-400 transition-all duration-300 group-hover:scale-110 group-hover:bg-gold-500/20">
                 <ReferenceIcon className="h-6 w-6" iconKey={feature.iconKey} />
               </div>
-              <h3 className="font-serif text-lg font-light tracking-luxury text-shresta-text-primary">{feature.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-shresta-text-secondary">{feature.description}</p>
+              <h3 className="font-serif text-lg font-light tracking-luxury text-[var(--shresta-logo-text)]">{feature.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-[var(--shresta-logo-muted)]">{feature.description}</p>
             </motion.article>
           ))}
         </div>
@@ -910,7 +1054,7 @@ function ProductTile({
     >
       <Link className="group/card flex h-full flex-col" href={`/products/${product.slug}`}>
         <motion.div
-          className="relative aspect-square overflow-hidden rounded-2xl bg-wine-800 focus-within:ring-2 focus-within:ring-gold-500 focus-within:ring-offset-2 focus-within:ring-offset-wine-900"
+          className="relative aspect-square overflow-hidden rounded-2xl bg-[var(--shresta-logo-surface)] focus-within:ring-2 focus-within:ring-gold-500 focus-within:ring-offset-2 focus-within:ring-offset-wine-900"
           transition={{ duration: 0.4, ease: [0.25, 0.4, 0.25, 1] }}
           whileHover={prefersReducedMotion ? undefined : {
             boxShadow: "0 25px 50px -12px rgba(0,0,0,0.5), 0 12px 24px -8px rgba(0,0,0,0.3)"
@@ -928,7 +1072,7 @@ function ProductTile({
           />
           <button
             aria-label={isWishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
-            className={isWishlisted ? "absolute right-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-rose-500/20 to-rose-600/30 text-rose-400 shadow-md shadow-rose-500/20 ring-1 ring-rose-500/30 backdrop-blur-sm transition-all duration-300 hover:scale-110" : "absolute right-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-wine-800/95 text-gold-400/80 shadow-md backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:bg-wine-700/90 hover:text-gold-400 hover:shadow-lg"}
+            className={isWishlisted ? "absolute right-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-rose-500/20 to-rose-600/30 text-rose-400 shadow-md shadow-rose-500/20 ring-1 ring-rose-500/30 backdrop-blur-sm transition-all duration-300 hover:scale-110" : "absolute right-3 top-3 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--shresta-logo-surface)]/95 text-gold-400/80 shadow-md backdrop-blur-sm transition-all duration-300 hover:scale-110 hover:bg-[var(--shresta-logo-bg)] hover:text-gold-400 hover:shadow-lg"}
             onClick={(event) => {
               event.preventDefault();
               onToggleWishlist();
@@ -953,16 +1097,16 @@ function ProductTile({
           </div>
         </motion.div>
         <motion.div className="mt-4 flex flex-1 flex-col px-1">
-          <h3 className="heading-card line-clamp-2 min-h-[2.5rem] text-sm leading-5 text-shresta-text-primary transition-colors duration-300 group-hover:text-gold-400">
+          <h3 className="heading-card line-clamp-2 min-h-[2.5rem] text-sm leading-5 text-[var(--shresta-logo-text)] transition-colors duration-300 group-hover:text-gold-400">
             {product.name}
           </h3>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-semibold text-shresta-text-primary">{price}</span>
-            {hasDiscount ? <span className="text-sm text-shresta-text-muted line-through">{compareAt}</span> : null}
+            <span className="text-2xl font-semibold text-[var(--shresta-logo-text)]">{price}</span>
+            {hasDiscount ? <span className="text-sm text-[var(--shresta-logo-muted)] line-through">{compareAt}</span> : null}
           </div>
           <div className="mt-2 flex items-center gap-1.5">
             <StarRating rating={product.rating} />
-            <span className="text-body-xs text-shresta-text-muted">({product.reviewCount})</span>
+            <span className="text-body-xs text-[var(--shresta-logo-muted)]">({product.reviewCount})</span>
           </div>
           {product.stockQuantity > 0 && product.stockQuantity <= 10 ? (
             <div className="mt-1.5 text-xs font-semibold text-amber-400">{product.stockQuantity} in stock</div>
@@ -970,7 +1114,7 @@ function ProductTile({
             <div className="mt-1.5 text-xs font-semibold text-red-400">Out of Stock</div>
           ) : null}
           <div className="mt-3">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-wine-700/30 bg-wine-800/50 px-2.5 py-1 text-xs font-medium text-shresta-text-secondary">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--shresta-logo-border)]/30 bg-[var(--shresta-logo-surface)]/50 px-2.5 py-1 text-xs font-medium text-[var(--shresta-logo-muted)]">
               <ReferenceIcon className="h-3 w-3 text-gold-400" iconKey={product.familyKey} />
               {product.familyKey.replaceAll("_", " ")}
             </span>
@@ -985,17 +1129,17 @@ function MaterialShowcase({ home }: { home: StorefrontHome }) {
   const prefersReducedMotion = useReducedMotion();
 
   return (
-    <section className="bg-gradient-to-b from-wine-950 to-wine-900 py-20 lg:py-28">
+    <section className="bg-gradient-to-b from-[var(--shresta-logo-bg)] to-[var(--shresta-logo-surface)] py-14 lg:py-20">
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionHeader
           eyebrow={home.materialShowcase.eyebrow}
           title={home.materialShowcase.title}
           subtitle={home.materialShowcase.description}
         />
-        <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-3">
+        <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-3">
           {home.materialShowcase.stories.map((story, index) => (
             <motion.article
-              className="group flex h-full flex-col overflow-hidden rounded-lg bg-wine-800 shadow-luxury-sm transition-all duration-500 hover:shadow-luxury-lg"
+              className="group flex h-full flex-col overflow-hidden rounded-lg bg-[var(--shresta-logo-surface)] shadow-luxury-sm transition-all duration-500 hover:shadow-luxury-lg"
               initial={{ opacity: 0, y: 40 }}
               key={story.id}
               transition={prefersReducedMotion ? { duration: 0 } : { duration: 0.7, delay: index * 0.08, ease: [0.25, 0.1, 0.25, 1] }}
@@ -1011,11 +1155,11 @@ function MaterialShowcase({ home }: { home: StorefrontHome }) {
                 <div className="absolute inset-0 bg-gradient-to-t from-wine-900/80 via-wine-900/20 to-transparent" />
               </div>
               <div className="flex flex-1 flex-col p-6">
-                <h3 className="min-h-[3.75rem] font-serif text-xl font-light leading-tight tracking-luxury text-shresta-text-primary">{story.title}</h3>
-                <p className="mt-2 min-h-[4.5rem] text-sm leading-relaxed text-shresta-text-secondary">{story.description}</p>
+                <h3 className="min-h-[3.75rem] font-serif text-xl font-light leading-tight tracking-luxury text-[var(--shresta-logo-text)]">{story.title}</h3>
+                <p className="mt-2 min-h-[4.5rem] text-sm leading-relaxed text-[var(--shresta-logo-muted)]">{story.description}</p>
                 <ul className="mt-4 space-y-2">
                   {story.highlights.map((benefit) => (
-                    <li className="flex items-center gap-2 text-sm text-shresta-text-primary" key={benefit}>
+                    <li className="flex items-center gap-2 text-sm text-[var(--shresta-logo-text)]" key={benefit}>
                       <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gold-500/20">
                         <Check className="h-3 w-3 text-gold-400" strokeWidth={2.5} />
                       </span>
@@ -1048,7 +1192,7 @@ function NewsletterSection({ home }: { home: StorefrontHome }) {
       <h2 className="mt-4 font-serif text-4xl font-light text-white">{home.newsletter.title}</h2>
       <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-white/80">{home.newsletter.description}</p>
       <form action="/newsletter" className="mx-auto mt-6 flex max-w-xl flex-col gap-3 sm:flex-row">
-        <label className="relative flex min-h-11 flex-1 items-center rounded-full border border-[rgba(26,9,12,0.15)] bg-white/95 px-5 text-sm shadow-sm">
+        <label className="relative flex min-h-11 flex-1 items-center rounded-full border border-[rgba(26,9,12,0.15)] bg-[rgba(253,246,235,0.96)] px-5 text-sm shadow-sm">
           <Mail className="mr-3 h-4 w-4 shrink-0 text-gold-600" />
           <input
             className="flex-1 bg-transparent text-wine-900 placeholder:text-wine-400 outline-none"
@@ -1083,13 +1227,11 @@ function NewsletterSection({ home }: { home: StorefrontHome }) {
 
 function CustomerFooter({ home }: { home: StorefrontHome }) {
   return (
-    <footer className="bg-wine-800 pb-24 pt-12 text-shresta-text-secondary md:pb-0">
-      <div className="mx-auto grid max-w-7xl gap-10 px-4 pb-10 sm:px-6 md:grid-cols-2 lg:grid-cols-4">
-        <div className="space-y-4">
-          <div className="h-[3.4rem] w-fit">
-            <ResponsiveMedia eager className="h-full w-auto object-contain object-left" media={home.brand.logo} sizes="160px" />
-          </div>
-          <p className="max-w-sm text-sm leading-relaxed text-shresta-text-secondary">{home.brand.tagline}</p>
+    <footer className="bg-[var(--shresta-logo-bg)] pb-24 pt-12 text-[var(--shresta-logo-muted)] md:pb-0">
+      <div className="mx-auto grid max-w-7xl gap-7 px-4 pb-8 sm:px-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="space-y-4 lg:-ml-1 xl:-ml-2">
+          <BrandLogo media={home.brand.logo} variant="footer" />
+          <p className="max-w-sm text-sm leading-relaxed text-[var(--shresta-logo-muted)]">{home.brand.tagline}</p>
           <div className="flex gap-4">
             {[
               { label: "Instagram", icon: <Instagram className="h-5 w-5" /> },
@@ -1098,7 +1240,7 @@ function CustomerFooter({ home }: { home: StorefrontHome }) {
             ].map((social) => (
               <a
                 aria-label={social.label}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-wine-900 text-shresta-text-muted transition-colors hover:bg-gold-500 hover:text-wine-950"
+                className="flex h-10 w-10 items-center justify-center rounded-full border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] text-[var(--shresta-logo-muted)] transition-colors hover:bg-gold-500 hover:text-wine-950"
                 href="#"
                 key={social.label}
               >
@@ -1110,25 +1252,25 @@ function CustomerFooter({ home }: { home: StorefrontHome }) {
         <FooterList title="Categories" links={home.featuredCollections.slice(0, 6).map((collection) => ({ label: collection.title, href: `/categories/${collection.slug}` }))} />
         <FooterList title="Customer Service" links={[{ label: "Contact Us", href: "/support" }, { label: "Shipping & Delivery", href: "/support/shipping" }, { label: "Returns & Exchanges", href: "/support/returns" }, { label: "Size Guide", href: "/support/size-guide" }, { label: "FAQs", href: "/support/faqs" }]} />
         <div>
-          <h3 className="mb-4 font-semibold text-shresta-text-primary">Contact</h3>
-          <ul className="space-y-3 text-sm text-shresta-text-muted">
+          <h3 className="mb-4 font-semibold text-[var(--shresta-logo-text)]">Contact</h3>
+          <ul className="space-y-3 text-sm text-[var(--shresta-logo-muted)]">
             <li>
-              <span className="block text-shresta-text-secondary/60">Email</span>
+              <span className="block text-[var(--shresta-logo-muted)]">Email</span>
               <a className="transition hover:text-gold-400" href="mailto:support@shrestaexclusive.com">support@shrestaexclusive.com</a>
             </li>
             <li>
-              <span className="block text-shresta-text-secondary/60">Phone</span>
+              <span className="block text-[var(--shresta-logo-muted)]">Phone</span>
               <a className="transition hover:text-gold-400" href="tel:+911234567890">+91 12345 67890</a>
             </li>
             <li>
-              <span className="block text-shresta-text-secondary/60">Hours</span>
+              <span className="block text-[var(--shresta-logo-muted)]/60">Hours</span>
               Mon - Sat: 10AM - 7PM IST
             </li>
           </ul>
         </div>
       </div>
-      <div className="border-t border-white">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-6 text-sm text-shresta-text-muted sm:px-6 md:flex-row md:items-center md:justify-between">
+      <div className="border-t border-[var(--shresta-logo-border)]">
+        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-6 text-sm text-[var(--shresta-logo-muted)] sm:px-6 md:flex-row md:items-center md:justify-between">
           <p>&copy; {new Date().getFullYear()} SHRESTA EXCLUSIVE. All rights reserved.</p>
           <div className="flex flex-wrap gap-5">
             <Link className="transition hover:text-gold-400" href="/privacy">Privacy Policy</Link>
@@ -1144,11 +1286,11 @@ function CustomerFooter({ home }: { home: StorefrontHome }) {
 function FooterList({ title, links }: { title: string; links: { label: string; href: string }[] }) {
   return (
     <div>
-      <h3 className="mb-4 font-semibold text-shresta-text-primary">{title}</h3>
+      <h3 className="mb-4 font-semibold text-[var(--shresta-logo-text)]">{title}</h3>
       <ul className="mt-4 space-y-3">
         {links.map((link) => (
           <li key={link.href}>
-            <Link className="text-sm text-shresta-text-muted transition-colors hover:text-gold-400" href={link.href}>
+            <Link className="text-sm text-[var(--shresta-logo-muted)] transition-colors hover:text-gold-400" href={link.href}>
               {link.label}
             </Link>
           </li>
@@ -1198,7 +1340,7 @@ function MobileSearchOverlay({
   return (
     <div aria-label="Search SHRESTA catalog" aria-modal="true" className="fixed inset-0 z-[90] md:hidden" role="dialog">
       <button aria-label="Close search" className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} type="button" />
-      <section className="absolute inset-x-0 top-0 rounded-b-3xl border-b border-wine-800 bg-[rgba(43,15,20,0.98)] px-4 pb-6 pt-[calc(1rem+env(safe-area-inset-top,0px))] shadow-2xl">
+      <section className="absolute inset-x-0 top-0 rounded-b-3xl border-b border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-bg)] px-4 pb-6 pt-[calc(1rem+env(safe-area-inset-top,0px))] shadow-2xl">
         <div className="mx-auto max-w-md">
           <div className="flex items-center gap-3">
             <button
@@ -1209,13 +1351,13 @@ function MobileSearchOverlay({
             >
               <X className="h-5 w-5" />
             </button>
-            <form action="/products" className="flex min-h-12 flex-1 overflow-hidden rounded-full border border-wine-700 bg-[rgba(26,9,12,0.78)] focus-within:border-gold-500">
-              <span className="flex w-11 shrink-0 items-center justify-center text-shresta-text-muted">
+            <form action="/products" className="flex min-h-12 flex-1 overflow-hidden rounded-full border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] focus-within:border-gold-500">
+              <span className="flex w-11 shrink-0 items-center justify-center text-[var(--shresta-logo-muted)]">
                 <Search className="h-5 w-5" />
               </span>
               <input
                 autoFocus
-                className="min-w-0 flex-1 bg-transparent text-base text-shresta-text-primary outline-none placeholder:text-shresta-text-muted"
+                className="min-w-0 flex-1 bg-transparent text-base text-[var(--shresta-logo-text)] outline-none placeholder:text-[var(--shresta-logo-muted)]"
                 name="query"
                 placeholder="Search SHRESTA sarees..."
                 type="search"
@@ -1229,12 +1371,12 @@ function MobileSearchOverlay({
               </button>
             </form>
           </div>
-          <div className="mt-5 rounded-2xl border border-wine-800 bg-[rgba(26,9,12,0.5)] p-4">
+          <div className="mt-5 rounded-2xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-4">
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-gold-400">Quick search</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {quickLinks.map((collection) => (
                 <Link
-                  className="inline-flex min-h-9 items-center rounded-full border border-wine-700 px-3 text-sm font-medium text-shresta-text-secondary transition hover:border-gold-500 hover:text-gold-300"
+                  className="inline-flex min-h-9 items-center rounded-full border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-3 text-sm font-medium text-[var(--shresta-logo-muted)] transition hover:border-gold-500 hover:text-gold-600"
                   href={`/categories/${collection.slug}`}
                   key={collection.id}
                   onClick={onClose}
@@ -1293,13 +1435,13 @@ function MobileBottomNav({
   ];
 
   return (
-    <nav aria-label="Mobile navigation" className="fixed bottom-0 left-0 right-0 z-50 border-t border-wine-800 bg-wine-950 shadow-lg md:hidden">
+    <nav aria-label="Mobile navigation" className="fixed bottom-0 left-0 right-0 z-50 border-t border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-bg)] shadow-lg md:hidden">
       <div className="flex h-16 items-center justify-around pb-[env(safe-area-inset-bottom,0px)]">
         {navItems.map((item) => {
           const active = item.label === "Search"
             ? searchOpen || pathname === "/products"
             : item.href === "/" ? pathname === "/" : Boolean(item.href && (pathname === item.href || pathname.startsWith(`${item.href}/`)));
-          const className = active ? "flex h-full min-h-11 min-w-11 flex-1 flex-col items-center justify-center gap-1 text-gold-500" : "flex h-full min-h-11 min-w-11 flex-1 flex-col items-center justify-center gap-1 text-shresta-text-muted transition hover:text-gold-400";
+          const className = active ? "flex h-full min-h-11 min-w-11 flex-1 flex-col items-center justify-center gap-1 text-gold-500" : "flex h-full min-h-11 min-w-11 flex-1 flex-col items-center justify-center gap-1 text-[var(--shresta-logo-muted)] transition hover:text-gold-400";
           const content = (
             <>
               <span className="relative">
@@ -1350,9 +1492,9 @@ function SectionHeader({ eyebrow, title, subtitle }: { eyebrow?: string | null; 
   return (
     <div className="mx-auto max-w-3xl text-center">
       {eyebrow ? <p className="text-xs font-bold uppercase tracking-[0.16em] text-gold-400">{eyebrow}</p> : null}
-      <h2 className="mt-2 font-serif text-3xl font-light tracking-luxury text-shresta-text-primary md:text-4xl">{title}</h2>
-      {subtitle ? <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-shresta-text-secondary md:text-base">{subtitle}</p> : null}
-      <div className="mx-auto mt-5 h-px w-20 bg-gradient-to-r from-transparent via-gold-500 to-transparent" />
+      <h2 className="mt-2 font-serif text-3xl font-light tracking-luxury text-[var(--shresta-logo-text)] md:text-4xl">{title}</h2>
+      {subtitle ? <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-[var(--shresta-logo-muted)] md:text-base">{subtitle}</p> : null}
+      <div className="mx-auto mt-4 h-px w-20 bg-gradient-to-r from-transparent via-gold-500 to-transparent" />
     </div>
   );
 }
@@ -1430,7 +1572,7 @@ function StarRating({ rating, maxStars = 5 }: { rating: number; maxStars?: numbe
         }
         return <Star className="h-3.5 w-3.5 text-wine-700" key={`star-empty-${index}`} />;
       })}
-      <span className="ml-1 text-body-xs font-medium text-shresta-text-secondary">{rating.toFixed(1)}</span>
+      <span className="ml-1 text-body-xs font-medium text-[var(--shresta-logo-muted)]">{rating.toFixed(1)}</span>
     </div>
   );
 }

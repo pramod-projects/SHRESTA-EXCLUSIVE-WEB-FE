@@ -39,6 +39,11 @@
   --shresta-navy: #0f213d;
   --shresta-gold: #d8b35a;
   --shresta-cream: #f5efe2;
+  --shresta-logo-bg: #fdf6eb;
+  --shresta-logo-surface: #f8efe0;
+  --shresta-logo-border: #e8d7bb;
+  --shresta-logo-text: #2f2115;
+  --shresta-logo-muted: #6e5a46;
   --shresta-ink: #0b1628;
   --shresta-muted: #b5c3d9;
   --shresta-line: #2c4062;
@@ -72,16 +77,16 @@
 
 html {
   min-height: 100%;
-  background: var(--wine-950);
-  color: var(--shresta-text-primary);
+  background: var(--shresta-logo-bg);
+  color: var(--shresta-logo-text);
 }
 
 body {
   min-height: 100%;
   margin: 0;
   font-family: "Manrope", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: var(--wine-950);
-  color: var(--shresta-text-primary);
+  background: var(--shresta-logo-bg);
+  color: var(--shresta-logo-text);
   font-feature-settings:
     "rlig" 1,
     "calt" 1;
@@ -164,7 +169,7 @@ body {
   align-items: center;
   justify-content: center;
   border-radius: 9999px;
-  color: var(--shresta-text-secondary);
+  color: var(--shresta-logo-muted);
   transition:
     color 0.2s ease,
     background-color 0.2s ease,
@@ -172,8 +177,8 @@ body {
 }
 
 .reference-icon-button:hover {
-  background: rgba(26, 9, 12, 0.5);
-  color: var(--gold-400);
+  background: var(--shresta-logo-surface);
+  color: var(--shresta-logo-text);
   transform: translateY(-1px);
 }
 
@@ -207,10 +212,10 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.625rem;
-  border: 1px solid var(--wine-700);
+  border: 1px solid var(--shresta-logo-border);
   border-radius: 9999px;
-  background: rgba(26, 9, 12, 0.58);
-  color: var(--shresta-text-primary);
+  background: var(--shresta-logo-surface);
+  color: var(--shresta-logo-text);
   font-size: 0.875rem;
   font-weight: 700;
   padding: 0.75rem 1.5rem;
@@ -222,7 +227,8 @@ body {
 
 .reference-secondary-button:hover {
   border-color: var(--gold-500);
-  color: var(--gold-400);
+  color: var(--gold-600);
+  background: var(--shresta-logo-surface);
   transform: translateY(-1px);
 }
 
@@ -264,30 +270,30 @@ body {
 .admin-shell {
   overflow-x: hidden;
   background:
-    linear-gradient(180deg, rgba(72, 16, 37, 0.22), transparent 320px),
-    var(--wine-950);
+    linear-gradient(180deg, rgba(232, 215, 187, 0.4), transparent 320px),
+    var(--shresta-logo-bg);
 }
 
 .admin-panel {
   min-width: 0;
-  border: 1px solid rgba(92, 51, 36, 0.76);
-  background: rgba(43, 15, 20, 0.82);
-  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--shresta-logo-border);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 12px 32px rgba(47, 33, 21, 0.12);
 }
 
 .admin-surface {
-  border: 1px solid rgba(92, 51, 36, 0.68);
-  background: rgba(26, 9, 12, 0.44);
+  border: 1px solid var(--shresta-logo-border);
+  background: var(--shresta-logo-surface);
 }
 
 .admin-input {
   min-height: 42px;
   width: 100%;
   min-width: 0;
-  border: 1px solid rgba(92, 51, 36, 0.9);
+  border: 1px solid var(--shresta-logo-border);
   border-radius: 8px;
-  background: rgba(26, 9, 12, 0.78);
-  color: var(--shresta-text-primary);
+  background: var(--shresta-logo-surface);
+  color: var(--shresta-logo-text);
   padding: 0.65rem 0.8rem;
   outline: none;
 }
@@ -302,22 +308,21 @@ body {
   display: block;
   min-height: 52px;
   width: 100%;
-  border: 1px solid rgba(212, 175, 55, 0.24);
+  border: 1px solid var(--shresta-logo-border);
   border-radius: 12px;
-  background:
-    linear-gradient(180deg, rgba(36, 11, 15, 0.96), rgba(26, 9, 12, 0.98));
-  color: var(--shresta-text-primary);
+  background: var(--shresta-logo-surface);
+  color: var(--shresta-logo-text);
   padding: 0.85rem 1rem;
   font-size: 1rem;
-  font-weight: 750;
+  font-weight: 650;
   letter-spacing: 0;
   line-height: 1.2;
   text-transform: none;
   outline: none;
-  color-scheme: dark;
+  color-scheme: light;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 10px 24px rgba(0, 0, 0, 0.12);
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 10px 24px rgba(47, 33, 21, 0.08);
   transition:
     border-color 180ms ease,
     box-shadow 180ms ease,
@@ -325,32 +330,32 @@ body {
 }
 
 .customer-login-input:focus {
-  border-color: rgba(241, 216, 117, 0.64);
-  background:
-    linear-gradient(180deg, rgba(45, 14, 19, 0.98), rgba(26, 9, 12, 1));
+  border-color: rgba(212, 175, 55, 0.64);
+  background: var(--shresta-logo-surface);
   box-shadow:
     0 0 0 3px rgba(212, 175, 55, 0.16),
-    0 14px 30px rgba(0, 0, 0, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    0 14px 30px rgba(47, 33, 21, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .customer-login-input:invalid {
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 10px 24px rgba(0, 0, 0, 0.12);
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 10px 24px rgba(47, 33, 21, 0.08);
 }
 
 .customer-login-input::placeholder {
-  color: rgba(219, 196, 183, 0.42);
+  color: rgba(110, 90, 70, 0.6);
+  font-weight: 560;
 }
 
 .customer-login-input:-webkit-autofill,
 .customer-login-input:-webkit-autofill:hover,
 .customer-login-input:-webkit-autofill:focus {
-  -webkit-text-fill-color: var(--shresta-text-primary);
-  caret-color: var(--shresta-text-primary);
+  -webkit-text-fill-color: var(--shresta-logo-text);
+  caret-color: var(--shresta-logo-text);
   box-shadow:
-    0 0 0 1000px rgba(26, 9, 12, 0.92) inset,
+    0 0 0 1000px var(--shresta-logo-surface) inset,
     0 0 0 3px rgba(212, 175, 55, 0.12);
   transition: background-color 9999s ease-out;
 }
@@ -360,11 +365,10 @@ body {
   display: block;
   min-height: 48px;
   width: 100%;
-  border: 1px solid rgba(119, 63, 43, 0.76);
+  border: 1px solid var(--shresta-logo-border);
   border-radius: 10px;
-  background:
-    linear-gradient(180deg, rgba(36, 11, 15, 0.94), rgba(26, 9, 12, 0.98));
-  color: var(--shresta-text-primary);
+  background: var(--shresta-logo-surface);
+  color: var(--shresta-logo-text);
   padding: 0.78rem 0.9rem;
   font-size: 1rem;
   font-weight: 700;
@@ -372,10 +376,10 @@ body {
   line-height: 1.2;
   text-transform: none;
   outline: none;
-  color-scheme: dark;
+  color-scheme: light;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    0 10px 24px rgba(0, 0, 0, 0.12);
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 8px 20px rgba(47, 33, 21, 0.08);
   transition:
     border-color 180ms ease,
     box-shadow 180ms ease,
@@ -388,42 +392,39 @@ body {
 }
 
 .checkout-input:focus {
-  border-color: rgba(241, 216, 117, 0.68);
-  background:
-    linear-gradient(180deg, rgba(45, 14, 19, 0.98), rgba(26, 9, 12, 1));
+  border-color: rgba(212, 175, 55, 0.62);
+  background: var(--shresta-logo-surface);
   box-shadow:
-    0 0 0 3px rgba(212, 175, 55, 0.16),
-    0 14px 30px rgba(0, 0, 0, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    0 0 0 3px rgba(212, 175, 55, 0.14),
+    0 12px 28px rgba(47, 33, 21, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .checkout-input-error {
-  border-color: rgba(248, 113, 113, 0.72);
-  background:
-    linear-gradient(180deg, rgba(55, 13, 18, 0.98), rgba(30, 8, 12, 0.98));
+  border-color: rgba(220, 38, 38, 0.45);
+  background: var(--shresta-logo-surface);
 }
 
 .checkout-input-error:focus {
-  border-color: rgba(251, 146, 60, 0.78);
+  border-color: rgba(220, 38, 38, 0.58);
   box-shadow:
-    0 0 0 3px rgba(248, 113, 113, 0.15),
-    0 14px 30px rgba(0, 0, 0, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    0 0 0 3px rgba(248, 113, 113, 0.12),
+    0 12px 28px rgba(47, 33, 21, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .checkout-input-readonly {
-  border-color: rgba(16, 185, 129, 0.32);
-  background:
-    linear-gradient(180deg, rgba(15, 48, 39, 0.36), rgba(26, 9, 12, 0.98));
+  border-color: rgba(16, 185, 129, 0.36);
+  background: rgba(16, 185, 129, 0.08);
 }
 
 .checkout-input:-webkit-autofill,
 .checkout-input:-webkit-autofill:hover,
 .checkout-input:-webkit-autofill:focus {
-  -webkit-text-fill-color: var(--shresta-text-primary);
-  caret-color: var(--shresta-text-primary);
+  -webkit-text-fill-color: var(--shresta-logo-text);
+  caret-color: var(--shresta-logo-text);
   box-shadow:
-    0 0 0 1000px rgba(26, 9, 12, 0.94) inset,
+    0 0 0 1000px var(--shresta-logo-surface) inset,
     0 0 0 3px rgba(212, 175, 55, 0.12);
   transition: background-color 9999s ease-out;
 }
@@ -434,16 +435,14 @@ body {
   width: 100%;
   align-items: center;
   gap: 0.75rem;
-  border: 1px solid rgba(119, 63, 43, 0.82);
+  border: 1px solid var(--shresta-logo-border);
   border-radius: 14px;
-  background:
-    radial-gradient(circle at 16% 20%, rgba(212, 175, 55, 0.12), transparent 32%),
-    linear-gradient(180deg, rgba(36, 11, 15, 0.96), rgba(26, 9, 12, 0.98));
+  background: var(--shresta-logo-surface);
   padding: 0.48rem 0.75rem;
-  color-scheme: dark;
+  color-scheme: light;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 12px 30px rgba(0, 0, 0, 0.16);
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    0 10px 26px rgba(47, 33, 21, 0.08);
   transition:
     border-color 180ms ease,
     box-shadow 180ms ease,
@@ -451,29 +450,25 @@ body {
 }
 
 .checkout-phone-control:focus-within {
-  border-color: rgba(241, 216, 117, 0.72);
-  background:
-    radial-gradient(circle at 16% 20%, rgba(212, 175, 55, 0.18), transparent 34%),
-    linear-gradient(180deg, rgba(45, 14, 19, 0.98), rgba(26, 9, 12, 1));
+  border-color: rgba(212, 175, 55, 0.62);
+  background: var(--shresta-logo-surface);
   box-shadow:
-    0 0 0 3px rgba(212, 175, 55, 0.16),
-    0 16px 34px rgba(0, 0, 0, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    0 0 0 3px rgba(212, 175, 55, 0.14),
+    0 14px 30px rgba(47, 33, 21, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .checkout-phone-control-error {
-  border-color: rgba(248, 113, 113, 0.72);
-  background:
-    radial-gradient(circle at 16% 20%, rgba(248, 113, 113, 0.12), transparent 32%),
-    linear-gradient(180deg, rgba(55, 13, 18, 0.98), rgba(30, 8, 12, 0.98));
+  border-color: rgba(220, 38, 38, 0.45);
+  background: var(--shresta-logo-surface);
 }
 
 .checkout-phone-control-error:focus-within {
-  border-color: rgba(251, 146, 60, 0.78);
+  border-color: rgba(220, 38, 38, 0.58);
   box-shadow:
-    0 0 0 3px rgba(248, 113, 113, 0.15),
-    0 16px 34px rgba(0, 0, 0, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    0 0 0 3px rgba(248, 113, 113, 0.12),
+    0 14px 30px rgba(47, 33, 21, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .checkout-phone-country {
@@ -484,9 +479,8 @@ body {
   gap: 0.42rem;
   border: 1px solid rgba(212, 175, 55, 0.25);
   border-radius: 9999px;
-  background:
-    linear-gradient(135deg, rgba(212, 175, 55, 0.18), rgba(92, 51, 36, 0.38));
-  color: var(--gold-300);
+  background: rgba(212, 175, 55, 0.12);
+  color: var(--gold-600);
   padding: 0 0.72rem;
   font-size: 0.78rem;
   font-weight: 850;
@@ -496,7 +490,7 @@ body {
 }
 
 .checkout-phone-country strong {
-  color: var(--shresta-text-primary);
+  color: var(--shresta-logo-text);
   font-size: 0.92rem;
   letter-spacing: 0;
 }
@@ -504,7 +498,7 @@ body {
 .checkout-phone-divider {
   align-self: stretch;
   width: 1px;
-  background: linear-gradient(180deg, transparent, rgba(212, 175, 55, 0.3), transparent);
+  background: linear-gradient(180deg, transparent, rgba(212, 175, 55, 0.45), transparent);
 }
 
 .checkout-phone-input {
@@ -513,7 +507,7 @@ body {
   flex: 1;
   border: 0;
   background: transparent;
-  color: var(--shresta-text-primary);
+  color: var(--shresta-logo-text);
   font-size: 1.05rem;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -524,15 +518,15 @@ body {
 }
 
 .checkout-phone-input::placeholder {
-  color: rgba(219, 196, 183, 0.36);
+  color: rgba(110, 90, 70, 0.55);
 }
 
 .checkout-phone-input:-webkit-autofill,
 .checkout-phone-input:-webkit-autofill:hover,
 .checkout-phone-input:-webkit-autofill:focus {
-  -webkit-text-fill-color: var(--shresta-text-primary);
-  caret-color: var(--shresta-text-primary);
-  box-shadow: 0 0 0 1000px rgba(26, 9, 12, 0) inset;
+  -webkit-text-fill-color: var(--shresta-logo-text);
+  caret-color: var(--shresta-logo-text);
+  box-shadow: 0 0 0 1000px var(--shresta-logo-surface) inset;
   transition: background-color 9999s ease-out;
 }
 
@@ -540,7 +534,7 @@ body {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  color: #fecaca;
+  color: #b42318;
   font-size: 0.72rem;
   font-weight: 750;
   letter-spacing: 0;
@@ -556,7 +550,7 @@ body {
   flex-shrink: 0;
   border-radius: 9999px;
   background: linear-gradient(135deg, #f87171, #f59e0b);
-  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.12);
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.16);
 }
 
 .admin-label {
@@ -585,15 +579,15 @@ body {
 }
 
 .admin-button.secondary {
-  border: 1px solid rgba(92, 51, 36, 0.9);
-  background: rgba(26, 9, 12, 0.7);
-  color: var(--shresta-text-primary);
+  border: 1px solid #5d4e48;
+  background: #665651;
+  color: #fff9f2;
 }
 
 .admin-button.danger {
-  border: 1px solid rgba(239, 68, 68, 0.4);
-  background: rgba(127, 29, 29, 0.28);
-  color: #fecaca;
+  border: 1px solid #e79a9a;
+  background: #f2cccc;
+  color: #8b2e2e;
 }
 
 .admin-button:disabled {
@@ -640,6 +634,20 @@ button:not([disabled]):active {
 }
 .admin-button:not([disabled]):hover {
   box-shadow: 0 4px 20px rgba(212, 175, 55, 0.3);
+}
+
+.admin-button.secondary:not([disabled]):hover {
+  background: #584943;
+  border-color: #584943;
+  color: #fff9f2;
+  box-shadow: 0 4px 20px rgba(47, 33, 21, 0.24);
+}
+
+.admin-button.danger:not([disabled]):hover {
+  background: #efb4b4;
+  border-color: #d98080;
+  color: #742424;
+  box-shadow: 0 4px 20px rgba(185, 69, 69, 0.28);
 }
 
 a {

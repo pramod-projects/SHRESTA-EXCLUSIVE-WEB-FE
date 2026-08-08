@@ -106,16 +106,16 @@ export default async function AdminAssetsPage({ searchParams }: PageProps) {
     <div className="space-y-8">
 
       {/* Header */}
-      <header className="flex flex-col gap-3 border-b border-[var(--wine-800)] pb-5 md:flex-row md:items-end md:justify-between">
+      <header className="flex flex-col gap-3 border-b border-[var(--shresta-logo-border)] pb-5 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--gold-400)]">Catalog Operations</p>
-          <h1 className="mt-2 font-serif text-4xl font-light text-white">Products</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--shresta-text-secondary)]">
+          <h1 className="mt-2 font-serif text-4xl font-light text-[var(--shresta-logo-text)]">Products</h1>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--shresta-logo-muted)]">
             Manage storefront products. Upload images and videos directly to S3, edit every product field,
             and submit changes through the review queue.
           </p>
         </div>
-        <div className="flex flex-col items-end gap-1 text-sm text-[var(--shresta-text-muted)]">
+        <div className="flex flex-col items-end gap-1 text-sm text-[var(--shresta-logo-muted)]">
           <span>{products.length} storefront products</span>
         </div>
       </header>
@@ -133,21 +133,21 @@ export default async function AdminAssetsPage({ searchParams }: PageProps) {
       <details className="admin-panel rounded-lg p-4">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
           <div>
-            <h2 className="font-serif text-2xl font-light text-white">Add New Product</h2>
-            <p className="mt-1 text-sm text-[var(--shresta-text-muted)]">
+            <h2 className="font-serif text-2xl font-light text-[var(--shresta-logo-text)]">Add New Product</h2>
+            <p className="mt-1 text-sm text-[var(--shresta-logo-muted)]">
               Create a new bestseller product with image, gallery, video, pricing, and metadata — the change
               goes to the review queue before going live.
             </p>
           </div>
-          <span className="rounded-full bg-[rgba(212,175,55,0.14)] px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[var(--gold-300)]">Add product</span>
+          <span className="rounded-full bg-[rgba(212,175,55,0.14)] px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[var(--gold-600)]">Add product</span>
         </summary>
         <AdminActionForm action={addProductAction} className="mt-5 space-y-5">
           <input name="idempotencyKey" type="hidden" value={randomUUID()} />
 
           {/* Primary Image */}
-          <div className="rounded-lg border border-[var(--wine-800)] p-4">
+          <div className="rounded-lg border border-[var(--shresta-logo-border)] p-4">
             <p className="mb-1 text-xs font-bold uppercase tracking-[0.14em] text-[var(--gold-400)]">Primary Display Image — optional</p>
-            <p className="mb-3 text-xs text-[var(--shresta-text-muted)]">
+            <p className="mb-3 text-xs text-[var(--shresta-logo-muted)]">
               Upload the main product image. It is uploaded straight to S3 and linked to the new product.
               You can also add or replace it later from the edit panel.
             </p>
@@ -155,15 +155,15 @@ export default async function AdminAssetsPage({ searchParams }: PageProps) {
           </div>
 
           {/* Gallery Images */}
-          <div className="rounded-lg border border-[var(--wine-800)] p-4">
+          <div className="rounded-lg border border-[var(--shresta-logo-border)] p-4">
             <p className="mb-1 text-xs font-bold uppercase tracking-[0.14em] text-[var(--gold-400)]">Gallery Images — up to 4 optional</p>
-            <p className="mb-4 text-xs text-[var(--shresta-text-muted)]">
+            <p className="mb-4 text-xs text-[var(--shresta-logo-muted)]">
               Upload additional product images shown in the carousel. Each slot is optional — leave empty if not needed.
             </p>
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {([1, 2, 3, 4] as const).map((slot) => (
-                <div key={slot} className="space-y-2 rounded-lg border border-[var(--wine-800)] p-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--shresta-text-muted)]">Slot {slot}</p>
+                <div key={slot} className="space-y-2 rounded-lg border border-[var(--shresta-logo-border)] p-3">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--shresta-logo-muted)]">Slot {slot}</p>
                   <ImageFilePreview label="Upload image" name={`galleryFile${slot}`} />
                 </div>
               ))}
@@ -171,9 +171,9 @@ export default async function AdminAssetsPage({ searchParams }: PageProps) {
           </div>
 
           {/* Demo Video */}
-          <div className="rounded-lg border border-[var(--wine-800)] p-4">
+          <div className="rounded-lg border border-[var(--shresta-logo-border)] p-4">
             <p className="mb-1 text-xs font-bold uppercase tracking-[0.14em] text-[var(--gold-400)]">Demo Video — optional</p>
-            <p className="mb-3 text-xs text-[var(--shresta-text-muted)]">
+            <p className="mb-3 text-xs text-[var(--shresta-logo-muted)]">
               Upload a video file (stored on S3) or paste a URL. File upload takes precedence if both are provided.
             </p>
             <div className="grid gap-3 lg:grid-cols-2">
@@ -189,7 +189,7 @@ export default async function AdminAssetsPage({ searchParams }: PageProps) {
           </div>
 
           {/* Metadata */}
-          <div className="space-y-5 rounded-lg border border-[var(--wine-800)] p-4">
+          <div className="space-y-5 rounded-lg border border-[var(--shresta-logo-border)] p-4">
             <div>
               <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-[var(--gold-400)]">Identity</p>
               <div className="grid gap-3 lg:grid-cols-6">
@@ -223,7 +223,7 @@ export default async function AdminAssetsPage({ searchParams }: PageProps) {
                     ))}
                   </select>
                 </label>
-                <label className="flex cursor-pointer items-center gap-2 self-end pb-2 text-sm text-[var(--shresta-text-secondary)]">
+                <label className="flex cursor-pointer items-center gap-2 self-end pb-2 text-sm text-[var(--shresta-logo-muted)]">
                   <input className="h-4 w-4 accent-[var(--gold-500)]" name="featured" type="checkbox" />
                   Show as Bestseller
                 </label>
@@ -276,9 +276,9 @@ export default async function AdminAssetsPage({ searchParams }: PageProps) {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-4 border-t border-[var(--wine-800)] pt-4">
+            <div className="flex flex-wrap items-center gap-4 border-t border-[var(--shresta-logo-border)] pt-4">
               <AdminSubmitButton label="Submit for Review" />
-              <p className="text-xs text-[var(--shresta-text-muted)]">Goes to review queue — must be approved before going live.</p>
+              <p className="text-xs text-[var(--shresta-logo-muted)]">Goes to review queue — must be approved before going live.</p>
             </div>
           </div>
         </AdminActionForm>
@@ -290,13 +290,13 @@ export default async function AdminAssetsPage({ searchParams }: PageProps) {
       <details className="admin-panel rounded-lg p-4">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-4">
           <div>
-            <h2 className="font-serif text-2xl font-light text-white">Display Sections</h2>
-            <p className="mt-1 text-sm text-[var(--shresta-text-muted)]">
+            <h2 className="font-serif text-2xl font-light text-[var(--shresta-logo-text)]">Display Sections</h2>
+            <p className="mt-1 text-sm text-[var(--shresta-logo-muted)]">
               Manage images for hero slides, featured collections, material showcase, and brand logo.
               Choose any uploaded asset or upload a new file.
             </p>
           </div>
-          <span className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--shresta-text-muted)]">
+          <span className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--shresta-logo-muted)]">
             {home.heroSlides.length + home.featuredCollections.length + home.materialShowcase.stories.length + 1} items
           </span>
         </summary>
@@ -304,7 +304,7 @@ export default async function AdminAssetsPage({ searchParams }: PageProps) {
 
           {/* Brand */}
           <div>
-            <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-text-muted)]">Brand</p>
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-logo-muted)]">Brand</p>
             <DisplayItemEditor
               availableAssets={allAssets.assets}
               currentImage={home.brand.logo}
@@ -317,7 +317,7 @@ export default async function AdminAssetsPage({ searchParams }: PageProps) {
 
           {/* Hero Slides */}
           <div>
-            <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-text-muted)]">Hero Slides ({home.heroSlides.length})</p>
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-logo-muted)]">Hero Slides ({home.heroSlides.length})</p>
             <div className="space-y-3">
               {home.heroSlides.map((slide) => (
                 <DisplayItemEditor
@@ -335,7 +335,7 @@ export default async function AdminAssetsPage({ searchParams }: PageProps) {
 
           {/* Featured Collections */}
           <div>
-            <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-text-muted)]">Featured Collections ({home.featuredCollections.length})</p>
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-logo-muted)]">Featured Collections ({home.featuredCollections.length})</p>
             <div className="space-y-3">
               {home.featuredCollections.map((col) => (
                 <DisplayItemEditor
@@ -353,7 +353,7 @@ export default async function AdminAssetsPage({ searchParams }: PageProps) {
 
           {/* Material Showcase */}
           <div>
-            <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-text-muted)]">Material Showcase ({home.materialShowcase.stories.length})</p>
+            <p className="mb-3 text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-logo-muted)]">Material Showcase ({home.materialShowcase.stories.length})</p>
             <div className="space-y-3">
               {home.materialShowcase.stories.map((story) => (
                 <DisplayItemEditor
@@ -375,16 +375,16 @@ export default async function AdminAssetsPage({ searchParams }: PageProps) {
           PRODUCTS LIST
           ══════════════════════════════════════════════ */}
       <section className="space-y-5">
-        <div className="flex flex-col gap-3 border-b border-[var(--wine-800)] pb-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-3 border-b border-[var(--shresta-logo-border)] pb-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--gold-400)]">Storefront Catalog</p>
-            <h2 className="mt-1 font-serif text-3xl font-light text-white">Products</h2>
-            <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--shresta-text-secondary)]">
+            <h2 className="mt-1 font-serif text-3xl font-light text-[var(--shresta-logo-text)]">Products</h2>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-[var(--shresta-logo-muted)]">
               Upload images and video directly — they go straight to S3 and link automatically. Edit all text
               fields and submit through the review queue.
             </p>
           </div>
-          <p className="shrink-0 text-sm text-[var(--shresta-text-muted)]">{products.length} products total</p>
+          <p className="shrink-0 text-sm text-[var(--shresta-logo-muted)]">{products.length} products total</p>
         </div>
 
         {pagedProducts.map((product) => {
@@ -415,11 +415,11 @@ export default async function AdminAssetsPage({ searchParams }: PageProps) {
                   {product.image ? (
                     <img
                       alt={product.image.altText}
-                      className="h-20 w-20 shrink-0 rounded-lg border border-[var(--wine-800)] object-cover"
+                      className="h-20 w-20 shrink-0 rounded-lg border border-[var(--shresta-logo-border)] object-cover"
                       src={product.image.url}
                     />
                   ) : (
-                    <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg border border-dashed border-[var(--wine-700)] text-xs text-[var(--shresta-text-muted)]">
+                    <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg border border-dashed border-[var(--shresta-logo-border)] text-xs text-[var(--shresta-logo-muted)]">
                       No image
                     </div>
                   )}
@@ -427,23 +427,23 @@ export default async function AdminAssetsPage({ searchParams }: PageProps) {
                     <div className="flex items-center gap-2">
                       <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--gold-400)]">{product.sku}</p>
                       {product.isBestseller && (
-                        <span className="rounded-full bg-[rgba(212,175,55,0.15)] px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.1em] text-[var(--gold-400)]">Bestseller</span>
+                        <span className="rounded-full bg-[rgba(212,175,55,0.2)] px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.1em] text-[var(--gold-700)]">Bestseller</span>
                       )}
                     </div>
-                    <h3 className="mt-1 font-serif text-2xl font-light text-white">{product.name}</h3>
-                    <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-[var(--shresta-text-muted)]">
+                    <h3 className="mt-1 font-serif text-2xl font-light text-[var(--shresta-logo-text)]">{product.name}</h3>
+                    <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-[var(--shresta-logo-muted)]">
                       <span>₹{(product.pricePaise / 100).toFixed(0)}</span>
                       {hasDiscount(product) && (
-                        <span className="rounded-full bg-rose-900/40 px-2 py-0.5 text-xs font-bold text-rose-300">
+                        <span className="rounded-full bg-rose-200/80 px-2 py-0.5 text-xs font-bold text-rose-700">
                           {discountPct(product)}% off
                         </span>
                       )}
                       {product.stockQuantity === 0 ? (
-                        <span className="rounded-full bg-red-900/40 px-2 py-0.5 text-xs font-bold text-red-400">Out of Stock</span>
+                        <span className="rounded-full bg-red-200/80 px-2 py-0.5 text-xs font-bold text-red-700">Out of Stock</span>
                       ) : product.stockQuantity <= 10 ? (
-                        <span className="rounded-full bg-amber-900/40 px-2 py-0.5 text-xs font-bold text-amber-400">Stock: {product.stockQuantity}</span>
+                        <span className="rounded-full bg-amber-200/80 px-2 py-0.5 text-xs font-bold text-amber-700">Stock: {product.stockQuantity}</span>
                       ) : (
-                        <span className="rounded-full bg-emerald-900/40 px-2 py-0.5 text-xs font-bold text-emerald-400">Stock: {product.stockQuantity}</span>
+                        <span className="rounded-full bg-emerald-200/80 px-2 py-0.5 text-xs font-bold text-emerald-700">Stock: {product.stockQuantity}</span>
                       )}
                       <span>{(product.galleryImages ?? []).length} gallery</span>
                       {product.demoVideoUrl && <span className="text-[var(--gold-400)]">Has video</span>}
@@ -487,23 +487,23 @@ export default async function AdminAssetsPage({ searchParams }: PageProps) {
 
               {/* Edit panel */}
               <details className="mt-4">
-                <summary className="cursor-pointer list-none font-serif text-xl font-light text-white hover:text-[var(--gold-300)]">
+                <summary className="cursor-pointer list-none font-serif text-xl font-light text-[var(--shresta-logo-text)] hover:text-[var(--gold-600)]">
                   Edit product ▸
                 </summary>
                 <div className="mt-5 space-y-5">
 
                   {/* Primary Image Upload */}
-                  <div className="rounded-lg border border-[var(--wine-800)] p-4">
+                  <div className="rounded-lg border border-[var(--shresta-logo-border)] p-4">
                     <p className="mb-1 text-xs font-bold uppercase tracking-[0.14em] text-[var(--gold-400)]">Primary Display Image — mandatory</p>
-                    <p className="mb-3 text-xs text-[var(--shresta-text-muted)]">
+                    <p className="mb-3 text-xs text-[var(--shresta-logo-muted)]">
                       Upload a new image to replace the current one. The old asset is archived automatically and the new URL is linked to the product.
                     </p>
                     {product.image ? (
-                      <div className="mb-3 flex items-center gap-3 rounded-lg border border-[var(--wine-800)] bg-[rgba(26,9,12,0.4)] p-3">
+                      <div className="mb-3 flex items-center gap-3 rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-3">
                         <img alt={product.image.altText} className="h-16 w-16 rounded-lg object-cover" src={product.image.url} />
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-xs font-semibold text-[var(--gold-300)]">{product.image.assetKey}</p>
-                          <p className="mt-0.5 text-xs text-[var(--shresta-text-muted)]">
+                          <p className="truncate text-xs font-semibold text-[var(--gold-600)]">{product.image.assetKey}</p>
+                          <p className="mt-0.5 text-xs text-[var(--shresta-logo-muted)]">
                             {product.image.width} × {product.image.height} · {product.image.deliveryMode}
                           </p>
                         </div>
@@ -530,19 +530,19 @@ export default async function AdminAssetsPage({ searchParams }: PageProps) {
                   </div>
 
                   {/* Gallery Images */}
-                  <div className="rounded-lg border border-[var(--wine-800)] p-4">
+                  <div className="rounded-lg border border-[var(--shresta-logo-border)] p-4">
                     <p className="mb-1 text-xs font-bold uppercase tracking-[0.14em] text-[var(--gold-400)]">Gallery Images — up to 4 optional</p>
-                    <p className="mb-4 text-xs text-[var(--shresta-text-muted)]">
+                    <p className="mb-4 text-xs text-[var(--shresta-logo-muted)]">
                       Each slot holds one image shown in the product gallery on the storefront. Uploading replaces the slot and archives the old image.
                     </p>
                     <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
                       {([1, 2, 3, 4] as const).map((slot) => {
                         const existing = (product.galleryImages ?? [])[slot - 1];
                         return (
-                          <div key={slot} className="space-y-3 rounded-lg border border-[var(--wine-800)] p-3">
-                            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--shresta-text-muted)]">Slot {slot}</p>
+                          <div key={slot} className="space-y-3 rounded-lg border border-[var(--shresta-logo-border)] p-3">
+                            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--shresta-logo-muted)]">Slot {slot}</p>
                             {existing && (
-                              <p className="truncate text-xs text-[var(--gold-300)]">{existing.assetKey}</p>
+                              <p className="truncate text-xs text-[var(--gold-600)]">{existing.assetKey}</p>
                             )}
                             <AdminActionForm action={uploadAndSetProductGalleryImageAction} className="space-y-2">
                               <input name="idempotencyKey" type="hidden" value={stableKey(product.id, `gallery-upload-${slot}`)} />
@@ -579,15 +579,15 @@ export default async function AdminAssetsPage({ searchParams }: PageProps) {
                   </div>
 
                   {/* Demo Video */}
-                  <div className="rounded-lg border border-[var(--wine-800)] p-4">
+                  <div className="rounded-lg border border-[var(--shresta-logo-border)] p-4">
                     <p className="mb-1 text-xs font-bold uppercase tracking-[0.14em] text-[var(--gold-400)]">Demo Video — optional</p>
-                    <p className="mb-3 text-xs text-[var(--shresta-text-muted)]">
+                    <p className="mb-3 text-xs text-[var(--shresta-logo-muted)]">
                       Upload a video file (stored on S3) or paste a URL (YouTube, Vimeo, direct MP4 link). Leave both empty to clear the video link.
                     </p>
                     {product.demoVideoUrl && (
-                      <div className="mb-3 rounded-lg border border-[var(--wine-800)] bg-[rgba(26,9,12,0.4)] p-3">
-                        <p className="mb-0.5 text-xs text-[var(--shresta-text-muted)]">Current:</p>
-                        <p className="break-all text-xs text-[var(--gold-300)]">{product.demoVideoUrl}</p>
+                      <div className="mb-3 rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-3">
+                        <p className="mb-0.5 text-xs text-[var(--shresta-logo-muted)]">Current:</p>
+                        <p className="break-all text-xs text-[var(--gold-600)]">{product.demoVideoUrl}</p>
                       </div>
                     )}
                     <AdminActionForm action={uploadAndSetProductVideoAction} className="space-y-3">
@@ -614,7 +614,7 @@ export default async function AdminAssetsPage({ searchParams }: PageProps) {
                   </div>
 
                   {/* Product Metadata */}
-                  <AdminActionForm action={updateMerchandisingProductAction} className="space-y-5 rounded-lg border border-[var(--wine-800)] p-4">
+                  <AdminActionForm action={updateMerchandisingProductAction} className="space-y-5 rounded-lg border border-[var(--shresta-logo-border)] p-4">
                     <input name="idempotencyKey" type="hidden" value={randomUUID()} />
                     <input name="itemKey" type="hidden" value={product.id} />
                     <input name="metadata" type="hidden" value="{}" />
@@ -656,7 +656,7 @@ export default async function AdminAssetsPage({ searchParams }: PageProps) {
                             ))}
                           </select>
                         </label>
-                        <label className="flex cursor-pointer items-center gap-2 self-end pb-2 text-sm text-[var(--shresta-text-secondary)]">
+                        <label className="flex cursor-pointer items-center gap-2 self-end pb-2 text-sm text-[var(--shresta-logo-muted)]">
                           <input
                             className="h-4 w-4 accent-[var(--gold-500)]"
                             defaultChecked={product.isBestseller}
@@ -717,7 +717,7 @@ export default async function AdminAssetsPage({ searchParams }: PageProps) {
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-4 border-t border-[var(--wine-800)] pt-4">
+                    <div className="flex flex-wrap items-center gap-4 border-t border-[var(--shresta-logo-border)] pt-4">
                       {metadataPending ? (
                         <div className="flex flex-wrap items-center gap-3">
                           <button className="admin-button cursor-not-allowed opacity-40" disabled type="button">Submit for Review</button>
@@ -726,7 +726,7 @@ export default async function AdminAssetsPage({ searchParams }: PageProps) {
                       ) : (
                         <>
                           <AdminSubmitButton label="Submit for Review" />
-                          <p className="text-xs text-[var(--shresta-text-muted)]">Goes to review queue — must be approved before going live.</p>
+                          <p className="text-xs text-[var(--shresta-logo-muted)]">Goes to review queue — must be approved before going live.</p>
                         </>
                       )}
                     </div>
@@ -741,7 +741,7 @@ export default async function AdminAssetsPage({ searchParams }: PageProps) {
         <nav className="flex flex-wrap items-center justify-between gap-3 text-sm">
           <a className="admin-button secondary" href={productPageHref(params, Math.max(0, normalizedProductPage - 1))}>← Previous</a>
           <div className="flex flex-wrap items-center gap-3">
-            <span className="text-[var(--shresta-text-muted)]">
+            <span className="text-[var(--shresta-logo-muted)]">
               Page {normalizedProductPage + 1} of {totalProductPages}
               <span className="ml-2 rounded-full bg-[rgba(212,175,55,0.1)] px-2 py-0.5 text-xs">{products.length} products</span>
             </span>
@@ -758,9 +758,9 @@ export default async function AdminAssetsPage({ searchParams }: PageProps) {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-[var(--wine-800)] p-3">
-      <p className="text-xs uppercase tracking-[0.12em] text-[var(--shresta-text-muted)]">{label}</p>
-      <p className="mt-1 font-semibold text-white">{value}</p>
+    <div className="rounded-lg border border-[var(--shresta-logo-border)] p-3">
+      <p className="text-xs uppercase tracking-[0.12em] text-[var(--shresta-logo-muted)]">{label}</p>
+      <p className="mt-1 font-semibold text-[var(--shresta-logo-text)]">{value}</p>
     </div>
   );
 }
@@ -850,23 +850,23 @@ function PendingReviewBanner({ request, product }: { request: AdminChangeRequest
     <div className={`mb-4 rounded-lg border px-4 py-3 ${isDelete ? "border-red-800 bg-red-950/30" : "border-amber-800 bg-amber-950/20"}`}>
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="flex items-center gap-2">
-          <span className={`rounded-full px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.1em] ${isDelete ? "bg-red-900/40 text-red-300" : "bg-amber-900/40 text-amber-300"}`}>
+          <span className={`rounded-full px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-[0.1em] ${isDelete ? "bg-red-700/45 text-red-100" : "bg-amber-700/45 text-amber-100"}`}>
             {isDelete ? "⚠ Deletion pending" : "⏳ Change pending review"}
           </span>
-          <span className="text-xs text-[var(--shresta-text-muted)]">Submitted {submittedAt}</span>
+          <span className="text-xs text-white/80">Submitted {submittedAt}</span>
         </div>
-        <a className="text-xs text-[var(--gold-400)] hover:underline" href="/admin/review">View in review queue →</a>
+        <a className="text-xs text-[var(--gold-200)] hover:underline" href="/admin/review">View in review queue →</a>
       </div>
 
       {isUpdate && changedFields.length > 0 && (
         <div className="mt-3">
-          <p className="mb-1.5 text-xs font-bold uppercase tracking-[0.1em] text-amber-400">{changedFields.length} field{changedFields.length !== 1 ? "s" : ""} awaiting approval</p>
+          <p className="mb-1.5 text-xs font-bold uppercase tracking-[0.1em] text-amber-100">{changedFields.length} field{changedFields.length !== 1 ? "s" : ""} awaiting approval</p>
           <div className="grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">
             {changedFields.map((d) => (
               <div key={d.field} className="flex items-baseline gap-1.5 text-xs">
-                <span className="shrink-0 font-semibold text-[var(--shresta-text-muted)]">{d.field}:</span>
-                <span className="line-through text-[var(--shresta-text-muted)] decoration-[var(--wine-500)]">{d.before}</span>
-                <span className="text-amber-300">→ {d.after}</span>
+                <span className="shrink-0 font-semibold text-white/80">{d.field}:</span>
+                <span className="line-through text-white/55 decoration-[var(--wine-500)]">{d.before}</span>
+                <span className="text-amber-200">→ {d.after}</span>
               </div>
             ))}
           </div>

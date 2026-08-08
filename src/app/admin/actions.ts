@@ -8,6 +8,7 @@ import {
   fetchAdminStorefrontHome,
   rejectAdminChangeRequest,
   replaceAdminAssetImage,
+  updateAdminOrderStatus,
   uploadAdminAssets,
   upsertAdminChangeRequest
 } from "@/features/admin/admin-api";
@@ -668,6 +669,30 @@ export async function approveChangeRequestAction(formData: FormData) {
 export async function rejectChangeRequestAction(formData: FormData) {
   await rejectAdminChangeRequest(requiredString(formData, "requestKey"), optionalString(formData, "reviewNote"), mutationOptions(formData));
   revalidatePath("/admin/review");
+}
+
+export async function updateAdminOrderStatusAction(_prev: AdminActionResult | null, formData: FormData): Promise<AdminActionResult> {
+  try {
+    const orderNumber = requiredString(formData, "orderNumber");
+    const orderStatus = optionalString(formData, "orderStatus");
+    const paymentStatus = optionalString(formData, "paymentStatus");
+    const fulfillmentStatus = optionalString(formData, "fulfillmentStatus");
+    const note = optionalString(formData, "note");
+
+    await updateAdminOrderStatus(orderNumber, {
+      orderStatus,
+      paymentStatus,
+      fulfillmentStatus,
+      note
+    }, mutationOptions(formData));
+
+    revalidatePath("/admin/orders");
+    revalidatePath("/admin");
+    revalidatePath("/account");
+    return { ok: true, message: `Order ${orderNumber} updated.` };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to update order status." };
+  }
 }
 
 export async function createCategoryFamilyAction(formData: FormData) {

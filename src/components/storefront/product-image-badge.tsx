@@ -29,7 +29,7 @@ export function ProductImageBadge({ badge, size = "regular" }: ProductImageBadge
       role="img"
     >
       {renderProductBadgeIcon(badge, size)}
-      <span className={`pointer-events-none absolute left-0 top-[calc(100%+0.32rem)] z-40 ${badgeTooltipWidthClassName[size]} max-h-[2.7rem] overflow-hidden rounded-full border border-[rgba(212,175,55,0.34)] bg-[rgba(26,9,12,0.96)] ${badgeTooltipClassName[size]} text-center font-bold uppercase leading-4 tracking-[0.09em] text-[var(--gold-300)] opacity-0 shadow-2xl transition duration-150 [overflow-wrap:anywhere] group-hover/product-badge:opacity-100`}>
+      <span className={`pointer-events-none absolute left-0 top-[calc(100%+0.32rem)] z-40 ${badgeTooltipWidthClassName[size]} max-h-[2.7rem] overflow-hidden rounded-full border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-bg)] ${badgeTooltipClassName[size]} text-center font-bold uppercase leading-4 tracking-[0.09em] text-[var(--gold-600)] opacity-0 shadow-2xl transition duration-150 [overflow-wrap:anywhere] group-hover/product-badge:opacity-100`}>
         {label}
       </span>
     </span>

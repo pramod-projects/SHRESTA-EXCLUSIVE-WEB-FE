@@ -56,7 +56,7 @@ export async function GET() {
     return NextResponse.json({
       success: false,
       data: null,
-      error: { code: "CUSTOMER_PROFILE_PROXY_FAILED", message: "Customer profile service is unavailable." }
+      error: { code: "CUSTOMER_PROFILE_PROXY_FAILED", message: "Profile is temporarily unavailable. Please try again shortly." }
     }, { status: 503 });
   }
 }

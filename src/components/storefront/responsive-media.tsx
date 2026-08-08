@@ -10,6 +10,9 @@ type ResponsiveMediaProps = {
   sizes: string;
 };
 
+const LOCAL_MEDIA_PROXY_PATH = "/api/media-proxy/";
+const LOCAL_MEDIA_HOSTS = new Set(["localhost", "127.0.0.1"]);
+
 export function ResponsiveMedia({ media, className, eager = false, sizes }: ResponsiveMediaProps) {
   const mediaKey = media ? `${media.assetKey}:${media.version}` : "none";
   const [fallbackState, setFallbackState] = useState({
@@ -25,10 +28,10 @@ export function ResponsiveMedia({ media, className, eager = false, sizes }: Resp
     return (
       <div
         aria-label="SHRESTA media pending"
-        className={`${className ?? ""} flex items-center justify-center bg-[var(--wine-800)] text-[var(--gold-300)]`}
+        className={`${className ?? ""} flex items-center justify-center bg-[var(--shresta-logo-surface)] text-[var(--gold-600)]`}
         role="img"
       >
-        <span className="rounded-full border border-[rgba(212,175,55,0.32)] bg-[rgba(26,9,12,0.45)] px-4 py-2 text-xs font-bold uppercase tracking-[0.18em]">
+        <span className="rounded-full border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-4 py-2 text-xs font-bold uppercase tracking-[0.18em]">
           SHRESTA
         </span>
       </div>
@@ -61,7 +64,7 @@ export function ResponsiveMedia({ media, className, eager = false, sizes }: Resp
           }
         }}
         sizes={sizes}
-        src={imageSrc}
+        src={normalizeMediaUrl(imageSrc)}
         srcSet={currentFallbackState.useAssetFallback ? undefined : fallbackSrcSet || undefined}
         style={{
           backgroundImage: media.lqipDataUrl ? `url(${media.lqipDataUrl})` : undefined,
@@ -81,15 +84,32 @@ export function prefetchMedia(media: MediaAsset | null | undefined) {
 
   const variants = usableVariants(media);
   const preferred = variants.find((variant) => variant.variantKey === "medium") ?? variants[0];
-  const href = preferred?.url ?? media.url;
+  const href = normalizeMediaUrl(preferred?.url ?? media.url);
   return <link as="image" href={href} rel="prefetch" />;
 }
 
 function srcSet(variants: MediaVariant[]): string {
   return variants
     .filter((variant) => variant.url && variant.width > 0)
-    .map((variant) => `${variant.url} ${variant.width}w`)
+    .map((variant) => `${normalizeMediaUrl(variant.url)} ${variant.width}w`)
     .join(", ");
+}
+
+function normalizeMediaUrl(url: string): string {
+  try {
+    const parsed = new URL(url);
+    const isLocalMediaHost = LOCAL_MEDIA_HOSTS.has(parsed.hostname);
+    const isLocalMediaPort = parsed.port === "9010";
+
+    if (isLocalMediaHost && isLocalMediaPort) {
+      const normalizedPath = parsed.pathname.startsWith("/") ? parsed.pathname.slice(1) : parsed.pathname;
+      return `${LOCAL_MEDIA_PROXY_PATH}${normalizedPath}${parsed.search}`;
+    }
+  } catch {
+    // Keep relative URLs as-is.
+  }
+
+  return encodeURI(url);
 }
 
 function usableVariants(media: MediaAsset): MediaVariant[] {
