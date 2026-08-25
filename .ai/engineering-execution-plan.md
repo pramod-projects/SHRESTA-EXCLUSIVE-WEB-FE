@@ -11,7 +11,7 @@ SHRESTA-WEB-FE is the premium quick-commerce web surface for SHRESTA EXCLUSIVE. 
 - TypeScript strict mode is mandatory.
 - Components never trust client-computed totals.
 - Use `formatPaise` for all money display.
-- Use `buildCloudinaryUrl` for all Cloudinary media.
+- Use backend-provided canonical Cloudflare media URLs with `next/image`.
 - TanStack Query owns server state; Zustand owns UI-only state.
 - React Hook Form and Zod own forms and validation.
 - Use feature-first modules with shared UI and generated API types.
@@ -39,7 +39,7 @@ Acceptance Criteria:
 - Home route renders without client-only data assumptions.
 - `/api/health` returns a stable health response.
 - Currency utility formats paise only.
-- Cloudinary utility requires public_id and cloud name.
+- Media components require canonical URL and source dimensions.
 - AI context files exist for significant created utilities and routes.
 
 Testing Strategy:
@@ -108,7 +108,7 @@ Scope:
 - Address save flow that shows zone coverage and ETA.
 - Category navigation and filter UI generated from category config.
 - Product listing shelves: trending, new arrivals, under price, curated category.
-- Product card with stock urgency, ETA, price, Cloudinary optimized image, and add-to-cart affordance.
+- Product card with stock urgency, ETA, price, canonical optimized delivery image, and add-to-cart affordance.
 - PDP with media gallery, zoom, attribute sections, stock, tax notes, ETA, recommendations, SEO metadata.
 - Search page with query, autocomplete, filters, sorting, empty states, and inventory-aware results.
 

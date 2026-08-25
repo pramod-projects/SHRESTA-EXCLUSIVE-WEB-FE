@@ -1,14 +1,22 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import {
   BadgeCheck,
   Crown,
   Droplets,
   Flame,
+  Gem,
+  Heart,
+  Medal,
   ShieldCheck,
   Shirt,
+  ShoppingBag,
   Sparkles,
-  Star
+  Star,
+  Tag,
+  WandSparkles,
+  type LucideIcon
 } from "lucide-react";
 import { enumDisplayLabel } from "@/lib/admin-enums";
 
@@ -16,47 +24,87 @@ type ProductImageBadgeSize = "compact" | "regular" | "large";
 
 type ProductImageBadgeProps = {
   badge: string;
+  iconName?: string;
   size?: ProductImageBadgeSize;
 };
 
-export function ProductImageBadge({ badge, size = "regular" }: ProductImageBadgeProps) {
+export function ProductImageBadge({ badge, iconName, size = "regular" }: ProductImageBadgeProps) {
   const label = enumDisplayLabel(badge);
+  const [isTagOpen, setIsTagOpen] = useState(false);
+  const containerRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    if (!isTagOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) {
+        return;
+      }
+      if (containerRef.current?.contains(target)) {
+        return;
+      }
+      setIsTagOpen(false);
+    };
+
+    window.addEventListener("pointerdown", handlePointerDown);
+    return () => window.removeEventListener("pointerdown", handlePointerDown);
+  }, [isTagOpen]);
 
   return (
-    <span
+    <button
       aria-label={label}
+      aria-pressed={isTagOpen}
       className={`group/product-badge relative inline-flex ${badgeSizeClassName[size]} items-center justify-center rounded-full border border-[rgba(255,255,255,0.18)] bg-[linear-gradient(135deg,var(--gold-300),var(--gold-600))] text-[var(--wine-950)] shadow-[0_10px_28px_rgba(0,0,0,0.28)]`}
-      role="img"
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setIsTagOpen((current) => !current);
+      }}
+      ref={containerRef}
+      type="button"
     >
-      {renderProductBadgeIcon(badge, size)}
-      <span className={`pointer-events-none absolute left-0 top-[calc(100%+0.32rem)] z-40 ${badgeTooltipWidthClassName[size]} max-h-[2.7rem] overflow-hidden rounded-full border border-[rgba(212,175,55,0.34)] bg-[rgba(26,9,12,0.96)] ${badgeTooltipClassName[size]} text-center font-bold uppercase leading-4 tracking-[0.09em] text-[var(--gold-300)] opacity-0 shadow-2xl transition duration-150 [overflow-wrap:anywhere] group-hover/product-badge:opacity-100`}>
+      {renderProductBadgeIcon(badge, size, iconName)}
+      <span
+        className={`pointer-events-none absolute left-0 top-[calc(100%+0.32rem)] z-40 ${badgeTooltipWidthClassName[size]} max-h-[2.7rem] overflow-hidden rounded-full border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-bg)] ${badgeTooltipClassName[size]} text-center font-bold uppercase leading-4 tracking-[0.09em] text-[var(--gold-600)] shadow-2xl transition duration-150 [overflow-wrap:anywhere] ${isTagOpen ? "opacity-100" : "opacity-0"} group-hover/product-badge:opacity-100 group-focus-visible/product-badge:opacity-100`}
+      >
         {label}
       </span>
-    </span>
+    </button>
   );
 }
 
 export function ProductImageBadgeRow({
   badges,
+  badgeIcons = {},
   floating = true,
   limit = 2,
   size = "regular"
 }: {
   badges: string[];
+  badgeIcons?: Record<string, string>;
   floating?: boolean;
   limit?: number;
   size?: ProductImageBadgeSize;
 }) {
+  const visibleBadges = badges.slice(0, limit);
+
   return (
     <div className={floating ? badgeFloatingRowClassName[size] : badgeInlineRowClassName[size]}>
-      {badges.slice(0, limit).map((badge) => (
-        <ProductImageBadge badge={badge} key={badge} size={size} />
+      {visibleBadges.map((badge) => (
+        <ProductImageBadge badge={badge} iconName={badgeIcons[badge]} key={badge} size={size} />
       ))}
     </div>
   );
 }
 
-export function renderProductBadgeIcon(badge: string, size: ProductImageBadgeSize = "regular") {
+export function renderProductBadgeIcon(badge: string, size: ProductImageBadgeSize = "regular", iconName?: string) {
+  const ConfiguredIcon = iconName ? PRODUCT_BADGE_ICONS[iconName] : undefined;
+  if (ConfiguredIcon) {
+    return <ConfiguredIcon className={badgeIconClassName[size]} strokeWidth={2.4} />;
+  }
   const value = badge.toUpperCase();
   if (value.includes("BESTSELLER") || value.includes("POPULAR")) {
     return <Flame className={badgeIconClassName[size]} strokeWidth={2.4} />;
@@ -82,6 +130,21 @@ export function renderProductBadgeIcon(badge: string, size: ProductImageBadgeSiz
 
   return <Star className={badgeIconClassName[size]} strokeWidth={2.4} />;
 }
+
+const PRODUCT_BADGE_ICONS: Record<string, LucideIcon> = {
+  BadgeCheck,
+  Crown,
+  Flame,
+  Gem,
+  Heart,
+  Medal,
+  ShieldCheck,
+  ShoppingBag,
+  Sparkles,
+  Star,
+  Tag,
+  WandSparkles
+};
 
 const badgeSizeClassName: Record<ProductImageBadgeSize, string> = {
   compact: "h-7 w-7",

@@ -4,89 +4,81 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import {
   approveAdminChangeRequest,
+  checkAdminOrderRefundStatus,
+  approveAdminOrderRefund,
   createAdminChangeRequest,
+  fetchAdminCategories,
+  fetchAdminNotificationConfiguration,
+  fetchAdminRefundPolicyConfiguration,
   fetchAdminStorefrontHome,
   rejectAdminChangeRequest,
-  replaceAdminAssetImage,
-  uploadAdminAssets,
+  revealTestUserOtp,
+  updateAdminOrderStatus,
   upsertAdminChangeRequest
 } from "@/features/admin/admin-api";
-import { assertAdminTagValues, assertEnumValue, enumValues, toEnumValue } from "@/lib/admin-enums";
+import { requireAdminModuleAccess } from "@/features/admin/admin-acl";
+import {
+  buildNotificationConfigurationChangeRequest,
+  NOTIFICATION_TYPES,
+  type NotificationType
+} from "@/features/admin/notification-configuration";
+import { buildRefundPolicyChangeRequest } from "@/features/admin/refund-policy-configuration";
+import { adminTagValues, assertEnumValue, enumValues, toEnumValue } from "@/lib/admin-enums";
+import { familyMerchandisingCatalog, isMerchandisingIconName } from "@/lib/category-merchandising";
 
 export type AdminActionResult = { ok: true; message: string } | { ok: false; error: string };
 
-export async function uploadAssetsAction(formData: FormData) {
-  const uploadForm = new FormData();
-  for (const file of formData.getAll("files")) {
-    if (file instanceof File && file.size > 0) {
-      uploadForm.append("files", file);
+export async function updateNotificationConfigurationAction(_prev: AdminActionResult | null, formData: FormData): Promise<AdminActionResult> {
+  try {
+    const session = await requireAdminModuleAccess("notifications");
+    const typeValue = requiredString(formData, "type");
+    if (!NOTIFICATION_TYPES.includes(typeValue as NotificationType)) {
+      throw new Error("Unknown notification type.");
     }
-  }
 
-  appendOptional(uploadForm, "categoryFamilyKey", optionalString(formData, "categoryFamilyKey"));
-  appendOptional(uploadForm, "categoryProductTypeKey", optionalString(formData, "categoryProductTypeKey"));
-  appendOptional(uploadForm, "productSku", optionalEnumString(formData, "productSku", "productSku"));
-  appendOptional(uploadForm, "altText", optionalString(formData, "altText"));
-  appendOptional(uploadForm, "seoTitle", optionalString(formData, "seoTitle"));
-  appendOptional(uploadForm, "seoDescription", optionalString(formData, "seoDescription"));
-  for (const tag of listAdminTagValue(formData, "tags")) {
-    uploadForm.append("tags", tag);
+    const type = typeValue as NotificationType;
+    const configuration = await fetchAdminNotificationConfiguration();
+    const current = configuration.find((record) => record.type === type);
+    if (!current) {
+      throw new Error("Notification configuration could not be found.");
+    }
+    const request = buildNotificationConfigurationChangeRequest({
+      type,
+      enabled: checkboxValue(formData, "enabled"),
+      productionLocked: current.productionLocked,
+      actor: session.email,
+      reason: requiredString(formData, "reason")
+    });
+    await upsertAdminChangeRequest(request, mutationOptions(formData), "CHANGE_SUBMITTER");
+    revalidatePath("/admin/configurations");
+    revalidatePath("/admin/review");
+    return { ok: true, message: "Pending review created. The notification setting remains unchanged until an approver accepts it." };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Failed to submit notification configuration for review." };
   }
-
-  await uploadAdminAssets(uploadForm, mutationOptions(formData));
-  revalidatePath("/admin/assets");
 }
 
-export async function replaceAssetImageAction(formData: FormData) {
-  const assetKey = requiredString(formData, "assetKey");
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) {
-    throw new Error("Select an image file to replace this asset");
-  }
-
-  const replaceForm = new FormData();
-  replaceForm.append("file", file);
-
-  await replaceAdminAssetImage(assetKey, replaceForm, mutationOptions(formData));
-  revalidatePath("/admin/assets");
-  revalidatePath("/");
-  revalidatePath("/products");
-  revalidatePath("/categories");
-}
-
-export async function updateAssetMetadataAction(formData: FormData) {
-  const assetKey = requiredString(formData, "assetKey");
-  const categoryFamilyKey = optionalString(formData, "categoryFamilyKey");
-  const categoryProductTypeKey = optionalString(formData, "categoryProductTypeKey");
-  const productSku = optionalEnumString(formData, "productSku", "productSku");
-  const tags = listAdminTagValue(formData, "tags");
-  const seoTitle = optionalString(formData, "seoTitle");
-  const seoDescription = optionalString(formData, "seoDescription");
-
-  await createAdminChangeRequest({
-    requestType: "asset-metadata",
-    entityType: "media_asset",
-    entityKey: assetKey,
-    action: "UPDATE",
-    submittedBy: "SHRESTA asset admin",
-    payload: {
-      altText: requiredString(formData, "altText"),
-      categoryFamilyKey,
-      categoryProductTypeKey,
-      productSku,
-      tags,
-      seoTitle,
-      seoDescription,
-      clearCategoryFamilyKey: categoryFamilyKey === undefined,
-      clearCategoryProductTypeKey: categoryProductTypeKey === undefined,
-      clearProductSku: productSku === undefined,
-      clearTags: tags.length === 0,
-      clearSeoTitle: seoTitle === undefined,
-      clearSeoDescription: seoDescription === undefined
+export async function updateRefundPolicyConfigurationAction(_prev: AdminActionResult | null, formData: FormData): Promise<AdminActionResult> {
+  try {
+    const session = await requireAdminModuleAccess("notifications");
+    const configuration = await fetchAdminRefundPolicyConfiguration();
+    const rawDays = requiredString(formData, "eligibilityDays");
+    const eligibilityDays = Number(rawDays);
+    const request = buildRefundPolicyChangeRequest({
+      eligibilityDays,
+      actor: session.email,
+      reason: requiredString(formData, "reason")
+    });
+    if (eligibilityDays === configuration.eligibilityDays) {
+      throw new Error("Choose a refund window different from the live setting.");
     }
-  }, mutationOptions(formData), "CHANGE_SUBMITTER");
-  revalidatePath("/admin/assets");
-  revalidatePath("/admin/review");
+    await upsertAdminChangeRequest(request, mutationOptions(formData), "CHANGE_SUBMITTER");
+    revalidatePath("/admin/configurations");
+    revalidatePath("/admin/review");
+    return { ok: true, message: "Pending review created. The refund policy remains unchanged until an approver accepts it." };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Failed to submit the refund policy for review." };
+  }
 }
 
 export async function archiveAssetAction(_prev: AdminActionResult | null, formData: FormData): Promise<AdminActionResult> {
@@ -102,7 +94,7 @@ export async function archiveAssetAction(_prev: AdminActionResult | null, formDa
     }, mutationOptions(formData), "CHANGE_SUBMITTER");
     revalidatePath("/admin/assets");
     revalidatePath("/admin/review");
-    return { ok: true, message: "Asset archive requested. An approver must confirm — the file will be deleted from S3 on approval." };
+    return { ok: true, message: "Asset archive requested. An approver must confirm; the R2 object will be deleted on approval." };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed to request archive." };
   }
@@ -121,9 +113,66 @@ export async function deleteAssetRequestAction(_prev: AdminActionResult | null, 
     }, mutationOptions(formData), "CHANGE_SUBMITTER");
     revalidatePath("/admin/assets");
     revalidatePath("/admin/review");
-    return { ok: true, message: "Permanent deletion requested. An approver must confirm — the file will be destroyed from S3 on approval." };
+    return { ok: true, message: "Permanent deletion requested. An approver must confirm; the R2 object will be destroyed on approval." };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed to request delete." };
+  }
+}
+
+const PRODUCT_MEDIA_SLOT_VALUES = ["PRIMARY", "GALLERY_1", "GALLERY_2", "GALLERY_3", "GALLERY_4", "VIDEO"] as const;
+
+export async function linkAssetToProductAction(_prev: AdminActionResult | null, formData: FormData): Promise<AdminActionResult> {
+  try {
+    const assetKey = requiredString(formData, "assetKey");
+    const itemKey = requiredString(formData, "itemKey");
+    const slot = requiredString(formData, "slot");
+    if (!PRODUCT_MEDIA_SLOT_VALUES.includes(slot as (typeof PRODUCT_MEDIA_SLOT_VALUES)[number])) {
+      throw new Error("Unknown product media slot.");
+    }
+    await upsertAdminChangeRequest({
+      requestType: "storefront-product-media-link",
+      entityType: "storefront_home_items",
+      entityKey: itemKey,
+      action: "UPDATE",
+      submittedBy: "SHRESTA catalog admin",
+      payload: { assetKey, slot }
+    }, mutationOptions(formData), "CHANGE_SUBMITTER");
+    revalidatePath("/admin/assets");
+    revalidatePath("/admin/review");
+    return { ok: true, message: "Media link submitted for review. An approver must confirm before it goes live." };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to submit media link for review." };
+  }
+}
+
+export async function updateAssetMetadataAction(
+  _prev: AdminActionResult | null,
+  formData: FormData
+): Promise<AdminActionResult> {
+  try {
+    const assetKey = requiredString(formData, "assetKey");
+    const tags = adminTagValues(formData.getAll("tags").filter((value): value is string => typeof value === "string"));
+    await upsertAdminChangeRequest({
+      requestType: "asset-metadata",
+      entityType: "media_asset",
+      entityKey: assetKey,
+      action: "UPDATE",
+      submittedBy: "SHRESTA asset admin",
+      payload: {
+        altText: optionalString(formData, "altText"),
+        tags,
+        seoTitle: optionalString(formData, "seoTitle"),
+        seoDescription: optionalString(formData, "seoDescription"),
+        clearTags: tags.length === 0,
+        clearSeoTitle: !optionalString(formData, "seoTitle"),
+        clearSeoDescription: !optionalString(formData, "seoDescription")
+      }
+    }, mutationOptions(formData), "CHANGE_SUBMITTER");
+    revalidatePath("/admin/assets");
+    revalidatePath("/admin/review");
+    return { ok: true, message: `Metadata for ${assetKey} submitted for review.` };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Failed to submit asset metadata." };
   }
 }
 
@@ -147,22 +196,6 @@ export async function submitAdminChangeRequestAction(formData: FormData) {
   revalidatePath("/admin/review");
 }
 
-export async function bulkAssignAssetsAction(formData: FormData) {
-  const assetKeys = listValue(formData, "assetKeys");
-  const categoryFamilyKey = requiredString(formData, "categoryFamilyKey");
-  const categoryProductTypeKey = optionalString(formData, "categoryProductTypeKey");
-  await createAdminChangeRequest({
-    requestType: "asset-bulk-category-assignment",
-    entityType: "media_asset",
-    entityKey: assetKeys.join(","),
-    action: "UPDATE",
-    submittedBy: "SHRESTA asset admin",
-    payload: { assetKeys, categoryFamilyKey, categoryProductTypeKey }
-  }, mutationOptions(formData), "CHANGE_SUBMITTER");
-  revalidatePath("/admin/assets");
-  revalidatePath("/admin/review");
-}
-
 export async function updateMerchandisingProductAction(_prev: AdminActionResult | null, formData: FormData): Promise<AdminActionResult> {
   try {
     const itemKey = requiredString(formData, "itemKey");
@@ -177,31 +210,30 @@ export async function updateMerchandisingProductAction(_prev: AdminActionResult 
 
     const slugVal = optionalString(formData, "slug")?.trim();
     if (!slugVal) return { ok: false, error: "Slug is required." };
+    assertProductSlug(slugVal);
 
     const familyKeyVal = optionalString(formData, "familyKey")?.trim();
     if (!familyKeyVal) return { ok: false, error: "Category family is required." };
-
-    const priceStr = optionalString(formData, "priceRupees");
-    const pricePaiseVal = priceStr !== undefined ? Math.round(Number.parseFloat(priceStr) * 100) : 0;
-    if (!pricePaiseVal || pricePaiseVal <= 0) return { ok: false, error: "Selling price is required and must be greater than ₹0." };
+    const productTypeVal = requiredString(formData, "productType");
+    const productValues = validatedProductValues(formData);
 
     // SKU uniqueness: no other product may share this SKU
     const allProducts = await fetchAdminStorefrontHome();
     const skuConflict = allProducts.bestsellers.find((p) => p.sku === skuVal && p.id !== itemKey);
     if (skuConflict) return { ok: false, error: `SKU "${skuVal}" is already used by "${skuConflict.name}". Each product must have a unique SKU.` };
+    const slugConflict = allProducts.bestsellers.find((p) => p.slug === slugVal && p.id !== itemKey);
+    if (slugConflict) return { ok: false, error: `Slug "${slugVal}" is already used by "${slugConflict.name}".` };
+    const categories = await fetchAdminCategories();
+    assertProductTypeBelongsToFamily(categories, familyKeyVal, productTypeVal);
 
     // ── Nothing-changed guard ─────────────────────────────────────────────────
     const current = allProducts.bestsellers.find((p) => p.id === itemKey);
     if (current) {
-      const compareAtPricePaiseVal = paiseValue(formData, "compareAtPriceRupees") ?? 0;
-      const ratingVal = numberValue(formData, "rating") ?? 0;
-      const reviewCountVal = integerValue(formData, "reviewCount") ?? 0;
-      const stockQuantityVal = integerValue(formData, "stockQuantity") ?? 0;
       const badgesVal = listEnumValue(formData, "badges");
+      const colorFilterVal = optionalString(formData, "colorFilter") ?? "";
       const descriptionVal = optionalString(formData, "description") ?? "";
       const longDescriptionVal = optionalString(formData, "longDescription") ?? "";
       const featuredVal = checkboxValue(formData, "featured");
-      const productTypeVal = requiredString(formData, "productType");
 
       const unchanged =
         titleVal === current.name &&
@@ -209,12 +241,13 @@ export async function updateMerchandisingProductAction(_prev: AdminActionResult 
         slugVal === (current.slug ?? "") &&
         familyKeyVal === current.familyKey &&
         productTypeVal === current.productType &&
-        pricePaiseVal === current.pricePaise &&
-        compareAtPricePaiseVal === current.compareAtPricePaise &&
-        ratingVal === current.rating &&
-        reviewCountVal === current.reviewCount &&
-        stockQuantityVal === current.stockQuantity &&
+        productValues.pricePaise === current.pricePaise &&
+        productValues.compareAtPricePaise === current.compareAtPricePaise &&
+        productValues.rating === current.rating &&
+        productValues.reviewCount === current.reviewCount &&
+        productValues.stockQuantity === current.stockQuantity &&
         JSON.stringify([...badgesVal].map(toEnumValue).sort()) === JSON.stringify([...current.badges].map(toEnumValue).sort()) &&
+        colorFilterVal === (current.colorFilter ?? "") &&
         descriptionVal === (current.description ?? "") &&
         longDescriptionVal === (current.longDescription ?? "") &&
         featuredVal === current.isBestseller;
@@ -228,13 +261,24 @@ export async function updateMerchandisingProductAction(_prev: AdminActionResult 
     const metadata = jsonObjectValue(formData, "metadata");
     metadata.sku = assertEnumValue(skuVal, "sku");
     metadata.slug = slugVal;
-    metadata.productType = requiredString(formData, "productType");
-    metadata.pricePaise = pricePaiseVal;
-    metadata.compareAtPricePaise = paiseValue(formData, "compareAtPriceRupees") ?? 0;
-    metadata.rating = numberValue(formData, "rating") ?? 0;
-    metadata.reviewCount = integerValue(formData, "reviewCount") ?? 0;
-    metadata.stockQuantity = integerValue(formData, "stockQuantity") ?? 0;
+    metadata.productType = productTypeVal;
+    metadata.pricePaise = productValues.pricePaise;
+    metadata.compareAtPricePaise = productValues.compareAtPricePaise;
+    metadata.rating = productValues.rating;
+    metadata.reviewCount = productValues.reviewCount;
+    metadata.stockQuantity = productValues.stockQuantity;
     metadata.badges = listEnumValue(formData, "badges");
+    metadata.colorFilter = optionalString(formData, "colorFilter") ?? null;
+    const catalog = familyMerchandisingCatalog(categories, familyKeyVal);
+    assertProductMerchandisingSelection(
+      metadata.badges as string[],
+      metadata.colorFilter as string | null,
+      catalog,
+      current?.badges ?? []
+    );
+    metadata.badgeIcons = Object.fromEntries(
+      catalog.tags.filter((tag) => (metadata.badges as string[]).includes(tag.value)).map((tag) => [tag.value, tag.icon])
+    );
     metadata.longDescription = optionalString(formData, "longDescription") ?? "";
 
     const galleryAssetKeys = [
@@ -254,15 +298,7 @@ export async function updateMerchandisingProductAction(_prev: AdminActionResult 
       sortOrder: integerValue(formData, "sortOrder"),
       featured: checkboxValue(formData, "featured"),
       metadata,
-      galleryAssetKeys,
-      demoVideoUrl: optionalString(formData, "demoVideoUrl") ?? "",
-      media: {
-        assetUrl: optionalString(formData, "mediaUrl"),
-        altText: optionalString(formData, "mediaAltText"),
-        widthPx: integerValue(formData, "mediaWidthPx"),
-        heightPx: integerValue(formData, "mediaHeightPx"),
-        deliveryMode: optionalString(formData, "mediaDeliveryMode")
-      }
+      galleryAssetKeys
     };
 
     // ── Upsert (replace existing PENDING request if any) ──────────────────────
@@ -296,17 +332,9 @@ export async function uploadAndSetProductPrimaryImageAction(
     const productKey = requiredString(formData, "productKey");
     const oldAssetKey = optionalString(formData, "oldAssetKey");
 
-    const file = formData.get("file");
-    if (!(file instanceof File) || file.size === 0) {
-      return { ok: false, error: "Select an image file to upload" };
-    }
-
-    const uploadForm = new FormData();
-    uploadForm.append("files", file);
     const opts = { idempotencyKey: randomUUID() };
-    const uploaded = await uploadAdminAssets(uploadForm, opts);
-    const asset = uploaded[0];
-    if (!asset) return { ok: false, error: "Upload returned no asset" };
+    const assetKey = requiredString(formData, "mediaAssetKey");
+    const mediaId = requiredString(formData, "mediaMediaId");
 
     await upsertAdminChangeRequest(
       {
@@ -316,15 +344,9 @@ export async function uploadAndSetProductPrimaryImageAction(
         action: "UPDATE",
         submittedBy: "SHRESTA catalog admin",
         payload: {
-          newAssetKey: asset.assetKey,
-          ...(oldAssetKey ? { oldAssetKey } : {}),
-          media: {
-            assetUrl: asset.assetUrl,
-            altText: asset.altText || file.name,
-            widthPx: asset.widthPx,
-            heightPx: asset.heightPx,
-            deliveryMode: asset.deliveryMode
-          }
+          newAssetKey: assetKey,
+          mediaId,
+          ...(oldAssetKey ? { oldAssetKey } : {})
         }
       },
       opts,
@@ -350,17 +372,9 @@ export async function uploadAndSetProductGalleryImageAction(
     const slot = integerValue(formData, "slot") ?? 1;
     const oldAssetKey = optionalString(formData, "oldAssetKey");
 
-    const file = formData.get("file");
-    if (!(file instanceof File) || file.size === 0) {
-      return { ok: false, error: "Select an image file to upload" };
-    }
-
-    const uploadForm = new FormData();
-    uploadForm.append("files", file);
     const opts = { idempotencyKey: randomUUID() };
-    const uploaded = await uploadAdminAssets(uploadForm, opts);
-    const asset = uploaded[0];
-    if (!asset) return { ok: false, error: "Upload returned no asset" };
+    const assetKey = requiredString(formData, "mediaAssetKey");
+    const mediaId = requiredString(formData, "mediaMediaId");
 
     const galleryAssetKeys = [
       optionalString(formData, "currentGalleryKey1") ?? "",
@@ -368,7 +382,7 @@ export async function uploadAndSetProductGalleryImageAction(
       optionalString(formData, "currentGalleryKey3") ?? "",
       optionalString(formData, "currentGalleryKey4") ?? ""
     ];
-    galleryAssetKeys[slot - 1] = asset.assetKey;
+    galleryAssetKeys[slot - 1] = assetKey;
 
     await upsertAdminChangeRequest(
       {
@@ -379,7 +393,8 @@ export async function uploadAndSetProductGalleryImageAction(
         submittedBy: "SHRESTA catalog admin",
         payload: {
           gallerySlot: slot,
-          galleryAssetKey: asset.assetKey,
+          galleryAssetKey: assetKey,
+          mediaId,
           ...(oldAssetKey ? { oldAssetKey } : {})
         }
       },
@@ -405,19 +420,8 @@ export async function uploadAndSetProductVideoAction(
     const productKey = requiredString(formData, "productKey");
     const opts = { idempotencyKey: randomUUID() };
 
-    const file = formData.get("file");
-    let demoVideoUrl: string;
-
-    if (file instanceof File && file.size > 0) {
-      const uploadForm = new FormData();
-      uploadForm.append("files", file);
-      const uploaded = await uploadAdminAssets(uploadForm, opts);
-      const asset = uploaded[0];
-      if (!asset) return { ok: false, error: "Upload returned no asset" };
-      demoVideoUrl = asset.assetUrl;
-    } else {
-      demoVideoUrl = optionalString(formData, "demoVideoUrl") ?? "";
-    }
+    const demoVideoAssetKey = optionalString(formData, "mediaAssetKey") ?? "";
+    const mediaId = optionalString(formData, "mediaMediaId");
 
     await upsertAdminChangeRequest(
       {
@@ -426,7 +430,7 @@ export async function uploadAndSetProductVideoAction(
         entityKey: productKey,
         action: "UPDATE",
         submittedBy: "SHRESTA catalog admin",
-        payload: { demoVideoUrl }
+        payload: { demoVideoAssetKey, ...(mediaId ? { mediaId } : {}) }
       },
       opts,
       "CHANGE_SUBMITTER"
@@ -479,52 +483,67 @@ export async function clearProductGallerySlotAction(
   }
 }
 
-export async function assignAssetToDisplayItemAction(formData: FormData) {
-  const itemKey = requiredString(formData, "itemKey");
-  const opts = mutationOptions(formData);
+export async function assignAssetToDisplayItemAction(
+  _prev: AdminActionResult | null,
+  formData: FormData
+): Promise<AdminActionResult> {
+  try {
+    const itemKey = requiredString(formData, "itemKey");
+    const uploadedAssetKey = optionalString(formData, "mediaAssetKey");
+    const imageAssetKey = uploadedAssetKey ?? requiredString(formData, "selectedAssetKey");
+    const imageMediaId = optionalString(formData, "mediaMediaId");
 
-  let assetUrl: string;
-  let altText: string;
-  let widthPx: number;
-  let heightPx: number;
-  let deliveryMode: string;
+    await upsertAdminChangeRequest(
+      {
+        requestType: "storefront-display-image",
+        entityType: "storefront_home_item",
+        entityKey: itemKey,
+        action: "UPDATE",
+        submittedBy: "SHRESTA display admin",
+        payload: { imageAssetKey, ...(imageMediaId ? { imageMediaId } : {}) }
+      },
+      mutationOptions(formData),
+      "CHANGE_SUBMITTER"
+    );
 
-  const file = formData.get("file");
-  if (file instanceof File && file.size > 0) {
-    const uploadForm = new FormData();
-    uploadForm.append("files", file);
-    const uploaded = await uploadAdminAssets(uploadForm, opts);
-    const asset = uploaded[0];
-    if (!asset) throw new Error("Upload returned no asset");
-    assetUrl = asset.assetUrl;
-    altText = asset.altText || file.name;
-    widthPx = asset.widthPx;
-    heightPx = asset.heightPx;
-    deliveryMode = asset.deliveryMode;
-  } else {
-    assetUrl = requiredString(formData, "selectedAssetUrl");
-    altText = optionalString(formData, "selectedAltText") ?? "";
-    widthPx = parseInt(optionalString(formData, "selectedWidthPx") ?? "0", 10);
-    heightPx = parseInt(optionalString(formData, "selectedHeightPx") ?? "0", 10);
-    deliveryMode = optionalString(formData, "selectedDeliveryMode") ?? "s3-compatible-local";
+    revalidatePath("/admin/assets");
+    revalidatePath("/admin/review");
+    revalidatePath("/");
+    return { ok: true, message: "Display image submitted for review." };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Failed to submit display image." };
   }
+}
 
-  await createAdminChangeRequest(
-    {
-      requestType: "storefront-product-merchandising",
-      entityType: "storefront_home_item",
-      entityKey: itemKey,
-      action: "UPDATE",
-      submittedBy: "SHRESTA display admin",
-      payload: { media: { assetUrl, altText, widthPx, heightPx, deliveryMode } }
-    },
-    opts,
-    "CHANGE_SUBMITTER"
-  );
+export async function uploadDisplayVideoAction(
+  _prev: AdminActionResult | null,
+  formData: FormData
+): Promise<AdminActionResult> {
+  try {
+    const itemKey = requiredString(formData, "itemKey");
+    const videoAssetKey = requiredString(formData, "videoAssetKey");
+    const videoMediaId = requiredString(formData, "videoMediaId");
 
-  revalidatePath("/admin/assets");
-  revalidatePath("/admin/review");
-  revalidatePath("/");
+    await upsertAdminChangeRequest(
+      {
+        requestType: "storefront-display-video",
+        entityType: "storefront_home_item",
+        entityKey: itemKey,
+        action: "UPDATE",
+        submittedBy: "SHRESTA display admin",
+        payload: { videoAssetKey, videoMediaId }
+      },
+      mutationOptions(formData),
+      "CHANGE_SUBMITTER"
+    );
+
+    revalidatePath("/admin/assets");
+    revalidatePath("/admin/review");
+    revalidatePath("/");
+    return { ok: true, message: "Demo video submitted for review." };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Failed to submit demo video." };
+  }
 }
 
 export async function addProductAction(_prev: AdminActionResult | null, formData: FormData): Promise<AdminActionResult> {
@@ -534,90 +553,47 @@ export async function addProductAction(_prev: AdminActionResult | null, formData
     if (!titleVal) return { ok: false, error: "Product name is required." };
     if (titleVal.length < 2) return { ok: false, error: "Product name must be at least 2 characters." };
 
-    const priceStr = optionalString(formData, "priceRupees");
-    const pricePaiseVal = priceStr !== undefined ? Math.round(Number.parseFloat(priceStr) * 100) : 0;
-    if (!pricePaiseVal || pricePaiseVal <= 0) return { ok: false, error: "Selling price is required and must be greater than ₹0." };
+    const productValues = validatedProductValues(formData);
 
     const familyKeyVal = optionalString(formData, "familyKey")?.trim();
     if (!familyKeyVal) return { ok: false, error: "Category family is required." };
 
-    // SKU uniqueness check (only if a SKU was provided)
-    const skuVal = optionalString(formData, "sku")?.trim();
-    if (skuVal) {
-      const allProducts = await fetchAdminStorefrontHome();
-      const skuConflict = allProducts.bestsellers.find((p) => p.sku === skuVal);
-      if (skuConflict) return { ok: false, error: `SKU "${skuVal}" is already used by "${skuConflict.name}". Each product must have a unique SKU.` };
-    }
+    const skuVal = requiredString(formData, "sku");
+    const slugVal = requiredString(formData, "slug");
+    const productType = requiredString(formData, "productType");
+    assertProductSlug(slugVal);
+    const categories = await fetchAdminCategories();
+    assertProductTypeBelongsToFamily(categories, familyKeyVal, productType);
+    const allProducts = await fetchAdminStorefrontHome();
+    const skuConflict = allProducts.bestsellers.find((product) => product.sku === skuVal);
+    if (skuConflict) return { ok: false, error: `SKU "${skuVal}" is already used by "${skuConflict.name}". Each product must have a unique SKU.` };
+    const slugConflict = allProducts.bestsellers.find((product) => product.slug === slugVal);
+    if (slugConflict) return { ok: false, error: `Slug "${slugVal}" is already used by "${slugConflict.name}".` };
 
     // ── Everything valid — proceed ────────────────────────────────────────────
     const opts = mutationOptions(formData);
 
-    const baseSlug = titleVal
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .substring(0, 70);
-    const itemKey = `product-${baseSlug}-${Date.now().toString(36)}`;
+    const itemKey = requiredString(formData, "productReservationId");
 
-  // Upload primary image if provided
-  let mediaAssetKey: string | undefined;
-  const imageFile = formData.get("imageFile");
-  if (imageFile instanceof File && imageFile.size > 0) {
-    const uploadForm = new FormData();
-    uploadForm.append("files", imageFile);
-    const uploaded = await uploadAdminAssets(uploadForm, opts);
-    mediaAssetKey = uploaded[0]?.assetKey;
-  }
-
-  // Upload gallery images if provided (slots 1–4)
-  const galleryAssetKeys: string[] = [];
-  for (const slot of [1, 2, 3, 4] as const) {
-    const file = formData.get(`galleryFile${slot}`);
-    if (file instanceof File && file.size > 0) {
-      const uploadForm = new FormData();
-      uploadForm.append("files", file);
-      const uploaded = await uploadAdminAssets(uploadForm, opts);
-      galleryAssetKeys.push(uploaded[0]?.assetKey ?? "");
-    } else {
-      galleryAssetKeys.push("");
-    }
-  }
-  // Trim trailing empty slots
-  while (galleryAssetKeys.length > 0 && galleryAssetKeys[galleryAssetKeys.length - 1] === "") {
-    galleryAssetKeys.pop();
-  }
-
-  // Demo video: file upload takes precedence over pasted URL
-  let demoVideoUrl: string | undefined;
-  const videoFile = formData.get("videoFile");
-  if (videoFile instanceof File && videoFile.size > 0) {
-    const uploadForm = new FormData();
-    uploadForm.append("files", videoFile);
-    const uploaded = await uploadAdminAssets(uploadForm, opts);
-    demoVideoUrl = uploaded[0]?.assetUrl;
-  } else {
-    demoVideoUrl = optionalString(formData, "demoVideoUrl") ?? undefined;
-  }
-
-  const compareAtPricePaise = paiseValue(formData, "compareAtPriceRupees");
-  const sku = skuVal;
-  const productType = optionalString(formData, "productType");
-  const sortOrderRaw = Number.parseInt(optionalString(formData, "sortOrder") ?? "", 10);
-  const sortOrder = Number.isNaN(sortOrderRaw) ? 0 : sortOrderRaw;
+  const sortOrder = nonNegativeIntegerValue(formData, "sortOrder", 0);
   const featured = formData.get("featured") === "on";
-  const ratingRaw = optionalString(formData, "rating");
-  const reviewCountRaw = optionalString(formData, "reviewCount");
   const badges = formData.getAll("badges").filter((b): b is string => typeof b === "string");
+  const colorFilter = optionalString(formData, "colorFilter");
 
-  const metadata: Record<string, unknown> = { pricePaise: pricePaiseVal };
-  if (compareAtPricePaise != null) metadata.compareAtPricePaise = compareAtPricePaise;
-  if (sku) metadata.sku = sku;
-  if (productType) metadata.productType = productType;
-  if (ratingRaw) metadata.rating = Number.parseFloat(ratingRaw);
-  if (reviewCountRaw) metadata.reviewCount = Number.parseInt(reviewCountRaw, 10);
-  const stockQuantityRaw = optionalString(formData, "stockQuantity");
-  if (stockQuantityRaw) metadata.stockQuantity = Number.parseInt(stockQuantityRaw, 10);
+  const metadata: Record<string, unknown> = {
+    sku: assertEnumValue(skuVal, "sku"),
+    slug: slugVal,
+    productType,
+    longDescription: optionalString(formData, "longDescription") ?? null,
+    ...productValues
+  };
   if (badges.length > 0) metadata.badges = badges;
+  if (colorFilter) metadata.colorFilter = colorFilter;
+  const catalog = familyMerchandisingCatalog(categories, familyKeyVal);
+  assertProductMerchandisingSelection(badges, colorFilter ?? null, catalog);
+  metadata.badgeIcons = Object.fromEntries(
+    catalog.tags.filter((tag) => badges.includes(tag.value)).map((tag) => [tag.value, tag.icon])
+  );
 
   const payload: Record<string, unknown> = {
     sectionKey: "bestsellers",
@@ -625,16 +601,26 @@ export async function addProductAction(_prev: AdminActionResult | null, formData
     title: titleVal,
     subtitle: optionalString(formData, "subtitle") ?? null,
     description: optionalString(formData, "description") ?? null,
-    longDescription: optionalString(formData, "longDescription") ?? null,
     ctaLabel: optionalString(formData, "ctaLabel") ?? null,
     ctaHref: optionalString(formData, "ctaHref") ?? null,
     sortOrder,
     featured,
     metadata,
   };
-  if (mediaAssetKey) payload.mediaAssetKey = mediaAssetKey;
-  if (galleryAssetKeys.length > 0) payload.galleryAssetKeys = galleryAssetKeys;
-  if (demoVideoUrl) payload.demoVideoUrl = demoVideoUrl;
+  payload.mediaAssetKey = requiredString(formData, "mediaAssetKey");
+  payload.mediaId = requiredString(formData, "mediaMediaId");
+
+  const galleryAssetKeys = [1, 2, 3, 4]
+    .map((slot) => optionalString(formData, `gallery${slot}AssetKey`) ?? "");
+  if (galleryAssetKeys.some(Boolean)) payload.galleryAssetKeys = galleryAssetKeys;
+  const galleryMediaIds = [1, 2, 3, 4]
+    .map((slot) => optionalString(formData, `gallery${slot}MediaId`) ?? "");
+  if (galleryMediaIds.some(Boolean)) payload.galleryMediaIds = galleryMediaIds;
+
+  const demoVideoAssetKey = optionalString(formData, "videoAssetKey");
+  if (demoVideoAssetKey) payload.demoVideoAssetKey = demoVideoAssetKey;
+  const demoVideoMediaId = optionalString(formData, "videoMediaId");
+  if (demoVideoMediaId) payload.demoVideoMediaId = demoVideoMediaId;
 
   await createAdminChangeRequest(
     {
@@ -660,14 +646,148 @@ export async function addProductAction(_prev: AdminActionResult | null, formData
   }
 }
 
-export async function approveChangeRequestAction(formData: FormData) {
-  await approveAdminChangeRequest(requiredString(formData, "requestKey"), optionalString(formData, "reviewNote"), mutationOptions(formData));
+export async function createTestUserAction(formData: FormData) {
+  await requireAdminModuleAccess("test-users");
+
+  const displayName = requiredString(formData, "displayName");
+  const email = requiredString(formData, "email").toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw new Error("Email must be a valid address.");
+  }
+  const mobile = optionalString(formData, "mobile");
+  if (mobile !== undefined && !/^[6-9]\d{9}$/.test(mobile)) {
+    throw new Error("Mobile must be a 10-digit Indian number.");
+  }
+
+  await createAdminChangeRequest({
+    requestType: "test-user-management",
+    entityType: "customer_accounts",
+    entityKey: email,
+    action: "CREATE",
+    submittedBy: "SHRESTA test-user admin",
+    payload: { displayName, email, mobile, note: optionalString(formData, "note") }
+  }, mutationOptions(formData), "CHANGE_SUBMITTER");
+
+  revalidatePath("/admin/test-users");
   revalidatePath("/admin/review");
 }
 
-export async function rejectChangeRequestAction(formData: FormData) {
-  await rejectAdminChangeRequest(requiredString(formData, "requestKey"), optionalString(formData, "reviewNote"), mutationOptions(formData));
+export async function deleteTestUserAction(formData: FormData) {
+  await requireAdminModuleAccess("test-users");
+
+  const customerId = requiredString(formData, "customerId");
+  const reason = requiredString(formData, "reason");
+
+  await upsertAdminChangeRequest({
+    requestType: "test-user-management",
+    entityType: "customer_accounts",
+    entityKey: customerId,
+    action: "DELETE",
+    submittedBy: "SHRESTA test-user admin",
+    payload: { customerId, reason }
+  }, mutationOptions(formData), "CHANGE_SUBMITTER");
+
+  revalidatePath("/admin/test-users");
   revalidatePath("/admin/review");
+}
+
+export type TestUserOtpRevealResult = { ok: true; otp: string } | { ok: false; error: string };
+
+export async function revealTestUserOtpAction(formData: FormData): Promise<TestUserOtpRevealResult> {
+  try {
+    await requireAdminModuleAccess("test-users");
+    const { otp } = await revealTestUserOtp(requiredString(formData, "customerId"));
+    return { ok: true, otp };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Failed to reveal the OTP." };
+  }
+}
+
+export async function approveChangeRequestAction(
+  _prev: AdminActionResult | null,
+  formData: FormData
+): Promise<AdminActionResult> {
+  try {
+    await approveAdminChangeRequest(requiredString(formData, "requestKey"), optionalString(formData, "reviewNote"), mutationOptions(formData));
+    revalidatePath("/admin/assets");
+    revalidatePath("/admin/review");
+    return { ok: true, message: "Change approved." };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Approval failed." };
+  }
+}
+
+export async function rejectChangeRequestAction(
+  _prev: AdminActionResult | null,
+  formData: FormData
+): Promise<AdminActionResult> {
+  try {
+    await rejectAdminChangeRequest(requiredString(formData, "requestKey"), optionalString(formData, "reviewNote"), mutationOptions(formData));
+    revalidatePath("/admin/assets");
+    revalidatePath("/admin/review");
+    return { ok: true, message: "Change rejected." };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Rejection failed." };
+  }
+}
+
+export async function updateAdminOrderStatusAction(_prev: AdminActionResult | null, formData: FormData): Promise<AdminActionResult> {
+  try {
+    const orderNumber = requiredString(formData, "orderNumber");
+    const fulfillmentStatus = requiredString(formData, "fulfillmentStatus");
+    const note = optionalString(formData, "note");
+    const opsReference = optionalString(formData, "opsReference");
+
+    await updateAdminOrderStatus(orderNumber, {
+      fulfillmentStatus,
+      note,
+      opsReference
+    }, mutationOptions(formData));
+
+    revalidatePath("/admin/orders");
+    revalidatePath("/admin");
+    revalidatePath("/account");
+    return { ok: true, message: `Order ${orderNumber} updated.` };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to update order status." };
+  }
+}
+
+export async function approveAdminOrderRefundAction(_prev: AdminActionResult | null, formData: FormData): Promise<AdminActionResult> {
+  try {
+    const orderNumber = requiredString(formData, "orderNumber");
+    const note = optionalString(formData, "note");
+    const opsReference = optionalString(formData, "opsReference");
+
+    await approveAdminOrderRefund(orderNumber, {
+      note,
+      opsReference
+    }, mutationOptions(formData));
+
+    revalidatePath("/admin/orders");
+    revalidatePath("/admin");
+    revalidatePath("/account");
+    return { ok: true, message: `Refund initiated for order ${orderNumber}.` };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to approve refund." };
+  }
+}
+
+export async function checkAdminOrderRefundStatusAction(_prev: AdminActionResult | null, formData: FormData): Promise<AdminActionResult> {
+  try {
+    const orderNumber = requiredString(formData, "orderNumber");
+    const status = await checkAdminOrderRefundStatus(orderNumber);
+
+    revalidatePath("/admin/orders");
+    revalidatePath("/admin");
+    revalidatePath("/account");
+    return {
+      ok: true,
+      message: `${status.message} Razorpay status: ${status.razorpayStatus}${status.refundId ? ` (${status.refundId})` : ""}.`
+    };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to check refund status." };
+  }
 }
 
 export async function createCategoryFamilyAction(formData: FormData) {
@@ -696,6 +816,31 @@ export async function updateCategoryFamilyAction(formData: FormData) {
   revalidatePath("/admin/categories");
   revalidatePath("/admin/assets");
   revalidatePath("/admin/review");
+}
+
+export async function updateCategoryMerchandisingAction(
+  _prev: AdminActionResult | null,
+  formData: FormData
+): Promise<AdminActionResult> {
+  try {
+    const familyKey = requiredString(formData, "familyKey");
+    const merchandisingTags = categoryOptions(formData, "merchandisingTags", true);
+    const colorFilters = categoryOptions(formData, "colorFilters", false);
+    await submitGovernedCategoryChange(
+      formData,
+      "category-merchandising",
+      "category_family_config",
+      familyKey,
+      "UPDATE",
+      { merchandisingTags, colorFilters }
+    );
+    revalidatePath("/admin/categories");
+    revalidatePath("/admin/assets");
+    revalidatePath("/admin/review");
+    return { ok: true, message: "Tag and colour options submitted for review." };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Failed to submit tag and colour options." };
+  }
 }
 
 export async function createProductTypeAction(formData: FormData) {
@@ -905,22 +1050,17 @@ function optionalString(formData: FormData, name: string): string | undefined {
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
-function optionalEnumString(formData: FormData, name: string, fieldName: string): string | undefined {
-  const value = optionalString(formData, name);
-  return value === undefined ? undefined : assertEnumValue(value, fieldName);
-}
-
 function integerValue(formData: FormData, name: string): number | undefined {
   const value = optionalString(formData, name);
   if (value === undefined) {
     return undefined;
   }
 
-  const parsed = Number.parseInt(value, 10);
-  if (Number.isNaN(parsed)) {
+  if (!/^-?\d+$/.test(value)) {
     throw new Error(`${name} must be a valid integer`);
   }
-
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed)) throw new Error(`${name} must be a safe integer`);
   return parsed;
 }
 
@@ -930,20 +1070,12 @@ function numberValue(formData: FormData, name: string): number | undefined {
     return undefined;
   }
 
-  const parsed = Number.parseFloat(value);
-  if (Number.isNaN(parsed)) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
     throw new Error(`${name} must be a valid number`);
   }
 
   return parsed;
-}
-
-function requiredPaiseValue(formData: FormData, name: string): number {
-  const value = paiseValue(formData, name);
-  if (value === undefined) {
-    throw new Error(`${name} is required`);
-  }
-  return value;
 }
 
 function paiseValue(formData: FormData, name: string): number | undefined {
@@ -952,12 +1084,48 @@ function paiseValue(formData: FormData, name: string): number | undefined {
     return undefined;
   }
 
-  const parsed = Number.parseFloat(value);
-  if (Number.isNaN(parsed) || parsed < 0) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
     throw new Error(`${name} must be a non-negative price`);
   }
 
   return Math.round(parsed * 100);
+}
+
+function validatedProductValues(formData: FormData) {
+  const pricePaise = paiseValue(formData, "priceRupees");
+  const compareAtPricePaise = paiseValue(formData, "compareAtPriceRupees") ?? 0;
+  const rating = numberValue(formData, "rating") ?? 0;
+  const reviewCount = nonNegativeIntegerValue(formData, "reviewCount", 0);
+  const stockQuantity = nonNegativeIntegerValue(formData, "stockQuantity");
+  if (!pricePaise || pricePaise <= 0) throw new Error("Selling price is required and must be greater than ₹0.");
+  if (compareAtPricePaise > 0 && compareAtPricePaise < pricePaise) throw new Error("Compare-at price must be at least the selling price.");
+  if (rating < 0 || rating > 5) throw new Error("Rating must be between 0 and 5.");
+  return { pricePaise, compareAtPricePaise, rating, reviewCount, stockQuantity };
+}
+
+function nonNegativeIntegerValue(formData: FormData, name: string, fallback?: number): number {
+  const value = integerValue(formData, name);
+  if (value === undefined) {
+    if (fallback !== undefined) return fallback;
+    throw new Error(`${name} is required`);
+  }
+  if (value < 0) throw new Error(`${name} must be non-negative`);
+  return value;
+}
+
+function assertProductSlug(slug: string) {
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+    throw new Error("Slug must contain lowercase letters, numbers, and single hyphens.");
+  }
+}
+
+function assertProductTypeBelongsToFamily(categories: Awaited<ReturnType<typeof fetchAdminCategories>>, familyKey: string, productType: string) {
+  const family = categories.find((category) => category.familyKey === familyKey);
+  if (!family) throw new Error("The selected category family is not active.");
+  if (!family.productTypes.some((type) => type.typeKey === productType)) {
+    throw new Error("The selected product type does not belong to the selected category family.");
+  }
 }
 
 function checkboxValue(formData: FormData, name: string): boolean {
@@ -984,10 +1152,6 @@ function listEnumValue(formData: FormData, name: string): string[] {
   return enumValues(listValue(formData, name));
 }
 
-function listAdminTagValue(formData: FormData, name: string): string[] {
-  return assertAdminTagValues(listValue(formData, name), name);
-}
-
 function jsonObjectValue(formData: FormData, name: string): Record<string, unknown> {
   const value = optionalString(formData, name);
   if (value === undefined) {
@@ -1002,9 +1166,56 @@ function jsonObjectValue(formData: FormData, name: string): Record<string, unkno
   return parsed as Record<string, unknown>;
 }
 
-function appendOptional(formData: FormData, key: string, value: string | undefined) {
-  if (value !== undefined) {
-    formData.append(key, value);
+function categoryOptions(
+  formData: FormData,
+  name: string,
+  withIcon: boolean
+): Array<{ value: string; label: string; icon?: string }> {
+  const raw = requiredString(formData, name);
+  const parsed: unknown = JSON.parse(raw);
+  if (!Array.isArray(parsed) || parsed.length > 50) {
+    throw new Error(`${name} must contain at most 50 options.`);
+  }
+  const seen = new Set<string>();
+  return parsed.map((item) => {
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      throw new Error(`${name} contains an invalid option.`);
+    }
+    const record = item as Record<string, unknown>;
+    const value = assertEnumValue(typeof record.value === "string" ? record.value : "", `${name} value`);
+    const label = typeof record.label === "string" ? record.label.trim() : "";
+    if (!label || label.length > 80 || seen.has(value)) {
+      throw new Error(`${name} values must be unique and have labels up to 80 characters.`);
+    }
+    seen.add(value);
+    if (withIcon && value.startsWith("COLOR_")) {
+      throw new Error("Product tag values cannot start with COLOR_.");
+    }
+    if (!withIcon && !value.startsWith("COLOR_")) {
+      throw new Error("Colour filter values must start with COLOR_.");
+    }
+    if (!withIcon) return { value, label };
+    const icon = typeof record.icon === "string" ? record.icon : "";
+    if (!isMerchandisingIconName(icon)) {
+      throw new Error(`${name} contains an unsupported icon.`);
+    }
+    return { value, label, icon };
+  });
+}
+
+function assertProductMerchandisingSelection(
+  tags: string[],
+  color: string | null,
+  catalog: ReturnType<typeof familyMerchandisingCatalog>,
+  existingTags: string[] = []
+) {
+  const allowedTags = new Set([...catalog.tags.map((option) => option.value), ...existingTags]);
+  const allowedColors = new Set(catalog.colors.map((option) => option.value));
+  if (tags.some((tag) => !allowedTags.has(tag))) {
+    throw new Error("One or more asset tags are not configured for the selected category.");
+  }
+  if (color && !allowedColors.has(color)) {
+    throw new Error("The colour filter is not configured for the selected category.");
   }
 }
 

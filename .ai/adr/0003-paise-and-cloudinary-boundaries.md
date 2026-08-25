@@ -1,4 +1,4 @@
-# ADR 0003: Paise and Cloudinary Boundaries
+# ADR 0003: Paise and Canonical R2 Media Boundaries
 
 ## Status
 
@@ -6,10 +6,10 @@ Accepted
 
 ## Decision
 
-The frontend treats paise and Cloudinary public IDs as explicit domain boundaries. Components call `formatPaise` for display and `buildCloudinaryUrl` for media. Components must not divide paise or assemble image URLs inline.
+The frontend treats paise and canonical R2 media metadata as explicit domain boundaries. Components call `formatPaise` for money and render the backend-provided Cloudflare custom-domain URL with `next/image`. Admin uploads request authorization through same-origin metadata routes, then PUT exactly one canonical file directly to R2.
 
 ## Consequences
 
 - Currency behavior is consistent across product cards, PDP, cart, checkout, and orders.
-- Image transformations are centralized and can be optimized without sweeping component changes.
+- Display sizing is handled by `next/image` and optional delivery-time Cloudflare transformation without creating stored variants.
 - Future AI agents have obvious guardrails for money and media handling.

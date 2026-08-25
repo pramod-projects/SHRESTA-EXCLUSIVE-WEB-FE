@@ -11,7 +11,6 @@ import {
   Check,
   CheckCircle2,
   Clock,
-  CreditCard,
   Home,
   Heart,
   Lock,
@@ -33,7 +32,16 @@ import { ResponsiveMedia } from "@/components/storefront/responsive-media";
 import { StorefrontPageChrome } from "@/components/storefront/storefront-home-experience";
 import { useCustomerSession } from "@/features/auth/use-customer-session";
 import { useBrowserCart, type BrowserCartLine } from "@/features/cart/browser-cart";
-import { createCustomerOrderDraft, placeCustomerOrder, type CustomerOrderDraftResponse, type CustomerOrderResponse } from "@/features/orders/customer-orders";
+import {
+  createCustomerOrderDraft,
+  markDraftPaymentFailed,
+  createRazorpayOrder,
+  placeCustomerOrder,
+  verifyRazorpayPayment,
+  type CustomerOrderDraftResponse,
+  type CustomerOrderResponse
+} from "@/features/orders/customer-orders";
+import { ensureRazorpayCheckoutScriptLoaded } from "@/features/orders/razorpay-sdk";
 import type { ProductCard, StorefrontHome } from "@/features/storefront/storefront-home";
 import { useBrowserWishlist } from "@/features/wishlist/browser-wishlist";
 import { enumDisplayLabel } from "@/lib/admin-enums";
@@ -45,24 +53,107 @@ type CommercePageProps = {
   products: ProductCard[];
 };
 
+type RazorpayPaymentSuccessPayload = {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+};
+
+type RazorpayCheckoutFailurePayload = {
+  error?: {
+    description?: string;
+    metadata?: {
+      order_id?: string;
+      payment_id?: string;
+    };
+    reason?: string;
+    source?: string;
+    step?: string;
+  };
+};
+
+type RazorpayCheckoutLaunchResult =
+  | ({ ok: true } & { razorpayOrderId: string; razorpayPaymentId: string; razorpaySignature: string })
+  | ({ ok: false } & {
+      kind: "failed" | "interrupted" | "error";
+      message: string;
+      razorpayOrderId?: string;
+      razorpayPaymentId?: string;
+    });
+
+type RazorpayCheckoutOptions = {
+  amount: number;
+  config?: {
+    display?: {
+      blocks?: Record<string, {
+        instruments: Array<{ method: string; flows?: string[] }>;
+        name: string;
+      }>;
+      preferences?: {
+        show_default_blocks?: boolean;
+      };
+      sequence?: string[];
+    };
+  };
+  currency: string;
+  description: string;
+  handler: (payload: RazorpayPaymentSuccessPayload) => void;
+  key: string;
+  method?: {
+    card?: boolean;
+    emi?: boolean;
+    netbanking?: boolean;
+    paylater?: boolean;
+    upi?: boolean;
+    wallet?: boolean;
+  };
+  modal?: { ondismiss?: () => void };
+  name: string;
+  notes?: Record<string, string>;
+  order_id: string;
+  prefill?: {
+    contact?: string;
+    email?: string;
+    name?: string;
+  };
+  theme?: { color?: string };
+};
+
+type RazorpayCheckoutInstance = {
+  on: (event: "payment.failed", callback: (payload: RazorpayCheckoutFailurePayload) => void) => void;
+  open: () => void;
+};
+
+declare global {
+  interface Window {
+    Razorpay?: new (options: RazorpayCheckoutOptions) => RazorpayCheckoutInstance;
+  }
+}
+
 type CartProductLine = {
   line: BrowserCartLine;
   product: ProductCard;
+};
+
+type CartInventoryReconcileSummary = {
+  reducedLines: number;
+  removedLines: number;
 };
 
 const FREE_DELIVERY_THRESHOLD_PAISE = 49_900;
 const STANDARD_DELIVERY_PAISE = 4_900;
 const EXPRESS_DELIVERY_PAISE = 14_900;
 const SAME_DAY_DELIVERY_PAISE = 29_900;
+const RAZORPAY_RESULT_TIMEOUT_MS = 5 * 60_000;
 const CHECKOUT_STORAGE_KEY = "shresta.checkout.v1";
+const CHECKOUT_SELECTION_STORAGE_KEY = "shresta.checkout.selection.v1";
 const CHECKOUT_IDEMPOTENCY_STORAGE_KEY = "shresta.checkout.order-idempotency.v1";
 const CHECKOUT_DRAFT_STORAGE_KEY = "shresta.checkout.order-draft.v1";
 const CHECKOUT_DRAFT_IDEMPOTENCY_STORAGE_KEY = "shresta.checkout.order-draft-idempotency.v1";
 
-type CheckoutJourneyStep = "details" | "delivery" | "payment" | "review" | "processing" | "success" | "error";
+type CheckoutJourneyStep = "details" | "delivery" | "review" | "processing" | "success" | "payment_failed";
 type AddressType = "home" | "work" | "other";
 type DeliveryMode = "standard" | "express" | "same_day";
-type PaymentMethod = "upi" | "card" | "netbanking";
 type CheckoutDetailField = "email" | "phone" | "fullName" | "postalCode" | "addressLine1" | "addressLine2" | "city" | "state" | "landmark";
 
 type CheckoutFormState = {
@@ -75,7 +166,6 @@ type CheckoutFormState = {
   email: string;
   fullName: string;
   landmark: string;
-  paymentMethod: PaymentMethod;
   phone: string;
   postalCode: string;
   state: string;
@@ -112,7 +202,6 @@ const DEFAULT_CHECKOUT_FORM: CheckoutFormState = {
   email: "",
   fullName: "",
   landmark: "",
-  paymentMethod: "upi",
   phone: "",
   postalCode: "",
   state: ""
@@ -163,37 +252,78 @@ const DELIVERY_OPTIONS: Array<{
   }
 ];
 
-const PAYMENT_OPTIONS: Array<{
-  description: string;
-  icon: LucideIcon;
-  id: PaymentMethod;
-  name: string;
-}> = [
-  {
-    description: "UPI intent, collect, or QR handoff when payment gateway is enabled.",
-    icon: Smartphone,
-    id: "upi",
-    name: "UPI"
-  },
-  {
-    description: "Credit and debit card gateway handoff after final confirmation.",
-    icon: CreditCard,
-    id: "card",
-    name: "Card"
-  },
-  {
-    description: "Major Indian bank redirect flow after order review.",
-    icon: Building2,
-    id: "netbanking",
-    name: "Net Banking"
-  }
-];
-
 export function StorefrontCartExperience({ home, products }: CommercePageProps) {
   const router = useRouter();
   const cart = useBrowserCart();
+  const [inventoryNotice, setInventoryNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Cart route has intermittent App Router transition aborts; fallback to document navigation.
+    const handleCartLinkClick = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+        return;
+      }
+
+      const target = event.target;
+      if (!(target instanceof Element)) {
+        return;
+      }
+
+      const anchor = target.closest("a");
+      if (!(anchor instanceof HTMLAnchorElement)) {
+        return;
+      }
+
+      const href = anchor.getAttribute("href");
+      if (!href || href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:")) {
+        return;
+      }
+      if (anchor.target && anchor.target !== "_self") {
+        return;
+      }
+
+      const nextUrl = new URL(anchor.href, window.location.href);
+      if (nextUrl.origin !== window.location.origin) {
+        return;
+      }
+
+      if (`${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}` === `${window.location.pathname}${window.location.search}${window.location.hash}`) {
+        return;
+      }
+
+      event.preventDefault();
+      window.location.assign(nextUrl.href);
+    };
+
+    document.addEventListener("click", handleCartLinkClick, true);
+    return () => document.removeEventListener("click", handleCartLinkClick, true);
+  }, []);
+
+  useReconcileCartInventory(cart.lines, cart.replaceLines, products, (summary) => {
+    if (summary.removedLines > 0 && summary.reducedLines > 0) {
+      setInventoryNotice("Some items were removed and some quantities were reduced because stock changed in another active checkout.");
+      return;
+    }
+    if (summary.removedLines > 0) {
+      setInventoryNotice("Some items were removed because they are currently reserved or out of stock in another active checkout.");
+      return;
+    }
+    if (summary.reducedLines > 0) {
+      setInventoryNotice("Some quantities were reduced because stock changed in another active checkout.");
+    }
+  });
+  const wishlist = useBrowserWishlist();
+  useReconcileWishlistInventory(wishlist.productIds, wishlist.replaceItems, products);
   const items = resolveCartItems(cart.lines, products);
-  const totals = calculateCartTotals(items);
+  const [selectedCheckoutProductIds, setSelectedCheckoutProductIds] = useState<Set<string> | null>(null);
+  const currentCartProductIds = new Set(items.map((entry) => entry.product.id));
+  const effectiveSelectedCheckoutProductIds = selectedCheckoutProductIds === null
+    ? currentCartProductIds
+    : new Set(Array.from(selectedCheckoutProductIds).filter((id) => currentCartProductIds.has(id)));
+
+  const selectedItems = items.filter((entry) => effectiveSelectedCheckoutProductIds.has(entry.product.id));
+  const allItemsSelected = selectedItems.length === items.length && items.length > 0;
+  const totals = calculateCartTotals(selectedItems);
   const { isLoading: profileLoading, session } = useCustomerSession();
   const [checkoutDraftError, setCheckoutDraftError] = useState<string | null>(null);
   const [isCreatingDraft, setIsCreatingDraft] = useState(false);
@@ -203,6 +333,7 @@ export function StorefrontCartExperience({ home, products }: CommercePageProps) 
   useEffect(() => {
     if (!cartSignature) {
       clearStoredCheckoutDraft();
+      clearStoredCheckoutSelection();
       clearStoredDraftIdempotencyKey();
       return;
     }
@@ -221,18 +352,20 @@ export function StorefrontCartExperience({ home, products }: CommercePageProps) 
       return;
     }
 
-    if (items.length === 0) {
+    if (selectedItems.length === 0) {
+      setCheckoutDraftError("Select at least one item for checkout.");
       return;
     }
 
     setIsCreatingDraft(true);
     const result = await createCustomerOrderDraft({
-      lines: checkoutLinesPayload(items)
-    }, getOrCreateDraftIdempotencyKey(items));
+      lines: checkoutLinesPayload(selectedItems)
+    }, getOrCreateDraftIdempotencyKey(selectedItems));
     setIsCreatingDraft(false);
 
     if (result.ok) {
-      writeStoredCheckoutDraft(result.draft, items);
+      writeStoredCheckoutDraft(result.draft, selectedItems);
+      writeStoredCheckoutSelection(selectedItems.map((entry) => entry.product.id));
       router.push(`/checkout?orderId=${encodeURIComponent(result.draft.orderId)}`);
       return;
     }
@@ -247,6 +380,7 @@ export function StorefrontCartExperience({ home, products }: CommercePageProps) 
 
   function handleClearCart() {
     clearStoredCheckoutDraft();
+    clearStoredCheckoutSelection();
     clearStoredDraftIdempotencyKey();
     cart.clearCart();
   }
@@ -254,7 +388,13 @@ export function StorefrontCartExperience({ home, products }: CommercePageProps) 
   function handleCartQuantityChange(productId: string, quantity: number) {
     clearStoredCheckoutDraft();
     clearStoredDraftIdempotencyKey();
-    cart.updateQuantity(productId, quantity);
+    const item = items.find((entry) => entry.product.id === productId);
+    const maxQuantity = item?.product.stockQuantity;
+    if ((maxQuantity ?? 1) <= 0) {
+      cart.removeItem(productId);
+      return;
+    }
+    cart.updateQuantity(productId, quantity, maxQuantity);
   }
 
   function handleCartLineRemove(productId: string) {
@@ -269,10 +409,9 @@ export function StorefrontCartExperience({ home, products }: CommercePageProps) 
         eyebrow="Shopping bag"
         metric={`${cart.itemCount} item${cart.itemCount === 1 ? "" : "s"}`}
         title="Review Your Cart"
-        description="Your selected SHRESTA pieces stay visible while you browse, with current pricing, images, and availability refreshed before checkout."
       />
 
-      <section className="bg-[var(--wine-950)] px-4 py-10 sm:px-6 lg:py-14">
+      <section className="bg-[var(--shresta-logo-bg)] px-4 py-10 sm:px-6 lg:py-14">
         {items.length === 0 ? (
           <EmptyCommerceState
             ctaHref="/products"
@@ -283,11 +422,11 @@ export function StorefrontCartExperience({ home, products }: CommercePageProps) 
           />
         ) : (
           <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[minmax(0,1fr)_380px]">
-            <div className="rounded-2xl border border-[var(--wine-800)] bg-[rgba(43,15,20,0.78)] shadow-[0_22px_70px_rgba(0,0,0,0.26)]">
-              <div className="flex items-center justify-between border-b border-[var(--wine-800)] px-5 py-4">
+            <div className="rounded-2xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] shadow-[0_16px_42px_rgba(47,33,21,0.12)]">
+              <div className="flex items-center justify-between border-b border-[var(--shresta-logo-border)] px-5 py-4">
                 <div>
-                  <h2 className="font-serif text-2xl font-light text-white">Shopping Cart</h2>
-                  <p className="mt-1 text-sm text-[var(--shresta-text-muted)]">{cart.itemCount} SHRESTA-priced item{cart.itemCount === 1 ? "" : "s"}</p>
+                  <h2 className="font-serif text-2xl font-light text-[var(--shresta-logo-text)]">Shopping Cart</h2>
+                  <p className="mt-1 text-sm text-[var(--shresta-logo-muted)]">{cart.itemCount} SHRESTA-priced item{cart.itemCount === 1 ? "" : "s"}</p>
                 </div>
                 <button
                   className="inline-flex min-h-9 items-center gap-2 rounded-full border border-rose-500/30 px-3 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/10"
@@ -298,11 +437,43 @@ export function StorefrontCartExperience({ home, products }: CommercePageProps) 
                   Clear
                 </button>
               </div>
-              <div className="divide-y divide-[var(--wine-800)] px-5">
+              <div className="flex items-center justify-between gap-3 border-b border-[var(--shresta-logo-border)] px-5 py-3">
+                <label className="flex items-center gap-2 text-sm font-medium text-[var(--shresta-logo-text)]">
+                  <input
+                    checked={allItemsSelected}
+                    className="h-4 w-4 rounded border-[var(--shresta-logo-border)]"
+                    onClick={() => {
+                      if (allItemsSelected) {
+                        setSelectedCheckoutProductIds(new Set());
+                      } else {
+                        setSelectedCheckoutProductIds(null);
+                      }
+                    }}
+                    readOnly
+                    type="checkbox"
+                  />
+                  Select all for checkout
+                </label>
+                <span className="text-xs font-semibold text-[var(--shresta-logo-muted)]">{selectedItems.length} selected</span>
+              </div>
+              <div className="divide-y divide-[var(--shresta-logo-border)] px-5">
                 {items.map((item) => (
                   <CartLineRow
                     item={item}
                     key={item.product.id}
+                    selected={effectiveSelectedCheckoutProductIds.has(item.product.id)}
+                    onToggleSelect={() => {
+                      setSelectedCheckoutProductIds((current) => {
+                        const base = current ?? new Set(items.map((entry) => entry.product.id));
+                        const next = new Set(base);
+                        if (next.has(item.product.id)) {
+                          next.delete(item.product.id);
+                        } else {
+                          next.add(item.product.id);
+                        }
+                        return next;
+                      });
+                    }}
                     onRemove={() => handleCartLineRemove(item.product.id)}
                     onUpdateQuantity={(quantity) => handleCartQuantityChange(item.product.id, quantity)}
                   />
@@ -314,15 +485,21 @@ export function StorefrontCartExperience({ home, products }: CommercePageProps) 
               <CartSummaryPanel
                 ctaLabel={cartProceedCtaLabel(profileLoading, isCreatingDraft)}
                 disabled={profileLoading || isCreatingDraft}
-                itemCount={cart.itemCount}
+                disabledReason={isCreatingDraft ? "Checkout order ID is being created for your cart. Please wait." : profileLoading ? "We are verifying your login before checkout. Please wait." : undefined}
+                itemCount={selectedItems.reduce((total, entry) => total + entry.line.quantity, 0)}
                 locked={!session}
                 lockedMessage="Login is required before SHRESTA creates a 15-minute checkout order ID for this cart."
                 onCtaClick={handleProceedToCheckout}
                 totals={totals}
               />
               {checkoutDraftError ? (
-                <p className="mt-3 rounded-xl border border-rose-400/35 bg-rose-950/30 px-4 py-3 text-sm leading-6 text-rose-100">
+                <p className="mt-3 rounded-xl border border-rose-400/35 bg-rose-950/30 px-4 py-3 text-sm leading-6 text-rose-700">
                   {checkoutDraftError}
+                </p>
+              ) : null}
+              {inventoryNotice ? (
+                <p className="mt-3 rounded-xl border border-amber-400/35 bg-amber-500/10 px-4 py-3 text-sm leading-6 text-amber-200">
+                  {inventoryNotice}
                 </p>
               ) : null}
             </div>
@@ -344,10 +521,41 @@ export function StorefrontCartExperience({ home, products }: CommercePageProps) 
 export function StorefrontWishlistExperience({ home, products }: CommercePageProps) {
   const wishlist = useBrowserWishlist();
   const cart = useBrowserCart();
+  useReconcileCartInventory(cart.lines, cart.replaceLines, products);
+  useReconcileWishlistInventory(wishlist.productIds, wishlist.replaceItems, products);
   const productById = productMap(products);
   const savedProducts = wishlist.productIds
     .map((productId) => productById.get(productId))
     .filter((product): product is ProductCard => Boolean(product));
+
+  async function handleShareWishlist() {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const browserNavigator = window.navigator as Navigator & {
+      clipboard?: Clipboard;
+      share?: (data?: ShareData) => Promise<void>;
+    };
+    const wishlistUrl = `${window.location.origin}/wishlist?items=${encodeURIComponent(savedProducts.map((product) => product.slug).join(","))}`;
+
+    try {
+      if (browserNavigator.share) {
+        await browserNavigator.share({
+          title: "My SHRESTA Wishlist",
+          text: "Take a look at my SHRESTA wishlist",
+          url: wishlistUrl
+        });
+        return;
+      }
+
+      if (browserNavigator.clipboard) {
+        await browserNavigator.clipboard.writeText(wishlistUrl);
+      }
+    } catch {
+      // Ignore share cancellation.
+    }
+  }
 
   return (
     <StorefrontPageChrome home={home}>
@@ -355,10 +563,9 @@ export function StorefrontWishlistExperience({ home, products }: CommercePagePro
         eyebrow="Wishlist"
         metric={`${savedProducts.length} saved`}
         title="Saved For Later"
-        description="Keep your shortlist close while you compare SHRESTA sarees and occasion-ready favourites."
       />
 
-      <section className="bg-[var(--wine-950)] px-4 py-10 sm:px-6 lg:py-14">
+      <section className="bg-[var(--shresta-logo-bg)] px-4 py-10 sm:px-6 lg:py-14">
         {savedProducts.length === 0 ? (
           <EmptyCommerceState
             ctaHref="/products"
@@ -371,23 +578,46 @@ export function StorefrontWishlistExperience({ home, products }: CommercePagePro
           <div className="mx-auto max-w-7xl">
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h2 className="font-serif text-3xl font-light text-white">My Wishlist</h2>
-                <p className="mt-1 text-sm text-[var(--shresta-text-muted)]">{savedProducts.length} product{savedProducts.length === 1 ? "" : "s"} saved</p>
+                <h2 className="font-serif text-3xl font-light text-[var(--shresta-logo-text)]">My Wishlist</h2>
+                <p className="mt-1 text-sm text-[var(--shresta-logo-muted)]">{savedProducts.length} product{savedProducts.length === 1 ? "" : "s"} saved</p>
               </div>
-              <button
-                className="inline-flex min-h-10 w-fit items-center gap-2 rounded-full border border-rose-500/30 px-4 text-sm font-semibold text-rose-300 transition hover:bg-rose-500/10"
-                onClick={wishlist.clearWishlist}
-                type="button"
-              >
-                <Trash2 className="h-4 w-4" />
-                Clear All
-              </button>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  className="inline-flex min-h-10 w-fit items-center gap-2 rounded-full border border-[var(--gold-500)] px-4 text-sm font-semibold text-[var(--gold-600)] transition hover:bg-[rgba(212,175,55,0.12)]"
+                  onClick={handleShareWishlist}
+                  type="button"
+                >
+                  <ArrowRight className="h-4 w-4" />
+                  Share Wishlist
+                </button>
+                <button
+                  className="inline-flex min-h-10 w-fit items-center gap-2 rounded-full border border-rose-500/30 px-4 text-sm font-semibold text-rose-300 transition hover:bg-rose-500/10"
+                  onClick={wishlist.clearWishlist}
+                  type="button"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Clear All
+                </button>
+              </div>
             </div>
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {savedProducts.map((product) => (
                 <WishlistProductCard
+                  cartQuantity={cart.lines.find((line) => line.productId === product.id)?.quantity ?? 0}
                   key={product.id}
-                  onAddToCart={() => cart.addItem(product.id)}
+                  onAddToCart={() => cart.addItem(product.id, 1, product.stockQuantity)}
+                  onDecreaseCartQuantity={() => {
+                    const quantity = cart.lines.find((line) => line.productId === product.id)?.quantity ?? 0;
+                    if (quantity <= 1) {
+                      cart.removeItem(product.id);
+                      return;
+                    }
+                    cart.updateQuantity(product.id, quantity - 1, product.stockQuantity);
+                  }}
+                  onIncreaseCartQuantity={() => {
+                    const quantity = cart.lines.find((line) => line.productId === product.id)?.quantity ?? 0;
+                    cart.updateQuantity(product.id, quantity + 1, product.stockQuantity);
+                  }}
                   onRemove={() => wishlist.removeItem(product.id)}
                   product={product}
                 />
@@ -401,14 +631,37 @@ export function StorefrontWishlistExperience({ home, products }: CommercePagePro
 }
 
 export function StorefrontCheckoutExperience({ home, products }: CommercePageProps) {
+  const router = useRouter();
   const cart = useBrowserCart();
+  const [inventoryNotice, setInventoryNotice] = useState<string | null>(null);
+  useReconcileCartInventory(cart.lines, cart.replaceLines, products, (summary) => {
+    if (summary.removedLines > 0 && summary.reducedLines > 0) {
+      setInventoryNotice("Your cart was updated because some stock was reserved in other active checkouts. Please review before payment.");
+      return;
+    }
+    if (summary.removedLines > 0) {
+      setInventoryNotice("One or more items became unavailable and were removed. Please review before payment.");
+      return;
+    }
+    if (summary.reducedLines > 0) {
+      setInventoryNotice("Some quantities were reduced due to parallel checkout reservations. Please review before payment.");
+    }
+  });
+  const wishlist = useBrowserWishlist();
+  useReconcileWishlistInventory(wishlist.productIds, wishlist.replaceItems, products);
   const items = resolveCartItems(cart.lines, products);
-  const totals = calculateCartTotals(items);
+  const selectedCheckoutProductIds = readStoredCheckoutSelection();
+  const checkoutItems = selectedCheckoutProductIds.length > 0
+    ? items.filter((item) => selectedCheckoutProductIds.includes(item.product.id))
+    : items;
+  const totals = calculateCartTotals(checkoutItems);
   const [loginPromptOpen, setLoginPromptOpen] = useState(false);
-  const [checkoutDraft, setCheckoutDraft] = useState<StoredCheckoutDraft | null>(() => readStoredCheckoutDraft(items));
+  const checkoutDraft = readStoredCheckoutDraft(checkoutItems);
   const [checkoutStep, setCheckoutStep] = useState<CheckoutJourneyStep>(() => readStoredCheckoutState().step);
   const [checkoutForm, setCheckoutForm] = useState<CheckoutFormState>(() => readStoredCheckoutState().form);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [checkoutFailureNeedsFreshDraft, setCheckoutFailureNeedsFreshDraft] = useState(false);
+  const [checkoutStatusHint, setCheckoutStatusHint] = useState<string | null>(null);
   const [completedOrder, setCompletedOrder] = useState<CompletedOrder | null>(null);
   const { isLoading: profileLoading, session } = useCustomerSession();
   const deliveryPaise = calculateDeliveryPaise(checkoutForm.deliveryMode, totals.subtotalPaise);
@@ -448,11 +701,6 @@ export function StorefrontCheckoutExperience({ home, products }: CommercePagePro
     }
 
     if (checkoutStep === "delivery") {
-      setCheckoutStep("payment");
-      return;
-    }
-
-    if (checkoutStep === "payment") {
       setCheckoutStep("review");
       return;
     }
@@ -478,15 +726,58 @@ export function StorefrontCheckoutExperience({ home, products }: CommercePagePro
   }
 
   async function confirmOrder() {
-    const activeDraft = readStoredCheckoutDraft(items);
+    const activeDraft = checkoutDraft;
     if (!activeDraft) {
       setCheckoutError("Checkout order ID is missing, expired, or no longer matches this cart. Return to cart and click Proceed To Checkout again for a fresh 15-minute order ID.");
       setCheckoutStep("review");
       return;
     }
 
-    setCheckoutDraft(activeDraft);
     setCheckoutStep("processing");
+    setCheckoutFailureNeedsFreshDraft(false);
+    setCheckoutStatusHint("PENDING");
+
+    const paymentProof = await launchRazorpayCheckout(activeDraft.orderId, activeDraft.orderNumber);
+    if (!paymentProof.ok) {
+      if (paymentProof.kind === "failed") {
+        const statusResult = await markDraftPaymentFailed(activeDraft.orderId, {
+          eventType: "payment.failed",
+          failureReason: paymentProof.message,
+          razorpayOrderId: paymentProof.razorpayOrderId,
+          razorpayPaymentId: paymentProof.razorpayPaymentId
+        });
+        if (statusResult.ok) {
+          setCheckoutStatusHint(statusResult.status.paymentStatus);
+          setCheckoutFailureNeedsFreshDraft(true);
+          clearStoredDraftIdempotencyKey();
+          clearStoredCheckoutDraft();
+          setCheckoutError(`Payment failed. Backend status: ${statusResult.status.paymentStatus}. Click Try Payment Again to continue with a new checkout order ID.`);
+        } else {
+          setCheckoutStatusHint("FAILED");
+          setCheckoutFailureNeedsFreshDraft(true);
+          clearStoredDraftIdempotencyKey();
+          clearStoredCheckoutDraft();
+          setCheckoutError(`Payment failed. Backend status update could not be confirmed: ${statusResult.message}`);
+        }
+        setCheckoutStep("payment_failed");
+        return;
+      }
+
+      if (paymentProof.kind === "interrupted") {
+        setCheckoutStatusHint("PAYMENT_INCOMPLETE");
+        setCheckoutFailureNeedsFreshDraft(false);
+        setCheckoutError("Payment was interrupted by close/back. Please complete the payment to continue.");
+        setCheckoutStep("payment_failed");
+        return;
+      }
+
+      setCheckoutStatusHint("PENDING");
+      setCheckoutFailureNeedsFreshDraft(false);
+      setCheckoutError(paymentProof.message);
+      setCheckoutStep("payment_failed");
+      return;
+    }
+
     const result = await placeCustomerOrder({
       acceptedTerms: checkoutForm.acceptedTerms,
       contact: {
@@ -495,8 +786,12 @@ export function StorefrontCheckoutExperience({ home, products }: CommercePagePro
       },
       deliveryMode: checkoutForm.deliveryMode.toUpperCase() as "STANDARD" | "EXPRESS" | "SAME_DAY",
       draftOrderId: activeDraft.orderId,
-      lines: checkoutLinesPayload(items),
-      paymentMethod: checkoutForm.paymentMethod.toUpperCase() as "UPI" | "CARD" | "NETBANKING",
+      lines: checkoutLinesPayload(checkoutItems),
+      razorpayPayment: {
+        orderId: paymentProof.razorpayOrderId,
+        paymentId: paymentProof.razorpayPaymentId,
+        signature: paymentProof.razorpaySignature
+      },
       shippingAddress: {
         addressLine1: checkoutForm.addressLine1.trim(),
         addressLine2: checkoutForm.addressLine2.trim(),
@@ -509,27 +804,11 @@ export function StorefrontCheckoutExperience({ home, products }: CommercePagePro
         postalCode: checkoutForm.postalCode.trim(),
         state: checkoutForm.state.trim()
       }
-    }, getOrCreateOrderIdempotencyKey(items));
+    }, getOrCreateOrderIdempotencyKey(checkoutItems));
 
     if (result.ok) {
-      const order = result.order;
-      setCompletedOrder({
-        email: order.customerEmail,
-        fulfillmentStatus: order.fulfillmentStatus,
-        itemCount: cart.itemCount,
-        orderNumber: order.orderNumber,
-        orderStatus: order.orderStatus,
-        paymentStatus: order.paymentStatus,
-        placedAt: order.placedAt,
-        statusEvents: order.statusEvents,
-        totalLabel: formatPaise(asPriceInPaise(order.totalPaise))
-      });
-      window.localStorage.removeItem(CHECKOUT_STORAGE_KEY);
-      window.localStorage.removeItem(CHECKOUT_IDEMPOTENCY_STORAGE_KEY);
-      clearStoredCheckoutDraft();
-      clearStoredDraftIdempotencyKey();
-      cart.clearCart();
-      setCheckoutStep("success");
+      setCheckoutStatusHint(result.order.paymentStatus);
+      completeCheckoutSuccess(result.order);
       return;
     }
 
@@ -540,20 +819,197 @@ export function StorefrontCheckoutExperience({ home, products }: CommercePagePro
     }
 
     setCheckoutError(result.message);
-    setCheckoutStep("error");
+    setCheckoutStatusHint("PENDING");
+    setCheckoutStep("payment_failed");
+  }
+
+  async function handleCheckoutPaymentRetry() {
+    setCheckoutError(null);
+
+    if (!checkoutFailureNeedsFreshDraft) {
+      await confirmOrder();
+      return;
+    }
+
+    if (!session) {
+      setLoginPromptOpen(true);
+      setCheckoutStep("review");
+      return;
+    }
+
+    setCheckoutStep("processing");
+    setCheckoutStatusHint("PENDING");
+
+    const result = await createCustomerOrderDraft({
+      lines: checkoutLinesPayload(checkoutItems)
+    }, getOrCreateDraftIdempotencyKey(checkoutItems));
+
+    if (!result.ok) {
+      if (result.status === 401) {
+        setLoginPromptOpen(true);
+      }
+      setCheckoutError(result.message);
+      setCheckoutStep("payment_failed");
+      return;
+    }
+
+    writeStoredCheckoutDraft(result.draft, checkoutItems);
+    setCheckoutFailureNeedsFreshDraft(false);
+    router.replace(`/checkout?orderId=${encodeURIComponent(result.draft.orderId)}`);
+    setCheckoutStep("review");
+  }
+
+  function completeCheckoutSuccess(order: CustomerOrderResponse) {
+    setCompletedOrder({
+      email: order.customerEmail,
+      fulfillmentStatus: order.fulfillmentStatus,
+      itemCount: cart.itemCount,
+      orderNumber: order.orderNumber,
+      orderStatus: order.orderStatus,
+      paymentStatus: order.paymentStatus,
+      placedAt: order.placedAt,
+      statusEvents: order.statusEvents,
+      totalLabel: formatPaise(asPriceInPaise(order.totalPaise))
+    });
+    window.localStorage.removeItem(CHECKOUT_STORAGE_KEY);
+    window.localStorage.removeItem(CHECKOUT_IDEMPOTENCY_STORAGE_KEY);
+    clearStoredCheckoutDraft();
+    clearStoredCheckoutSelection();
+    clearStoredDraftIdempotencyKey();
+    cart.clearCart();
+    setCheckoutStep("success");
+  }
+
+  async function launchRazorpayCheckout(
+    draftOrderId: string,
+    receipt: string
+  ): Promise<RazorpayCheckoutLaunchResult> {
+    const createOrderResult = await createRazorpayOrder({ draftOrderId });
+
+    if (!createOrderResult.ok) {
+      return { kind: "error", ok: false, message: createOrderResult.message };
+    }
+
+    if (createOrderResult.order.simulated === true) {
+      return {
+        ok: true,
+        razorpayOrderId: createOrderResult.order.orderId,
+        razorpayPaymentId: "pay_test_" + crypto.randomUUID(),
+        // The backend skips signature verification for test customers, but the placement DTO enforces @NotBlank on signature.
+        razorpaySignature: "sig_test_" + crypto.randomUUID()
+      };
+    }
+
+    const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID?.trim();
+    if (!keyId) {
+      return { kind: "error", ok: false, message: "Razorpay checkout is not configured for this frontend environment." };
+    }
+
+    const scriptLoaded = await ensureRazorpayCheckoutScriptLoaded();
+    if (!scriptLoaded || typeof window === "undefined" || !window.Razorpay) {
+      return { kind: "error", ok: false, message: "Could not load Razorpay checkout SDK. Please try again." };
+    }
+    const RazorpayCheckout = window.Razorpay;
+
+    return new Promise((resolve) => {
+      let settled = false;
+      const timeoutId = window.setTimeout(() => {
+        settle({ kind: "error", message: "Payment confirmation timed out. Please try payment again.", ok: false });
+      }, RAZORPAY_RESULT_TIMEOUT_MS);
+
+      const settle = (value: RazorpayCheckoutLaunchResult) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        window.clearTimeout(timeoutId);
+        resolve(value);
+      };
+
+      const razorpay = new RazorpayCheckout({
+        amount: createOrderResult.order.amount,
+        currency: createOrderResult.order.currency,
+        description: `Order ${receipt}`,
+        handler: async (payload) => {
+          const verification = await verifyRazorpayPayment({
+            razorpayOrderId: payload.razorpay_order_id,
+            razorpayPaymentId: payload.razorpay_payment_id,
+            razorpaySignature: payload.razorpay_signature
+          });
+
+          if (!verification.ok) {
+            settle({ kind: "error", message: verification.message, ok: false });
+            return;
+          }
+
+          settle({
+            ok: true,
+            razorpayOrderId: payload.razorpay_order_id,
+            razorpayPaymentId: payload.razorpay_payment_id,
+            razorpaySignature: payload.razorpay_signature
+          });
+        },
+        key: keyId,
+        modal: {
+          ondismiss: () => {
+            settle({ kind: "interrupted", message: "Razorpay checkout was closed before payment confirmation.", ok: false });
+          }
+        },
+        name: "SHRESTA EXCLUSIVE",
+        notes: {
+          orderNumber: receipt
+        },
+        order_id: createOrderResult.order.orderId,
+        prefill: {
+          contact: checkoutForm.phone.trim(),
+          email: checkoutForm.email.trim().toLowerCase(),
+          name: checkoutForm.fullName.trim()
+        },
+        theme: {
+          color: "#d4af37"
+        }
+      });
+
+      razorpay.on("payment.failed", (payload) => {
+        const details = payload.error?.description
+          ?? payload.error?.reason
+          ?? payload.error?.step
+          ?? payload.error?.source
+          ?? null;
+        settle({
+          kind: "failed",
+          ok: false,
+          razorpayOrderId: payload.error?.metadata?.order_id,
+          razorpayPaymentId: payload.error?.metadata?.payment_id,
+          message: details
+            ? `Razorpay payment failed: ${details}.`
+            : "Razorpay payment failed. Please try again."
+        });
+      });
+
+      try {
+        razorpay.open();
+      } catch {
+        settle({ kind: "error", message: "Could not open Razorpay checkout modal. Please try again.", ok: false });
+      }
+    });
   }
 
   function handleCheckoutQuantityChange(productId: string, quantity: number) {
     clearStoredCheckoutDraft();
     clearStoredDraftIdempotencyKey();
-    setCheckoutDraft(null);
-    cart.updateQuantity(productId, quantity);
+    const item = items.find((entry) => entry.product.id === productId);
+    const maxQuantity = item?.product.stockQuantity;
+    if ((maxQuantity ?? 1) <= 0) {
+      cart.removeItem(productId);
+      return;
+    }
+    cart.updateQuantity(productId, quantity, maxQuantity);
   }
 
   function handleCheckoutLineRemove(productId: string) {
     clearStoredCheckoutDraft();
     clearStoredDraftIdempotencyKey();
-    setCheckoutDraft(null);
     cart.removeItem(productId);
   }
 
@@ -563,20 +1019,21 @@ export function StorefrontCheckoutExperience({ home, products }: CommercePagePro
         eyebrow="Checkout"
         metric={session ? "Profile verified" : "Login before payment"}
         title="Review & Secure Checkout"
-        description="Your bag stays saved while you review delivery readiness and payment intent. Sign in only when you confirm the order."
       />
 
-      <section className="bg-[var(--wine-950)] px-4 py-10 sm:px-6 lg:py-14">
+      <section className="bg-[var(--shresta-logo-bg)] px-4 py-10 sm:px-6 lg:py-14">
         {checkoutStep === "processing" ? (
-          <CheckoutProcessingState />
+          <CheckoutProcessingState statusHint={checkoutStatusHint} />
         ) : checkoutStep === "success" && completedOrder ? (
           <CheckoutSuccessState order={completedOrder} />
-        ) : checkoutStep === "error" ? (
-          <CheckoutErrorState
-            message={checkoutError ?? "Checkout could not be completed."}
-            onRetry={() => goToCheckoutStep("review")}
+        ) : checkoutStep === "payment_failed" ? (
+          <CheckoutPaymentFailedState
+            ctaLabel={checkoutFailureNeedsFreshDraft ? "Try Payment Again" : "Complete Payment"}
+            message={checkoutError ?? "Payment was not confirmed."}
+            statusHint={checkoutStatusHint}
+            onRetry={handleCheckoutPaymentRetry}
           />
-        ) : items.length === 0 ? (
+        ) : checkoutItems.length === 0 ? (
           <EmptyCommerceState
             ctaHref="/cart"
             ctaLabel="View Cart"
@@ -589,7 +1046,7 @@ export function StorefrontCheckoutExperience({ home, products }: CommercePagePro
             <div className="space-y-5">
               <CheckoutStepper currentStep={checkoutStep} />
               <CheckoutPanel
-                description="Fill delivery details, choose fulfillment, and review payment intent. Login is required only at the final confirm-and-pay step."
+                description="Fill delivery details, choose fulfillment, and review your order. Login is required only at the final confirm-and-pay step."
                 icon={checkoutPanelIcon(checkoutStep)}
                 title={checkoutPanelTitle(checkoutStep)}
               >
@@ -599,15 +1056,12 @@ export function StorefrontCheckoutExperience({ home, products }: CommercePagePro
                 {checkoutStep === "delivery" ? (
                   <CheckoutDeliveryStep form={checkoutForm} onBack={() => goToCheckoutStep("details")} onChange={updateCheckoutForm} subtotalPaise={totals.subtotalPaise} />
                 ) : null}
-                {checkoutStep === "payment" ? (
-                  <CheckoutPaymentStep form={checkoutForm} onBack={() => goToCheckoutStep("delivery")} onChange={updateCheckoutForm} totalPaise={checkoutTotals.totalPaise} />
-                ) : null}
                 {checkoutStep === "review" ? (
                   <CheckoutReviewStep
                     draft={checkoutDraft}
                     form={checkoutForm}
-                    items={items}
-                    onBack={() => goToCheckoutStep("payment")}
+                    items={checkoutItems}
+                    onBack={() => goToCheckoutStep("delivery")}
                     onChange={updateCheckoutForm}
                     onEdit={goToCheckoutStep}
                     sessionEmail={session?.identityEmail ?? null}
@@ -615,18 +1069,23 @@ export function StorefrontCheckoutExperience({ home, products }: CommercePagePro
                   />
                 ) : null}
                 {checkoutError ? (
-                  <div className="mt-5 rounded-lg border border-rose-400/35 bg-rose-950/30 px-3 py-2 text-sm leading-6 text-rose-100">
+                  <div className="mt-5 rounded-lg border border-rose-400/35 bg-rose-100 px-3 py-2 text-sm leading-6 text-rose-700">
                     {checkoutError}
+                  </div>
+                ) : null}
+                {inventoryNotice ? (
+                  <div className="mt-5 rounded-lg border border-amber-400/35 bg-amber-500/10 px-3 py-2 text-sm leading-6 text-amber-200">
+                    {inventoryNotice}
                   </div>
                 ) : null}
               </CheckoutPanel>
               <CheckoutPanel
-                description="Review your selected products, quantities, delivery details, and payment choice before placing the order."
+                description="Review your selected products, quantities, and delivery details before placing the order."
                 icon={Package}
                 title="Order Items"
               >
-                <div className="divide-y divide-[var(--wine-800)]">
-                  {items.map((item) => (
+                <div className="divide-y divide-[var(--shresta-logo-border)]">
+                  {checkoutItems.map((item) => (
                     <CartLineRow
                       compact
                       item={item}
@@ -642,7 +1101,8 @@ export function StorefrontCheckoutExperience({ home, products }: CommercePagePro
             <CartSummaryPanel
               ctaLabel={checkoutCtaLabel(checkoutStep, Boolean(session), profileLoading)}
               disabled={profileLoading && checkoutStep === "review"}
-              itemCount={cart.itemCount}
+              disabledReason={profileLoading && checkoutStep === "review" ? "We are validating your login before final confirmation. Please wait." : undefined}
+              itemCount={checkoutItems.reduce((total, item) => total + item.line.quantity, 0)}
               locked={isFinalLoginLocked}
               onCtaClick={handleCheckoutCta}
               totals={checkoutTotals}
@@ -661,20 +1121,20 @@ function CommerceHero({
   metric,
   title
 }: {
-  description: string;
+  description?: string;
   eyebrow: string;
   metric: string;
   title: string;
 }) {
   return (
-    <section className="border-b border-[var(--wine-800)] bg-[linear-gradient(135deg,var(--wine-900),var(--wine-950))] px-4 py-10 sm:px-6">
+    <section className="border-b border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-4 py-10 sm:px-6">
       <div className="mx-auto flex max-w-7xl flex-col gap-5 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--gold-400)]">{eyebrow}</p>
-          <h1 className="mt-3 font-serif text-4xl font-light text-white md:text-5xl">{title}</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--shresta-text-secondary)]">{description}</p>
+          <h1 className="mt-3 font-serif text-4xl font-light text-[var(--shresta-logo-text)] md:text-5xl">{title}</h1>
+          {description ? <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--shresta-logo-muted)]">{description}</p> : null}
         </div>
-        <div className="w-fit rounded-full border border-[var(--gold-500)] bg-[rgba(212,175,55,0.12)] px-5 py-2 text-sm font-semibold text-[var(--gold-300)]">
+        <div className="w-fit rounded-full border border-[var(--gold-500)] bg-[rgba(212,175,55,0.12)] px-5 py-2 text-sm font-semibold text-[var(--gold-600)]">
           {metric}
         </div>
       </div>
@@ -685,33 +1145,50 @@ function CommerceHero({
 function CartLineRow({
   compact = false,
   item,
+  selected,
+  onToggleSelect,
   onRemove,
   onUpdateQuantity
 }: {
   compact?: boolean;
   item: CartProductLine;
+  selected?: boolean;
+  onToggleSelect?: () => void;
   onRemove: () => void;
   onUpdateQuantity: (quantity: number) => void;
 }) {
   const { line, product } = item;
   const unitPrice = formatPaise(asPriceInPaise(product.pricePaise));
   const linePrice = formatPaise(asPriceInPaise(product.pricePaise * line.quantity));
+  const hasStockLimit = product.stockQuantity > 0;
+  const isAtStockLimit = hasStockLimit && line.quantity >= product.stockQuantity;
 
   return (
     <article className={compact ? "flex gap-4 py-4" : "flex flex-col gap-4 py-5 sm:flex-row"}>
-      <Link className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-[var(--wine-800)] bg-[var(--wine-800)]" href={`/products/${product.slug}`}>
+      {onToggleSelect ? (
+        <label className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center">
+          <input
+            checked={Boolean(selected)}
+            className="h-4 w-4 rounded border-[var(--shresta-logo-border)]"
+            onClick={onToggleSelect}
+            readOnly
+            type="checkbox"
+          />
+        </label>
+      ) : null}
+      <Link className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)]" href={`/products/${product.slug}`} prefetch={false}>
         <ResponsiveMedia className="h-full w-full object-cover transition duration-300 hover:scale-105" media={product.image} sizes="96px" />
       </Link>
       <div className="min-w-0 flex-1">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <Link className="line-clamp-2 font-medium text-white transition hover:text-[var(--gold-400)]" href={`/products/${product.slug}`}>
+            <Link className="line-clamp-2 font-medium text-[var(--shresta-logo-text)] transition hover:text-[var(--gold-400)]" href={`/products/${product.slug}`} prefetch={false}>
               {product.name}
             </Link>
-            <p className="mt-1 text-xs text-[var(--shresta-text-muted)]">{product.sku} - {enumDisplayLabel(product.productType)}</p>
+            <p className="mt-1 text-xs text-[var(--shresta-logo-muted)]">{product.sku} - {enumDisplayLabel(product.productType)}</p>
             <div className="mt-2 flex flex-wrap gap-2">
               {product.badges.slice(0, 2).map((badge) => (
-                <span className="rounded-full bg-[rgba(212,175,55,0.12)] px-2.5 py-1 text-xs font-semibold text-[var(--gold-300)]" key={badge}>
+                <span className="rounded-full bg-[rgba(212,175,55,0.12)] px-2.5 py-1 text-xs font-semibold text-[var(--gold-600)]" key={badge}>
                   {enumDisplayLabel(badge)}
                 </span>
               ))}
@@ -719,7 +1196,7 @@ function CartLineRow({
           </div>
           <button
             aria-label={`Remove ${product.name} from cart`}
-            className="rounded-full p-2 text-[var(--shresta-text-muted)] transition hover:bg-rose-500/10 hover:text-rose-300"
+            className="rounded-full p-2 text-[var(--shresta-logo-muted)] transition hover:bg-rose-500/10 hover:text-rose-300"
             onClick={onRemove}
             type="button"
           >
@@ -728,13 +1205,18 @@ function CartLineRow({
         </div>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <QuantityStepper
+            disableDecrease={line.quantity <= 1}
+            disableDecreaseReason="Quantity cannot go below 1."
             onDecrease={() => onUpdateQuantity(Math.max(1, line.quantity - 1))}
             onIncrease={() => onUpdateQuantity(line.quantity + 1)}
             quantity={line.quantity}
+            disableIncrease={isAtStockLimit}
+            disableIncreaseReason={isAtStockLimit ? `Maximum available quantity (${product.stockQuantity}) is already in your cart.` : undefined}
           />
           <div className="text-right">
-            <p className="font-semibold text-white">{linePrice}</p>
-            {line.quantity > 1 ? <p className="text-xs text-[var(--shresta-text-muted)]">{unitPrice} each</p> : null}
+            <p className="font-semibold text-[var(--shresta-logo-text)]">{linePrice}</p>
+            {line.quantity > 1 ? <p className="text-xs text-[var(--shresta-logo-muted)]">{unitPrice} each</p> : null}
+            {isAtStockLimit ? <p className="text-xs font-medium text-amber-600">Stock limit reached</p> : null}
           </div>
         </div>
       </div>
@@ -743,23 +1225,42 @@ function CartLineRow({
 }
 
 function QuantityStepper({
+  disableDecrease = false,
+  disableDecreaseReason,
+  disableIncrease = false,
+  disableIncreaseReason,
   onDecrease,
   onIncrease,
   quantity
 }: {
+  disableDecrease?: boolean;
+  disableDecreaseReason?: string;
+  disableIncrease?: boolean;
+  disableIncreaseReason?: string;
   onDecrease: () => void;
   onIncrease: () => void;
   quantity: number;
 }) {
+  const disabledReason = disableIncrease
+    ? disableIncreaseReason
+    : disableDecrease
+      ? disableDecreaseReason
+      : undefined;
+
   return (
-    <div className="flex overflow-hidden rounded-lg border border-[var(--wine-800)] bg-[rgba(26,9,12,0.58)]">
-      <button aria-label="Decrease quantity" className="flex h-9 w-9 items-center justify-center text-[var(--shresta-text-secondary)] transition hover:bg-[var(--wine-800)]" disabled={quantity <= 1} onClick={onDecrease} type="button">
-        <Minus className="h-3.5 w-3.5" />
-      </button>
-      <span className="flex h-9 w-11 items-center justify-center border-x border-[var(--wine-800)] text-sm font-semibold text-white">{quantity}</span>
-      <button aria-label="Increase quantity" className="flex h-9 w-9 items-center justify-center text-[var(--shresta-text-secondary)] transition hover:bg-[var(--wine-800)]" onClick={onIncrease} type="button">
-        <Plus className="h-3.5 w-3.5" />
-      </button>
+    <div className="inline-flex flex-col items-start">
+      <div className="inline-flex overflow-hidden rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)]">
+        <button aria-label="Decrease quantity" className="flex h-9 w-9 items-center justify-center text-[var(--shresta-logo-muted)] transition hover:bg-[var(--shresta-logo-surface)]" disabled={disableDecrease} onClick={onDecrease} title={disableDecrease ? disableDecreaseReason : undefined} type="button">
+          <Minus className="h-3.5 w-3.5" />
+        </button>
+        <span className="flex h-9 w-11 items-center justify-center border-x border-[var(--shresta-logo-border)] text-sm font-semibold text-[var(--shresta-logo-text)]">{quantity}</span>
+        <button aria-label="Increase quantity" className="flex h-9 w-9 items-center justify-center text-[var(--shresta-logo-muted)] transition hover:bg-[var(--shresta-logo-surface)]" disabled={disableIncrease} onClick={onIncrease} title={disableIncrease ? disableIncreaseReason : undefined} type="button">
+          <Plus className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      {disabledReason ? (
+        <p className="mt-1 max-w-[22rem] text-xs font-medium text-[var(--shresta-logo-muted)]">{disabledReason}</p>
+      ) : null}
     </div>
   );
 }
@@ -768,6 +1269,7 @@ function CartSummaryPanel({
   ctaHref,
   ctaLabel,
   disabled = false,
+  disabledReason,
   itemCount,
   locked = false,
   lockedMessage = "Login happens here, just before final order confirmation and payment.",
@@ -777,6 +1279,7 @@ function CartSummaryPanel({
   ctaHref?: string;
   ctaLabel: string;
   disabled?: boolean;
+  disabledReason?: string;
   itemCount: number;
   locked?: boolean;
   lockedMessage?: string;
@@ -786,32 +1289,32 @@ function CartSummaryPanel({
   const freeDeliveryUnlocked = totals.subtotalPaise >= FREE_DELIVERY_THRESHOLD_PAISE;
 
   return (
-    <aside className="h-fit rounded-2xl border border-[var(--wine-800)] bg-[rgba(43,15,20,0.88)] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.26)] lg:sticky lg:top-24">
+    <aside className="h-fit rounded-2xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.26)] lg:sticky lg:top-24">
       <div className="flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[rgba(212,175,55,0.12)] text-[var(--gold-300)]">
+        <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[rgba(212,175,55,0.12)] text-[var(--gold-600)]">
           {locked ? <Lock className="h-5 w-5" /> : <ShoppingBag className="h-5 w-5" />}
         </div>
         <div>
-          <h2 className="font-serif text-2xl font-light text-white">Order Summary</h2>
-          <p className="text-sm text-[var(--shresta-text-muted)]">{itemCount} item{itemCount === 1 ? "" : "s"}</p>
+          <h2 className="font-serif text-2xl font-light text-[var(--shresta-logo-text)]">Order Summary</h2>
+          <p className="text-sm text-[var(--shresta-logo-muted)]">{itemCount} item{itemCount === 1 ? "" : "s"}</p>
         </div>
       </div>
 
       <div className="mt-6 space-y-3 text-sm">
         <SummaryRow label="Estimated subtotal" value={formatPaise(asPriceInPaise(totals.subtotalPaise))} />
-        <SummaryRow label="Delivery" value={totals.deliveryPaise === 0 ? "FREE" : formatPaise(asPriceInPaise(totals.deliveryPaise))} valueClassName={totals.deliveryPaise === 0 ? "text-emerald-300" : undefined} />
+        <SummaryRow label="Delivery" value={totals.deliveryPaise === 0 ? "FREE" : formatPaise(asPriceInPaise(totals.deliveryPaise))} valueClassName={totals.deliveryPaise === 0 ? "text-emerald-700" : undefined} />
         <SummaryRow label="Taxes" value="Included" />
-        <div className="border-t border-[var(--wine-800)] pt-3">
+        <div className="border-t border-[var(--shresta-logo-border)] pt-3">
           <SummaryRow strong label="Estimated total" value={formatPaise(asPriceInPaise(totals.totalPaise))} />
         </div>
       </div>
 
-      <div className="mt-5 rounded-xl border border-[var(--wine-800)] bg-[rgba(26,9,12,0.42)] p-4">
-        <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-[var(--shresta-text-secondary)]">
-          <Truck className={freeDeliveryUnlocked ? "h-4 w-4 text-emerald-300" : "h-4 w-4 text-[var(--gold-400)]"} />
+      <div className="mt-5 rounded-xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-4">
+        <div className="mb-2 flex items-center gap-2 text-xs font-semibold text-[var(--shresta-logo-muted)]">
+          <Truck className={freeDeliveryUnlocked ? "h-4 w-4 text-emerald-700" : "h-4 w-4 text-[var(--gold-400)]"} />
           {freeDeliveryUnlocked ? "Free delivery unlocked" : `${formatPaise(asPriceInPaise(totals.freeDeliveryRemainingPaise))} more for free delivery`}
         </div>
-        <div className="h-1.5 overflow-hidden rounded-full bg-[var(--wine-800)]">
+        <div className="h-1.5 overflow-hidden rounded-full bg-[var(--shresta-logo-surface)]">
           <div className={freeDeliveryUnlocked ? "h-full rounded-full bg-emerald-400" : "h-full rounded-full bg-[var(--gold-500)]"} style={{ width: `${totals.freeDeliveryProgress}%` }} />
         </div>
       </div>
@@ -821,21 +1324,25 @@ function CartSummaryPanel({
           className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(90deg,var(--gold-500),var(--gold-600))] px-5 text-sm font-extrabold text-[var(--wine-950)] shadow-[0_16px_38px_rgba(212,175,55,0.24)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
           disabled={disabled}
           onClick={onCtaClick}
+          title={disabled ? disabledReason : undefined}
           type="button"
         >
           {ctaLabel}
           <ArrowRight className="h-4 w-4" />
         </button>
       ) : ctaHref ? (
-        <Link className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(90deg,var(--gold-500),var(--gold-600))] px-5 text-sm font-extrabold text-[var(--wine-950)] shadow-[0_16px_38px_rgba(212,175,55,0.24)] transition hover:-translate-y-0.5" href={ctaHref}>
+        <Link className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(90deg,var(--gold-500),var(--gold-600))] px-5 text-sm font-extrabold text-[var(--wine-950)] shadow-[0_16px_38px_rgba(212,175,55,0.24)] transition hover:-translate-y-0.5" href={ctaHref} prefetch={false}>
           {ctaLabel}
           <ArrowRight className="h-4 w-4" />
         </Link>
       ) : null}
       {locked ? (
-        <p className="mt-3 text-center text-xs leading-5 text-[var(--shresta-text-muted)]">
+        <p className="mt-3 text-center text-xs leading-5 text-[var(--shresta-logo-muted)]">
           {lockedMessage}
         </p>
+      ) : null}
+      {disabled && disabledReason ? (
+        <p className="mt-2 text-center text-xs font-medium text-[var(--shresta-logo-muted)]">{disabledReason}</p>
       ) : null}
     </aside>
   );
@@ -854,31 +1361,33 @@ function LoginRequiredDialog({
 }) {
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm">
-      <section aria-modal="true" className="w-full max-w-md rounded-2xl border border-[var(--wine-700)] bg-[var(--wine-900)] p-6 text-center shadow-[0_28px_90px_rgba(0,0,0,0.48)]" role="dialog">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-[var(--gold-500)] bg-[rgba(212,175,55,0.12)] text-[var(--gold-300)]">
+      <section aria-modal="true" className="w-full max-w-md rounded-2xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-6 text-center shadow-[0_28px_90px_rgba(0,0,0,0.48)]" role="dialog">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-[var(--gold-500)] bg-[rgba(212,175,55,0.12)] text-[var(--gold-600)]">
           <Lock className="h-7 w-7" />
         </div>
         <p className="mt-5 text-xs font-bold uppercase tracking-[0.18em] text-[var(--gold-400)]">Login Required</p>
-        <h2 className="mt-2 font-serif text-3xl font-light text-white">{title}</h2>
-        <p className="mt-3 text-sm leading-6 text-[var(--shresta-text-secondary)]">
+        <h2 className="mt-2 font-serif text-3xl font-light text-[var(--shresta-logo-text)]">{title}</h2>
+        <p className="mt-3 text-sm leading-6 text-[var(--shresta-logo-muted)]">
           {description}
         </p>
         <div className="mt-7 grid gap-3 sm:grid-cols-2">
           <Link
-            className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--wine-700)] px-5 text-sm font-bold text-[var(--shresta-text-primary)] transition hover:border-[var(--gold-500)] hover:text-[var(--gold-300)]"
+            className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--shresta-logo-border)] px-5 text-sm font-bold text-[var(--shresta-logo-text)] transition hover:border-[var(--gold-500)] hover:text-[var(--gold-600)]"
             href="/products"
             onClick={onClose}
+            prefetch={false}
           >
             Continue Shopping
           </Link>
           <Link
             className="inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--gold-500)] px-5 text-sm font-extrabold text-[var(--wine-950)] transition hover:bg-[var(--gold-600)]"
             href={loginHref}
+            prefetch={false}
           >
             Login
           </Link>
         </div>
-        <button className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--shresta-text-muted)] hover:text-white" onClick={onClose} type="button">
+        <button className="mt-5 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--shresta-logo-muted)] hover:text-[var(--shresta-logo-text)]" onClick={onClose} type="button">
           Close
         </button>
       </section>
@@ -899,30 +1408,40 @@ function SummaryRow({
 }) {
   return (
     <div className="flex items-center justify-between gap-4">
-      <span className={strong ? "font-semibold text-white" : "text-[var(--shresta-text-secondary)]"}>{label}</span>
-      <span className={valueClassName ?? (strong ? "text-lg font-bold text-white" : "font-semibold text-white")}>{value}</span>
+      <span className={strong ? "font-semibold text-[var(--shresta-logo-text)]" : "text-[var(--shresta-logo-muted)]"}>{label}</span>
+      <span className={valueClassName ?? (strong ? "text-lg font-bold text-[var(--shresta-logo-text)]" : "font-semibold text-[var(--shresta-logo-text)]")}>{value}</span>
     </div>
   );
 }
 
 function WishlistProductCard({
+  cartQuantity,
   onAddToCart,
+  onDecreaseCartQuantity,
+  onIncreaseCartQuantity,
   onRemove,
   product
 }: {
+  cartQuantity: number;
   onAddToCart: () => void;
+  onDecreaseCartQuantity: () => void;
+  onIncreaseCartQuantity: () => void;
   onRemove: () => void;
   product: ProductCard;
 }) {
+  const isOutOfStock = product.stockQuantity <= 0;
+  const isAtStockLimit = product.stockQuantity > 0 && cartQuantity >= product.stockQuantity;
+  const [addedPulse, setAddedPulse] = useState(false);
+
   return (
-    <article className="group rounded-xl border border-[var(--wine-800)] bg-[rgba(43,15,20,0.76)] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.2)] transition hover:-translate-y-1 hover:border-[rgba(212,175,55,0.36)]">
-      <div className="relative aspect-square overflow-hidden rounded-lg border border-[var(--wine-800)] bg-[var(--wine-800)]">
-        <Link href={`/products/${product.slug}`}>
+    <article className="group rounded-xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-4 shadow-[0_18px_50px_rgba(0,0,0,0.2)] transition hover:-translate-y-1 hover:border-[rgba(212,175,55,0.36)]">
+      <div className="relative aspect-square overflow-hidden rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)]">
+        <Link href={`/products/${product.slug}`} prefetch={false}>
           <ResponsiveMedia className="h-full w-full object-cover transition duration-500 group-hover:scale-105" media={product.image} sizes="(max-width: 640px) 92vw, 25vw" />
         </Link>
         <button
           aria-label={`Remove ${product.name} from wishlist`}
-          className="absolute right-2 top-2 rounded-full bg-[rgba(26,9,12,0.82)] p-2 text-rose-300 opacity-100 shadow-lg backdrop-blur transition hover:bg-rose-500/20 sm:opacity-0 sm:group-hover:opacity-100"
+          className="absolute right-2 top-2 rounded-full bg-[var(--shresta-logo-surface)] p-2 text-rose-300 opacity-100 shadow-lg backdrop-blur transition hover:bg-rose-500/20 sm:opacity-0 sm:group-hover:opacity-100"
           onClick={onRemove}
           type="button"
         >
@@ -930,45 +1449,74 @@ function WishlistProductCard({
         </button>
       </div>
       <div className="mt-4">
-        <Link href={`/products/${product.slug}`}>
-          <h3 className="line-clamp-2 min-h-10 text-sm font-medium leading-5 text-white transition hover:text-[var(--gold-400)]">{product.name}</h3>
+        <Link href={`/products/${product.slug}`} prefetch={false}>
+          <h3 className="line-clamp-2 min-h-10 text-sm font-medium leading-5 text-[var(--shresta-logo-text)] transition hover:text-[var(--gold-400)]">{product.name}</h3>
         </Link>
-        <p className="mt-1 text-xs text-[var(--shresta-text-muted)]">{product.sku} - {enumDisplayLabel(product.productType)}</p>
-        <p className="mt-3 text-lg font-semibold text-white">{formatPaise(asPriceInPaise(product.pricePaise))}</p>
-        <button
-          className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[var(--gold-500)] px-4 text-sm font-bold text-[var(--wine-950)] transition hover:bg-[var(--gold-600)]"
-          onClick={onAddToCart}
-          type="button"
-        >
-          <ShoppingBag className="h-4 w-4" />
-          Add to Cart
-        </button>
+        <p className="mt-1 text-xs text-[var(--shresta-logo-muted)]">{product.sku} - {enumDisplayLabel(product.productType)}</p>
+        <p className="mt-3 text-lg font-semibold text-[var(--shresta-logo-text)]">{formatPaise(asPriceInPaise(product.pricePaise))}</p>
+        {isOutOfStock ? <p className="mt-1 text-xs font-semibold text-rose-700">Out of Stock</p> : null}
+        {isOutOfStock ? (
+          <button
+            className="mt-4 inline-flex min-h-11 w-full cursor-not-allowed items-center justify-center gap-2 rounded-full bg-[var(--gold-500)] px-4 text-sm font-bold text-[var(--wine-950)] opacity-55"
+            disabled
+            title="This product is currently out of stock."
+            type="button"
+          >
+            <ShoppingBag className="h-4 w-4" />
+            Out of Stock
+          </button>
+        ) : cartQuantity <= 0 ? (
+          <button
+            className={`mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full px-4 text-sm font-bold transition ${addedPulse ? "border border-emerald-400 bg-emerald-500/20 text-emerald-200" : "bg-[var(--gold-500)] text-[var(--wine-950)] hover:bg-[var(--gold-600)]"}`}
+            onClick={() => {
+              onAddToCart();
+              setAddedPulse(true);
+              window.setTimeout(() => setAddedPulse(false), 900);
+            }}
+            type="button"
+          >
+            <ShoppingBag className="h-4 w-4" />
+            {addedPulse ? "Added" : "Add to Cart"}
+          </button>
+        ) : (
+          <div className="mt-4 flex min-h-11 w-full items-center justify-between rounded-full border border-[var(--gold-500)] bg-[rgba(212,175,55,0.15)] px-2">
+            <button aria-label="Decrease cart quantity" className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--gold-600)] hover:bg-[rgba(212,175,55,0.24)]" onClick={onDecreaseCartQuantity} type="button">
+              <Minus className="h-4 w-4" />
+            </button>
+            <span className="text-sm font-bold text-[var(--shresta-logo-text)]">{cartQuantity}</span>
+            <button aria-label="Increase cart quantity" className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--gold-600)] hover:bg-[rgba(212,175,55,0.24)] disabled:opacity-40" disabled={isAtStockLimit} onClick={onIncreaseCartQuantity} title={isAtStockLimit ? `Maximum available quantity (${product.stockQuantity}) is already in your cart.` : undefined} type="button">
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
+        )}
+        {isAtStockLimit ? (
+          <p className="mt-2 text-xs font-medium text-amber-600">Maximum available quantity ({product.stockQuantity}) is already in your cart.</p>
+        ) : null}
       </div>
     </article>
   );
 }
 
 function CheckoutStepper({ currentStep }: { currentStep: CheckoutJourneyStep }) {
-  const stepOrder: CheckoutJourneyStep[] = ["details", "delivery", "payment", "review"];
+  const stepOrder: CheckoutJourneyStep[] = ["details", "delivery", "review"];
   const currentIndex = Math.max(0, stepOrder.indexOf(currentStep));
   const steps = [
     { key: "details", label: "Details" },
     { key: "delivery", label: "Delivery" },
-    { key: "payment", label: "Payment" },
     { key: "review", label: "Confirm" }
   ] as const;
 
   return (
-    <div className="rounded-2xl border border-[var(--wine-800)] bg-[rgba(43,15,20,0.78)] p-5">
-      <div className="grid gap-3 sm:grid-cols-4">
+    <div className="rounded-2xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-5">
+      <div className="grid gap-3 sm:grid-cols-3">
         {steps.map((step, index) => (
           <div className="flex items-center gap-3" key={step.label}>
-            <div className={index < currentIndex ? "flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-[var(--wine-950)]" : index === currentIndex ? "flex h-9 w-9 items-center justify-center rounded-full bg-[var(--gold-500)] text-[var(--wine-950)]" : "flex h-9 w-9 items-center justify-center rounded-full border border-[var(--wine-700)] bg-[rgba(26,9,12,0.52)] text-[var(--shresta-text-muted)]"}>
+            <div className={index < currentIndex ? "flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500 text-[var(--wine-950)]" : index === currentIndex ? "flex h-9 w-9 items-center justify-center rounded-full bg-[var(--gold-500)] text-[var(--wine-950)]" : "flex h-9 w-9 items-center justify-center rounded-full border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] text-[var(--shresta-logo-muted)]"}>
               {index < currentIndex ? <Check className="h-4 w-4" /> : renderCheckoutStepIcon(step.key)}
             </div>
             <div>
-              <p className={index > currentIndex ? "text-sm font-semibold text-[var(--shresta-text-muted)]" : "text-sm font-semibold text-white"}>{step.label}</p>
-              <p className="text-[0.65rem] uppercase tracking-[0.12em] text-[var(--shresta-text-muted)]">{index < currentIndex ? "complete" : index === currentIndex ? "active" : "locked"}</p>
+              <p className={index > currentIndex ? "text-sm font-semibold text-[var(--shresta-logo-muted)]" : "text-sm font-semibold text-[var(--shresta-logo-text)]"}>{step.label}</p>
+              <p className="text-[0.65rem] uppercase tracking-[0.12em] text-[var(--shresta-logo-muted)]">{index < currentIndex ? "complete" : index === currentIndex ? "active" : "locked"}</p>
             </div>
           </div>
         ))}
@@ -983,8 +1531,6 @@ function renderCheckoutStepIcon(step: CheckoutJourneyStep) {
       return <ShieldCheck className="h-4 w-4" />;
     case "delivery":
       return <Truck className="h-4 w-4" />;
-    case "payment":
-      return <CreditCard className="h-4 w-4" />;
     case "review":
       return <CheckCircle2 className="h-4 w-4" />;
     default:
@@ -1004,14 +1550,14 @@ function CheckoutPanel({
   title: string;
 }) {
   return (
-    <section className="rounded-2xl border border-[var(--wine-800)] bg-[rgba(43,15,20,0.78)] p-5 shadow-[0_18px_60px_rgba(0,0,0,0.22)]">
+    <section className="rounded-2xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-5 shadow-[0_18px_60px_rgba(0,0,0,0.22)]">
       <div className="mb-5 flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(212,175,55,0.12)] text-[var(--gold-300)]">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(212,175,55,0.12)] text-[var(--gold-600)]">
           <Icon className="h-5 w-5" />
         </div>
         <div>
-          <h2 className="font-serif text-2xl font-light text-white">{title}</h2>
-          <p className="mt-1 text-sm leading-6 text-[var(--shresta-text-muted)]">{description}</p>
+          <h2 className="font-serif text-2xl font-light text-[var(--shresta-logo-text)]">{title}</h2>
+          <p className="mt-1 text-sm leading-6 text-[var(--shresta-logo-muted)]">{description}</p>
         </div>
       </div>
       {children}
@@ -1021,9 +1567,9 @@ function CheckoutPanel({
 
 function CheckoutField({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-xl border border-[var(--wine-800)] bg-[rgba(26,9,12,0.42)] p-4">
-      <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-text-muted)]">{label}</p>
-      <p className="mt-2 text-sm font-semibold text-white">{value}</p>
+    <div className="rounded-xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-4">
+      <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-logo-muted)]">{label}</p>
+      <p className="mt-2 text-sm font-semibold text-[var(--shresta-logo-text)]">{value}</p>
     </div>
   );
 }
@@ -1044,13 +1590,13 @@ function EmptyCommerceState({
   const Icon = icon === "cart" ? ShoppingBag : Heart;
 
   return (
-    <div className="mx-auto max-w-md rounded-2xl border border-[var(--wine-800)] bg-[rgba(43,15,20,0.78)] px-6 py-12 text-center shadow-[0_22px_70px_rgba(0,0,0,0.26)]">
-      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-[var(--gold-500)] bg-[rgba(212,175,55,0.12)] text-[var(--gold-300)]">
+    <div className="mx-auto max-w-md rounded-2xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-6 py-12 text-center shadow-[0_22px_70px_rgba(0,0,0,0.26)]">
+      <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border border-[var(--gold-500)] bg-[rgba(212,175,55,0.12)] text-[var(--gold-600)]">
         <Icon className="h-9 w-9" />
       </div>
-      <h2 className="mt-6 font-serif text-3xl font-light text-white">{title}</h2>
-      <p className="mt-3 text-sm leading-6 text-[var(--shresta-text-secondary)]">{description}</p>
-      <Link className="mt-7 inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--gold-500)] px-6 text-sm font-bold text-[var(--wine-950)] transition hover:bg-[var(--gold-600)]" href={ctaHref}>
+      <h2 className="mt-6 font-serif text-3xl font-light text-[var(--shresta-logo-text)]">{title}</h2>
+      <p className="mt-3 text-sm leading-6 text-[var(--shresta-logo-muted)]">{description}</p>
+      <Link className="mt-7 inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--gold-500)] px-6 text-sm font-bold text-[var(--wine-950)] transition hover:bg-[var(--gold-600)]" href={ctaHref} prefetch={false}>
         {ctaLabel}
       </Link>
     </div>
@@ -1100,19 +1646,19 @@ function CheckoutDetailsForm({ form, onChange }: { form: CheckoutFormState; onCh
       <CheckoutInput autoComplete="address-level1" error={fieldError("state")} label="State" name="checkout-state" onBlur={() => handleFieldBlur("state")} onChange={(value) => onChange({ state: value })} onFocus={() => handleFieldFocus("state")} pattern={INPUT_PATTERNS.cityOrState} readOnly={Boolean(pincodeMatch)} title={INPUT_PATTERN_TITLES.cityOrState} value={form.state} />
       <CheckoutInput autoComplete="off" className="md:col-span-2" error={fieldError("landmark")} label="Landmark (optional)" name="checkout-landmark" onBlur={() => handleFieldBlur("landmark")} onChange={(value) => onChange({ landmark: value })} onFocus={() => handleFieldFocus("landmark")} pattern={INPUT_PATTERNS.optionalAddressLine} required={false} title={INPUT_PATTERN_TITLES.optionalAddressLine} value={form.landmark} />
       {pincodeMatch ? (
-        <p className="md:col-span-2 rounded-lg border border-emerald-400/25 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-200">
+        <p className="md:col-span-2 rounded-lg border border-emerald-500/55 bg-emerald-100 px-3 py-2 text-sm font-bold text-emerald-950">
           City and state filled from PIN code: {pincodeMatch.city}, {pincodeMatch.state}.
         </p>
       ) : null}
       <div className="md:col-span-2">
-        <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-text-muted)]">Address type</p>
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-logo-muted)]">Address type</p>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
           {(["home", "work", "other"] as AddressType[]).map((type) => {
             const selected = form.addressType === type;
             const Icon = addressTypeIcon(type);
             return (
               <button
-                className={selected ? "flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[var(--gold-500)] bg-[rgba(212,175,55,0.16)] text-sm font-bold text-[var(--gold-300)]" : "flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[var(--wine-700)] bg-[rgba(26,9,12,0.42)] text-sm font-semibold text-[var(--shresta-text-secondary)] hover:border-[rgba(212,175,55,0.45)] hover:text-white"}
+                className={selected ? "flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[var(--gold-500)] bg-[rgba(212,175,55,0.16)] text-sm font-bold text-[var(--gold-600)]" : "flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] text-sm font-semibold text-[var(--shresta-logo-muted)] hover:border-[rgba(212,175,55,0.45)] hover:text-[var(--shresta-logo-text)]"}
                 key={type}
                 onClick={() => onChange({ addressType: type })}
                 type="button"
@@ -1147,63 +1693,21 @@ function CheckoutDeliveryStep({
         const pricePaise = option.id === "standard" && subtotalPaise >= FREE_DELIVERY_THRESHOLD_PAISE ? 0 : option.pricePaise;
         return (
           <button
-            className={selected ? "flex w-full items-start gap-4 rounded-xl border border-[var(--gold-500)] bg-[rgba(212,175,55,0.14)] p-4 text-left" : "flex w-full items-start gap-4 rounded-xl border border-[var(--wine-800)] bg-[rgba(26,9,12,0.42)] p-4 text-left transition hover:border-[rgba(212,175,55,0.36)]"}
+            className={selected ? "flex w-full items-start gap-4 rounded-xl border border-[var(--gold-500)] bg-[rgba(212,175,55,0.14)] p-4 text-left" : "flex w-full items-start gap-4 rounded-xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-4 text-left transition hover:border-[rgba(212,175,55,0.36)]"}
             key={option.id}
             onClick={() => onChange({ deliveryMode: option.id })}
             type="button"
           >
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(212,175,55,0.12)] text-[var(--gold-300)]">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[rgba(212,175,55,0.12)] text-[var(--gold-600)]">
               <Icon className="h-5 w-5" />
             </span>
             <span className="min-w-0 flex-1">
               <span className="flex items-start justify-between gap-4">
-                <span className="font-semibold text-white">{option.name}</span>
-                <span className="font-semibold text-[var(--gold-300)]">{pricePaise === 0 ? "FREE" : formatPaise(asPriceInPaise(pricePaise))}</span>
+                <span className="font-semibold text-[var(--shresta-logo-text)]">{option.name}</span>
+                <span className="font-semibold text-[var(--gold-600)]">{pricePaise === 0 ? "FREE" : formatPaise(asPriceInPaise(pricePaise))}</span>
               </span>
-              <span className="mt-1 block text-sm leading-6 text-[var(--shresta-text-secondary)]">{option.description}</span>
-              <span className="mt-1 block text-xs font-bold uppercase tracking-[0.12em] text-[var(--shresta-text-muted)]">{option.estimatedDays}</span>
-            </span>
-          </button>
-        );
-      })}
-      <CheckoutBackButton onBack={onBack} />
-    </div>
-  );
-}
-
-function CheckoutPaymentStep({
-  form,
-  onBack,
-  onChange,
-  totalPaise
-}: {
-  form: CheckoutFormState;
-  onBack: () => void;
-  onChange: (patch: Partial<CheckoutFormState>) => void;
-  totalPaise: number;
-}) {
-  return (
-    <div className="space-y-4">
-      <div className="rounded-xl border border-[rgba(212,175,55,0.22)] bg-[rgba(212,175,55,0.08)] p-4">
-        <div className="flex items-center justify-between gap-4">
-          <span className="text-sm font-semibold text-[var(--shresta-text-secondary)]">Amount to confirm</span>
-          <span className="text-2xl font-bold text-white">{formatPaise(asPriceInPaise(totalPaise))}</span>
-        </div>
-      </div>
-      {PAYMENT_OPTIONS.map((option) => {
-        const Icon = option.icon;
-        const selected = form.paymentMethod === option.id;
-        return (
-          <button
-            className={selected ? "flex w-full items-center gap-4 rounded-xl border border-[var(--gold-500)] bg-[rgba(212,175,55,0.14)] p-4 text-left" : "flex w-full items-center gap-4 rounded-xl border border-[var(--wine-800)] bg-[rgba(26,9,12,0.42)] p-4 text-left transition hover:border-[rgba(212,175,55,0.36)]"}
-            key={option.id}
-            onClick={() => onChange({ paymentMethod: option.id })}
-            type="button"
-          >
-            <Icon className="h-5 w-5 shrink-0 text-[var(--gold-300)]" />
-            <span className="min-w-0">
-              <span className="block font-semibold text-white">{option.name}</span>
-              <span className="mt-1 block text-sm text-[var(--shresta-text-secondary)]">{option.description}</span>
+              <span className="mt-1 block text-sm leading-6 text-[var(--shresta-logo-muted)]">{option.description}</span>
+              <span className="mt-1 block text-xs font-bold uppercase tracking-[0.12em] text-[var(--shresta-logo-muted)]">{option.estimatedDays}</span>
             </span>
           </button>
         );
@@ -1235,47 +1739,47 @@ function CheckoutReviewStep({
   return (
     <div className="space-y-4">
       <ReviewBlock icon={MapPin} onEdit={() => onEdit("details")} title="Delivery address">
-        <p className="font-semibold text-white">{form.fullName}</p>
+        <p className="font-semibold text-[var(--shresta-logo-text)]">{form.fullName}</p>
         <p>{form.addressLine1}{form.addressLine2 ? `, ${form.addressLine2}` : ""}</p>
         <p>{form.city}, {form.state} {form.postalCode}</p>
         <p>+91 {form.phone} - {form.email}</p>
       </ReviewBlock>
       <ReviewBlock icon={Truck} onEdit={() => onEdit("delivery")} title="Delivery mode">
-        <p className="font-semibold text-white">{deliveryLabel(form.deliveryMode)}</p>
+        <p className="font-semibold text-[var(--shresta-logo-text)]">{deliveryLabel(form.deliveryMode)}</p>
         <p>{totals.deliveryPaise === 0 ? "Free delivery applied" : `${formatPaise(asPriceInPaise(totals.deliveryPaise))} delivery charge`}</p>
       </ReviewBlock>
-      <ReviewBlock icon={CreditCard} onEdit={() => onEdit("payment")} title="Payment intent">
-        <p className="font-semibold text-white">{paymentLabel(form.paymentMethod)}</p>
+      <ReviewBlock icon={Lock} title="Razorpay checkout">
+        <p className="font-semibold text-[var(--shresta-logo-text)]">All supported Razorpay methods are enabled at payment.</p>
         <p>{sessionEmail ? `Logged in as ${sessionEmail}` : "Login required before final confirmation"}</p>
       </ReviewBlock>
       <ReviewBlock icon={Lock} title="Checkout order ID">
         {draft ? (
           <>
-            <p className="font-semibold text-white">{draft.orderNumber}</p>
+            <p className="font-semibold text-[var(--shresta-logo-text)]">{draft.orderNumber}</p>
             <p>Valid until {formatDraftExpiry(draft.expiresAt)}. Cart changes require a fresh order ID.</p>
           </>
         ) : (
           <>
-            <p className="font-semibold text-white">Not created for this cart</p>
+            <p className="font-semibold text-[var(--shresta-logo-text)]">Not created for this cart</p>
             <p>Return to cart and click Proceed To Checkout to create a 15-minute checkout order ID.</p>
           </>
         )}
       </ReviewBlock>
-      <div className="rounded-xl border border-[var(--wine-800)] bg-[rgba(26,9,12,0.42)] p-4">
-        <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-text-muted)]">Final order</p>
+      <div className="rounded-xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-4">
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-logo-muted)]">Final order</p>
         <div className="mt-3 space-y-2 text-sm">
           <SummaryRow label={`${items.length} product line${items.length === 1 ? "" : "s"}`} value={formatPaise(asPriceInPaise(totals.subtotalPaise))} />
           <SummaryRow label="Delivery" value={totals.deliveryPaise === 0 ? "FREE" : formatPaise(asPriceInPaise(totals.deliveryPaise))} />
           <SummaryRow strong label="Total" value={formatPaise(asPriceInPaise(totals.totalPaise))} />
         </div>
-        <label className="mt-4 flex cursor-pointer items-start gap-3 text-sm leading-6 text-[var(--shresta-text-secondary)]">
+        <label className="mt-4 flex cursor-pointer items-start gap-3 text-sm leading-6 text-[var(--shresta-logo-muted)]">
           <input
             checked={form.acceptedTerms}
             className="mt-1 h-4 w-4 accent-[var(--gold-500)]"
             onChange={(event) => onChange({ acceptedTerms: event.target.checked })}
             type="checkbox"
           />
-          <span>I confirm the delivery details, product list, and payment intent for this SHRESTA order.</span>
+          <span>I confirm the delivery details and product list for this SHRESTA order.</span>
         </label>
       </div>
       <CheckoutBackButton onBack={onBack} />
@@ -1285,14 +1789,14 @@ function CheckoutReviewStep({
 
 function ReviewBlock({ children, icon: Icon, onEdit, title }: { children: ReactNode; icon: LucideIcon; onEdit?: () => void; title: string }) {
   return (
-    <section className="rounded-xl border border-[var(--wine-800)] bg-[rgba(26,9,12,0.42)] p-4 text-sm leading-6 text-[var(--shresta-text-secondary)]">
+    <section className="rounded-xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-4 text-sm leading-6 text-[var(--shresta-logo-muted)]">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Icon className="h-4 w-4 text-[var(--gold-300)]" />
-          <p className="font-semibold text-white">{title}</p>
+          <Icon className="h-4 w-4 text-[var(--gold-600)]" />
+          <p className="font-semibold text-[var(--shresta-logo-text)]">{title}</p>
         </div>
         {onEdit ? (
-          <button className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-[0.12em] text-[var(--gold-300)] hover:text-[var(--gold-400)]" onClick={onEdit} type="button">
+          <button className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-[0.12em] text-[var(--gold-600)] hover:text-[var(--gold-500)]" onClick={onEdit} type="button">
             <Pencil className="h-3 w-3" />
             Edit
           </button>
@@ -1303,59 +1807,78 @@ function ReviewBlock({ children, icon: Icon, onEdit, title }: { children: ReactN
   );
 }
 
-function CheckoutProcessingState() {
+function CheckoutProcessingState({ statusHint }: { statusHint?: string | null }) {
   return (
-    <div className="mx-auto flex max-w-md flex-col items-center rounded-2xl border border-[var(--wine-800)] bg-[rgba(43,15,20,0.78)] px-6 py-12 text-center">
-      <div className="h-12 w-12 animate-spin rounded-full border-4 border-[var(--wine-700)] border-t-[var(--gold-500)]" />
-      <h2 className="mt-6 font-serif text-3xl font-light text-white">Placing your order</h2>
-      <p className="mt-3 text-sm leading-6 text-[var(--shresta-text-secondary)]">Securing your items and preparing your order timeline.</p>
+    <div className="mx-auto flex max-w-md flex-col items-center rounded-2xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-6 py-12 text-center">
+      <div className="h-12 w-12 animate-spin rounded-full border-4 border-[var(--shresta-logo-border)] border-t-[var(--gold-500)]" />
+      <h2 className="mt-6 font-serif text-3xl font-light text-[var(--shresta-logo-text)]">Waiting for payment confirmation</h2>
+      <p className="mt-3 text-sm leading-6 text-[var(--shresta-logo-muted)]">Do not close this page while we verify Razorpay payment and finalize your order.</p>
+      {statusHint ? (
+        <p className="mt-3 rounded-full border border-[var(--shresta-logo-border)] px-3 py-1 text-xs font-semibold tracking-[0.08em] text-[var(--shresta-logo-muted)]">
+          Backend status: {statusHint}
+        </p>
+      ) : null}
     </div>
   );
 }
 
 function CheckoutSuccessState({ order }: { order: CompletedOrder }) {
   return (
-    <div className="mx-auto max-w-2xl rounded-2xl border border-[rgba(34,197,94,0.32)] bg-[rgba(43,15,20,0.82)] p-6 text-center shadow-[0_22px_70px_rgba(0,0,0,0.28)]">
-      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-300">
+    <div className="mx-auto max-w-2xl rounded-2xl border border-[rgba(34,197,94,0.32)] bg-[var(--shresta-logo-surface)] p-6 text-center shadow-[0_22px_70px_rgba(0,0,0,0.28)]">
+      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-700">
         <CheckCircle2 className="h-8 w-8" />
       </div>
-      <h2 className="mt-5 font-serif text-3xl font-light text-white">Order placed</h2>
-      <p className="mt-2 text-sm text-[var(--shresta-text-secondary)]">Order {order.orderNumber} is saved for {order.email}.</p>
+      <h2 className="mt-5 font-serif text-3xl font-light text-[var(--shresta-logo-text)]">Order placed</h2>
+      <p className="mt-2 text-sm text-[var(--shresta-logo-muted)]">Order {order.orderNumber} is saved for {order.email}.</p>
       <div className="mt-5 grid gap-3 text-left sm:grid-cols-3">
         <CheckoutField label="Order" value={order.orderStatus} />
         <CheckoutField label="Payment" value={order.paymentStatus} />
         <CheckoutField label="Fulfillment" value={order.fulfillmentStatus} />
       </div>
-      <div className="mt-5 rounded-xl border border-[var(--wine-800)] bg-[rgba(26,9,12,0.42)] p-4 text-left">
-        <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-text-muted)]">Status history</p>
+      <div className="mt-5 rounded-xl border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-4 text-left">
+        <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-logo-muted)]">Status history</p>
         <div className="mt-3 space-y-2">
           {order.statusEvents.map((event) => (
             <div className="flex items-center justify-between gap-3 text-sm" key={`${event.eventType}-${event.toStatus}-${event.createdAt}`}>
-              <span className="text-[var(--shresta-text-secondary)]">{enumDisplayLabel(event.eventType)}</span>
-              <span className="font-semibold text-white">{event.toStatus}</span>
+              <span className="text-[var(--shresta-logo-muted)]">{enumDisplayLabel(event.eventType)}</span>
+              <span className="font-semibold text-[var(--shresta-logo-text)]">{event.toStatus}</span>
             </div>
           ))}
         </div>
       </div>
-      <p className="mt-5 text-lg font-bold text-white">{order.totalLabel}</p>
-      <Link className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--gold-500)] px-6 text-sm font-bold text-[var(--wine-950)]" href="/products">
+      <p className="mt-5 text-lg font-bold text-[var(--shresta-logo-text)]">{order.totalLabel}</p>
+      <Link className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--gold-500)] px-6 text-sm font-bold text-[var(--wine-950)]" href="/products" prefetch={false}>
         Continue Shopping
       </Link>
     </div>
   );
 }
 
-function CheckoutErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+function CheckoutPaymentFailedState({
+  ctaLabel,
+  message,
+  onRetry,
+  statusHint
+}: {
+  ctaLabel: string;
+  message: string;
+  onRetry: () => void;
+  statusHint?: string | null;
+}) {
+  const isInterrupted = statusHint === "PAYMENT_INCOMPLETE";
   return (
-    <div className="mx-auto max-w-md rounded-2xl border border-rose-400/30 bg-[rgba(43,15,20,0.82)] p-6 text-center">
-      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-rose-500/15 text-rose-200">
+    <div className="mx-auto max-w-md rounded-2xl border border-rose-400/30 bg-[var(--shresta-logo-surface)] p-6 text-center">
+      <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-rose-500/15 text-rose-700">
         <AlertCircle className="h-8 w-8" />
       </div>
-      <h2 className="mt-5 font-serif text-3xl font-light text-white">Order not placed</h2>
-      <p className="mt-3 text-sm leading-6 text-[var(--shresta-text-secondary)]">{message}</p>
-      <button className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[var(--gold-500)] px-6 text-sm font-bold text-[var(--gold-300)]" onClick={onRetry} type="button">
+      <h2 className="mt-5 font-serif text-3xl font-light text-[var(--shresta-logo-text)]">{isInterrupted ? "Payment incomplete" : "Payment failed"}</h2>
+      <p className="mt-3 text-sm leading-6 text-[var(--shresta-logo-muted)]">{message}</p>
+      {!isInterrupted && statusHint ? (
+        <p className="mt-2 text-xs font-semibold uppercase tracking-[0.12em] text-[var(--shresta-logo-muted)]">Backend status: {statusHint}</p>
+      ) : null}
+      <button className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[var(--gold-500)] px-6 text-sm font-bold text-[var(--gold-600)]" onClick={onRetry} type="button">
         <RefreshCw className="h-4 w-4" />
-        Review Again
+        {ctaLabel}
       </button>
     </div>
   );
@@ -1399,7 +1922,7 @@ function CheckoutInput({
   const errorId = error ? `${name}-error` : undefined;
 
   return (
-    <label className={`grid gap-2 text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-text-muted)] ${className}`}>
+    <label className={`grid gap-2 text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-logo-muted)] ${className}`}>
       {label}
       <span className="checkout-input-shell">
         <input
@@ -1442,7 +1965,7 @@ function CheckoutPhoneInput({
   const errorId = error ? "checkout-phone-error" : undefined;
 
   return (
-    <label className="grid gap-2 text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-text-muted)]">
+    <label className="grid gap-2 text-xs font-bold uppercase tracking-[0.14em] text-[var(--shresta-logo-muted)]">
       Mobile number
       <span className={`checkout-phone-control ${error ? "checkout-phone-control-error" : ""}`}>
         <span aria-hidden="true" className="checkout-phone-country">
@@ -1478,7 +2001,7 @@ function CheckoutPhoneInput({
 
 function CheckoutBackButton({ onBack }: { onBack: () => void }) {
   return (
-    <button className="inline-flex min-h-10 items-center justify-center rounded-full border border-[var(--wine-700)] px-5 text-sm font-bold text-[var(--shresta-text-secondary)] hover:border-[var(--gold-500)] hover:text-[var(--gold-300)]" onClick={onBack} type="button">
+    <button className="inline-flex min-h-10 items-center justify-center rounded-full border border-[var(--shresta-logo-border)] px-5 text-sm font-bold text-[var(--shresta-logo-muted)] hover:border-[var(--gold-500)] hover:text-[var(--gold-600)]" onClick={onBack} type="button">
       Back
     </button>
   );
@@ -1500,8 +2023,6 @@ function checkoutPanelIcon(step: CheckoutJourneyStep): LucideIcon {
       return ShieldCheck;
     case "delivery":
       return Truck;
-    case "payment":
-      return CreditCard;
     case "review":
       return CheckCircle2;
     default:
@@ -1515,10 +2036,10 @@ function checkoutPanelTitle(step: CheckoutJourneyStep): string {
       return "Customer & Delivery";
     case "delivery":
       return "Delivery Mode";
-    case "payment":
-      return "Payment Intent";
     case "review":
       return "Review Order";
+    case "payment_failed":
+      return "Payment Failed";
     default:
       return "Checkout";
   }
@@ -1529,15 +2050,12 @@ function checkoutCtaLabel(step: CheckoutJourneyStep, isLoggedIn: boolean, isLoad
     return "Continue to Delivery";
   }
   if (step === "delivery") {
-    return "Continue to Payment";
-  }
-  if (step === "payment") {
     return "Review Order";
   }
   if (isLoading) {
     return "Checking Login";
   }
-  return isLoggedIn ? "Confirm & Pay" : "Place Order";
+  return isLoggedIn ? "Confirm & Pay" : "Login to Confirm & Pay";
 }
 
 function validateCheckoutDetails(form: CheckoutFormState): string | null {
@@ -1589,10 +2107,6 @@ function deliveryLabel(deliveryMode: DeliveryMode): string {
   return DELIVERY_OPTIONS.find((option) => option.id === deliveryMode)?.name ?? enumDisplayLabel(deliveryMode);
 }
 
-function paymentLabel(paymentMethod: PaymentMethod): string {
-  return PAYMENT_OPTIONS.find((option) => option.id === paymentMethod)?.name ?? enumDisplayLabel(paymentMethod);
-}
-
 function checkoutLinesPayload(items: CartProductLine[]) {
   return items.map((item) => ({ productId: item.product.id, quantity: item.line.quantity }));
 }
@@ -1628,6 +2142,43 @@ function writeStoredCheckoutDraft(draft: CustomerOrderDraftResponse, items: Cart
     orderNumber: draft.orderNumber
   };
   window.localStorage.setItem(CHECKOUT_DRAFT_STORAGE_KEY, JSON.stringify(storedDraft));
+}
+
+function writeStoredCheckoutSelection(productIds: string[]) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const uniqueIds = Array.from(new Set(productIds.filter((id) => typeof id === "string" && id.trim().length > 0)));
+  window.localStorage.setItem(CHECKOUT_SELECTION_STORAGE_KEY, JSON.stringify(uniqueIds));
+}
+
+function readStoredCheckoutSelection(): string[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const raw = window.localStorage.getItem(CHECKOUT_SELECTION_STORAGE_KEY);
+    if (!raw) {
+      return [];
+    }
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      clearStoredCheckoutSelection();
+      return [];
+    }
+    return Array.from(new Set(parsed.filter((id): id is string => typeof id === "string" && id.trim().length > 0)));
+  } catch {
+    clearStoredCheckoutSelection();
+    return [];
+  }
+}
+
+function clearStoredCheckoutSelection() {
+  if (typeof window !== "undefined") {
+    window.localStorage.removeItem(CHECKOUT_SELECTION_STORAGE_KEY);
+  }
 }
 
 function readStoredCheckoutDraft(items: CartProductLine[]): StoredCheckoutDraft | null {
@@ -1745,7 +2296,7 @@ function readStoredCheckoutState(): { form: CheckoutFormState; step: CheckoutJou
     const parsed = JSON.parse(raw) as Partial<{ form: CheckoutFormState; step: CheckoutJourneyStep }>;
     return {
       form: { ...DEFAULT_CHECKOUT_FORM, ...parsed.form },
-      step: parsed.step && ["details", "delivery", "payment", "review"].includes(parsed.step) ? parsed.step : "details"
+      step: parsed.step && ["details", "delivery", "review"].includes(parsed.step) ? parsed.step : "details"
     };
   } catch {
     window.localStorage.removeItem(CHECKOUT_STORAGE_KEY);
@@ -1761,6 +2312,95 @@ function resolveCartItems(lines: BrowserCartLine[], products: ProductCard[]): Ca
       return product ? { line, product } : null;
     })
     .filter((item): item is CartProductLine => Boolean(item));
+}
+
+function useReconcileCartInventory(
+  lines: BrowserCartLine[],
+  replaceLines: (nextLines: BrowserCartLine[]) => void,
+  products: ProductCard[],
+  onReconciled?: (summary: CartInventoryReconcileSummary) => void
+) {
+  useEffect(() => {
+    const reconciled = reconcileCartLinesWithInventory(lines, products);
+    if (!reconciled) {
+      return;
+    }
+    if (onReconciled) {
+      onReconciled(reconciled.summary);
+    }
+    replaceLines(reconciled.lines);
+  }, [lines, onReconciled, replaceLines, products]);
+}
+
+function useReconcileWishlistInventory(
+  productIds: string[],
+  replaceItems: (nextProductIds: string[]) => void,
+  products: ProductCard[]
+) {
+  useEffect(() => {
+    const reconciled = reconcileWishlistWithInventory(productIds, products);
+    if (!reconciled) {
+      return;
+    }
+    replaceItems(reconciled);
+  }, [productIds, replaceItems, products]);
+}
+
+function reconcileCartLinesWithInventory(
+  lines: BrowserCartLine[],
+  products: ProductCard[]
+): { lines: BrowserCartLine[]; summary: CartInventoryReconcileSummary } | null {
+  const productsById = productMap(products);
+  let changed = false;
+  let removedLines = 0;
+  let reducedLines = 0;
+  const next: BrowserCartLine[] = [];
+
+  for (const line of lines) {
+    const product = productsById.get(line.productId);
+    if (!product || product.stockQuantity <= 0) {
+      changed = true;
+      removedLines += 1;
+      continue;
+    }
+
+    const clampedQuantity = Math.max(1, Math.min(product.stockQuantity, Math.floor(line.quantity)));
+    if (clampedQuantity !== line.quantity) {
+      changed = true;
+      reducedLines += 1;
+    }
+    next.push({ productId: line.productId, quantity: clampedQuantity });
+  }
+
+  if (!changed && next.length === lines.length) {
+    return null;
+  }
+  return {
+    lines: next,
+    summary: {
+      reducedLines,
+      removedLines
+    }
+  };
+}
+
+function reconcileWishlistWithInventory(productIds: string[], products: ProductCard[]): string[] | null {
+  const productsById = productMap(products);
+  const next = productIds.filter((productId) => {
+    const product = productsById.get(productId);
+    return Boolean(product && product.stockQuantity > 0);
+  });
+
+  if (next.length !== productIds.length) {
+    return next;
+  }
+
+  for (let i = 0; i < next.length; i += 1) {
+    if (next[i] !== productIds[i]) {
+      return next;
+    }
+  }
+  return null;
 }
 
 function productMap(products: ProductCard[]): Map<string, ProductCard> {
@@ -1782,3 +2422,4 @@ function calculateCartTotals(items: CartProductLine[]) {
     totalPaise
   };
 }
+

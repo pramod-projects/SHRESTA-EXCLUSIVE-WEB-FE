@@ -14,6 +14,13 @@ const EMPTY_CART: BrowserCartLine[] = [];
 
 let cartSnapshot: BrowserCartLine[] = EMPTY_CART;
 
+function normalizeLineLimit(maxQuantity?: number): number {
+  if (!Number.isFinite(maxQuantity)) {
+    return MAX_LINE_QUANTITY;
+  }
+  return Math.max(0, Math.min(MAX_LINE_QUANTITY, Math.floor(maxQuantity ?? MAX_LINE_QUANTITY)));
+}
+
 export function normalizeCartLines(value: unknown): BrowserCartLine[] {
   if (!Array.isArray(value)) {
     return [];
@@ -47,22 +54,35 @@ export function useBrowserCart() {
     window.dispatchEvent(new Event(CART_UPDATED_EVENT));
   }, []);
 
-  const addItem = useCallback((productId: string, quantity = 1) => {
+  const addItem = useCallback((productId: string, quantity = 1, maxQuantity?: number) => {
+    const lineLimit = normalizeLineLimit(maxQuantity);
+    if (lineLimit <= 0) {
+      return;
+    }
+
     persist((current) => {
       const next = [...current];
       const existing = next.find((line) => line.productId === productId);
+      const normalizedQuantity = Math.max(1, Math.floor(quantity));
       if (existing) {
-        existing.quantity = Math.min(MAX_LINE_QUANTITY, existing.quantity + quantity);
+        existing.quantity = Math.min(lineLimit, existing.quantity + normalizedQuantity);
       } else {
-        next.push({ productId, quantity });
+        next.push({ productId, quantity: Math.min(lineLimit, normalizedQuantity) });
       }
       return next;
     });
   }, [persist]);
 
-  const updateQuantity = useCallback((productId: string, quantity: number) => {
+  const updateQuantity = useCallback((productId: string, quantity: number, maxQuantity?: number) => {
+    const lineLimit = normalizeLineLimit(maxQuantity);
+    if (lineLimit <= 0) {
+      persist((current) => current.filter((line) => line.productId !== productId));
+      return;
+    }
+
+    const normalizedQuantity = Math.min(lineLimit, Math.max(1, Math.floor(quantity)));
     persist((current) => current.map((line) => (
-      line.productId === productId ? { ...line, quantity } : line
+      line.productId === productId ? { ...line, quantity: normalizedQuantity } : line
     )));
   }, [persist]);
 
@@ -76,6 +96,12 @@ export function useBrowserCart() {
     window.dispatchEvent(new Event(CART_UPDATED_EVENT));
   }, []);
 
+  const replaceLines = useCallback((lines: BrowserCartLine[]) => {
+    cartSnapshot = normalizeCartLines(lines);
+    writeStoredCart(cartSnapshot);
+    window.dispatchEvent(new Event(CART_UPDATED_EVENT));
+  }, []);
+
   const itemCount = useMemo(() => lines.reduce((total, line) => total + line.quantity, 0), [lines]);
 
   return {
@@ -83,6 +109,7 @@ export function useBrowserCart() {
     clearCart,
     itemCount,
     lines,
+    replaceLines,
     removeItem,
     updateQuantity
   };

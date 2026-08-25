@@ -47,7 +47,7 @@
     "delivery",
     "recommendations",
     "notifications",
-    {"name": "admin", "implementedContracts": ["fetchAdminAssets", "fetchAdminCategories", "fetchAdminChangeRequests", "uploadAdminAssets", "replaceAdminAssetImage", "updateAdminAssetMetadata", "bulkAssignAdminAssets", "category mutation helpers"], "apiDependencies": ["/api/v1/admin/assets", "/api/v1/admin/assets/{assetKey}/image", "/api/v1/admin/catalog/categories", "/api/v1/admin/change-requests"]},
+    {"name": "admin", "implementedContracts": ["fetchAdminAssets", "fetchUnreferencedMediaAssets", "UnreferencedMediaAssetsResponse", "fetchAdminCategories", "fetchAdminChangeRequests", "fetchAdminTestUsers", "revealTestUserOtp", "TestUserSummary", "AdminTestUsersResponse", "uploadAdminAssets", "replaceAdminAssetImage", "updateAdminAssetMetadata", "bulkAssignAdminAssets", "category mutation helpers"], "apiDependencies": ["/api/v1/admin/assets", "/api/v1/admin/assets/storefront-unreferenced", "/api/v1/admin/assets/{assetKey}/image", "/api/v1/admin/catalog/categories", "/api/v1/admin/change-requests", "/api/v1/admin/test-users", "/api/v1/admin/test-users/{customerId}/reveal-otp"]},
     "observability"
   ],
   "boundaryRules": [

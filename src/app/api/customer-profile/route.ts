@@ -17,10 +17,11 @@ export async function GET() {
   const sessionToken = (await cookies()).get(CUSTOMER_SESSION_COOKIE)?.value;
   if (!sessionToken) {
     return NextResponse.json({
-      success: false,
+      success: true,
+      authenticated: false,
       data: null,
-      error: { code: "CUSTOMER_UNAUTHENTICATED", message: "Login is required." }
-    }, { status: 401 });
+      error: null
+    });
   }
 
   try {
@@ -42,21 +43,29 @@ export async function GET() {
     });
   } catch (error) {
     if (error instanceof ShrestaApiError) {
+      if (error.status === 401) {
+        const unauthenticated = NextResponse.json({
+          success: true,
+          authenticated: false,
+          data: null,
+          error: null
+        });
+        unauthenticated.cookies.delete(CUSTOMER_SESSION_COOKIE);
+        return unauthenticated;
+      }
+
       const response = NextResponse.json({
         success: false,
         data: null,
         error: { code: error.code, message: toShrestaUserMessage(error) }
       }, { status: error.status >= 500 ? 503 : error.status });
-      if (error.status === 401) {
-        response.cookies.delete(CUSTOMER_SESSION_COOKIE);
-      }
       return response;
     }
 
     return NextResponse.json({
       success: false,
       data: null,
-      error: { code: "CUSTOMER_PROFILE_PROXY_FAILED", message: "Customer profile service is unavailable." }
+      error: { code: "CUSTOMER_PROFILE_PROXY_FAILED", message: "Profile is temporarily unavailable. Please try again shortly." }
     }, { status: 503 });
   }
 }

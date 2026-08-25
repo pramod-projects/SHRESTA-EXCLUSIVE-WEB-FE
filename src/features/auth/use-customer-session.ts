@@ -6,6 +6,7 @@ import {
   logoutCustomerSession,
   type CustomerSession
 } from "@/features/auth/customer-session";
+import { reportClientNonFatal } from "@/lib/client-observability";
 
 export function useCustomerSession() {
   const [session, setSession] = useState<CustomerSession | null>(null);
@@ -13,21 +14,25 @@ export function useCustomerSession() {
 
   const refresh = useCallback(() => {
     setLoading(true);
-    void fetchCustomerSession()
+    void fetchCustomerSession({ force: true })
       .then(setSession)
-      .catch(() => setSession(null))
+      .catch((error) => {
+        reportClientNonFatal("customer-session.refresh", error);
+        setSession(null);
+      })
       .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
     let active = true;
-    void fetchCustomerSession()
+    void fetchCustomerSession({ force: true })
       .then((profile) => {
         if (active) {
           setSession(profile);
         }
       })
-      .catch(() => {
+      .catch((error) => {
+        reportClientNonFatal("customer-session.initial-fetch", error);
         if (active) {
           setSession(null);
         }
@@ -43,7 +48,11 @@ export function useCustomerSession() {
   }, []);
 
   const signOut = useCallback(() => {
-    void logoutCustomerSession().finally(() => setSession(null));
+    void logoutCustomerSession()
+      .catch((error) => {
+        reportClientNonFatal("customer-session.signout", error);
+      })
+      .finally(() => setSession(null));
   }, []);
 
   return { isLoading, refresh, session, signOut };

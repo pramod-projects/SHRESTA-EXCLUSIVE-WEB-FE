@@ -7,9 +7,12 @@
     "Asset image replacement action",
     "Asset metadata update request action",
     "Asset archive/delete request actions",
+    "Asset-to-product media link request action (storefront-product-media-link)",
     "Bulk asset category/subcategory assignment request action",
     "Category family/product type/attribute/filter/tax/styling change request submissions",
     "Merchandising update request submission",
+    "Test user create/delete request submissions (test-user-management)",
+    "Test user one-time OTP reveal action",
     "Reviewer approve/reject actions"
   ],
   "businessRules": [
@@ -21,7 +24,9 @@
     "Asset tag form values are validated against the shared 40-character/16-tag uppercase token contract before uploads or reviewable metadata changes are submitted.",
     "Image replacement is an approved binary apply path because the file itself cannot be safely carried through JSON review payloads; the backend still enforces admin role, idempotency, row locking, versioning, and KV invalidation.",
     "Create/update/archive/delete admin form submissions create reviewable change requests before records are changed or removed.",
-    "Approval execution is backend-owned; frontend actions only submit requests or reviewer decisions."
+    "Approval execution is backend-owned; frontend actions only submit requests or reviewer decisions.",
+    "Reviewer approve/reject actions revalidate both /admin/review and /admin/assets so pending-link chips and unreferenced media rows/counts never go stale after a decision.",
+    "Test user OTPs are minted by the backend at approval, persisted only as hashes, and are never collected, persisted, or rendered in the change-request queue or any form; the reveal action returns the plaintext exactly once for in-place display and is never revalidated or cached."
   ],
   "apiDependencies": [
     "src/features/admin/admin-api.ts"

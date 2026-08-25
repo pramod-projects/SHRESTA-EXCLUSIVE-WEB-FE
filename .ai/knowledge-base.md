@@ -30,7 +30,7 @@ The visual system uses Tailwind CSS v4 through `@tailwindcss/postcss` and `postc
 - `src/features/order`: order confirmation, history, tracking.
 - `src/features/delivery`: ETA, rider tracking, OTP display.
 - `src/features/recommendations`: home/PDP/cart/order recommendation strips.
-- `src/lib`: API client, currency, Cloudinary, query keys, telemetry, type guards.
+- `src/lib`: API client, currency, environment mode, query keys, telemetry, type guards.
 - `src/styles`: global styles and tokens.
 
 ## Component Relationships
@@ -45,7 +45,7 @@ Important components planned:
 - `ResponsiveMedia`
 - `ProductCard`
 - `PriceDisplay`
-- `CloudinaryImage`
+- `ResponsiveMedia`
 - `CategoryFilterPanel`
 - `SearchBox`
 - `CartDrawer`
@@ -96,7 +96,7 @@ Generated OpenAPI types become the source of TypeScript API contracts after back
 
 - Show paise through `formatPaise`.
 - Never derive trusted order totals in the browser.
-- Never persist or treat full Cloudinary URLs as domain truth.
+- Never persist browser-generated media URLs as domain truth; backend canonical asset keys own identity.
 - Filter UI is generated from category config.
 - Category configuration is fetched through `GET /api/v1/categories` using the shared API client.
 - Storefront, category, asset, and product-like merchandising data must come from backend APIs, never frontend constants.
@@ -135,7 +135,7 @@ Budget:
 Strategies:
 
 - Stable image dimensions.
-- Backend/CDN-provided responsive image variants, WebP/AVIF source sets when available, LQIP backgrounds, lazy loading, LCP eager loading, prefetch for likely next media, and versioned/cache-busted media URLs supplied by SHRESTA-BE.
+- One backend-provided canonical Cloudflare URL, stable dimensions, lazy loading, LCP priority, and UI-specific `next/image` sizes.
 - Skeletons over spinners.
 - Prefetch next likely category/PDP data.
 - Keep checkout bundle small and load Razorpay only when required.
@@ -183,7 +183,7 @@ Responsive quality is mandatory for every current and future frontend screen. UI
 
 `src/features/orders/customer-orders.ts` and the route handlers under `src/app/api/customer-orders` define the customer checkout draft, order placement, and profile order-history boundary. The browser sends product IDs and quantities to `/api/customer-orders/draft`; the proxy reads the HTTP-only customer session cookie, requires `Idempotency-Key`, and forwards draft creation to `POST /api/v1/customer/orders/draft`. The browser then sends `draftOrderId`, product IDs, quantities, contact data, delivery mode, payment method, and shipping address to `/api/customer-orders`; that proxy forwards placement to `POST /api/v1/customer/orders`. Profile order history uses `GET /api/v1/customer/orders`, and order status reads use `GET /api/v1/customer/orders/{orderNumber}` through the same cookie-backed proxy. The frontend must treat returned draft/order totals, summaries, item snapshots, and status events as backend truth.
 
-`src/components/storefront/customer-login-experience.tsx` is the customer login surface. It is reachable manually from `/login` and from the desktop account icon/profile route. In local/dev/UAT it can show the seeded `testuser@gmail.com` + `123456` helper when `NODE_ENV !== "production"` or `NEXT_PUBLIC_SHRESTA_ALLOW_UAT_LOGIN=true`; production builds show normal OTP copy. `src/components/storefront/customer-account-experience.tsx` is the profile page at `/account`: signed-out customers see a manual Login to account CTA, signed-in customers see verified profile details from SHRESTA-BE, customer ID, mapped identity status, placed order history, Sign out, and Switch account actions.
+`src/components/storefront/customer-login-experience.tsx` is the customer login surface. It is reachable manually from `/login` and from the desktop account icon/profile route. The default `testuser@gmail.com` + `123456` account is seeded only in local/DEV; UAT has no seeded customer unless one is provisioned explicitly. Production builds show normal OTP copy. `src/components/storefront/customer-account-experience.tsx` is the profile page at `/account`: signed-out customers see a manual Login to account CTA, signed-in customers see verified profile details from SHRESTA-BE, customer ID, mapped identity status, placed order history, Sign out, and Switch account actions.
 
 `src/components/storefront/customer-chat-widget.tsx` is the SHRESTA Assistant entry. The closed state follows the old SHRESTA reference live-chat pill: compact icon at rest, unread ping, and hover/focus reveal of "Chat with us". Clicking opens an old-reference-style 380x520 wine/gold support panel with SHRESTA Support header, online status, message bubbles, quick action pills, message composer, and operating-hours note. Messages are sent to `/api/customer-chat`, which proxies to `POST /api/v1/customer/chat/messages`; SHRESTA-BE persists chat sessions/messages and returns assistant replies. The widget supports anonymous exploration help and directs private order support back to login/account flows.
 
@@ -191,15 +191,17 @@ Responsive quality is mandatory for every current and future frontend screen. UI
 
 `src/components/storefront/product-image-badge.tsx` renders product image badges as compact icon-only overlays with custom hover/focus labels. Product badge values remain backend-owned enum data from storefront product responses; the frontend only maps known enum-like values to lucide icons for presentation and does not use native browser `title` tooltips that can overlap the image. Hover labels must always stay inside the product image box, open inward from the top-left badge row, and wrap within bounded two-line pills rather than escaping under or outside the media frame.
 
-`src/components/storefront/responsive-media.tsx` renders backend-provided media through `<picture>` with AVIF, WebP, and fallback source sets. It preserves dimensions, uses LQIP as the image background, marks hero images eager/high priority, lazy-loads non-critical media, can emit a prefetch link for likely next views, retries the backend original asset URL when a chosen variant fails, and silently falls back to a branded SHRESTA surface if customer-facing images still fail. Explicit broken-image errors are only shown in admin asset management.
+`src/components/storefront/responsive-media.tsx` renders the backend-provided canonical URL with `next/image`, preserves source dimensions, applies UI-specific sizes, prioritizes hero media, and lazy-loads non-critical media. Display transformations never become stored R2 objects.
 
-`src/features/admin/admin-api.ts` is a server-side admin bridge. `/admin` is an API-backed catalog operations overview for asset/category health, catalog data coverage, and pending reviews; it is not a frontend presentation/copy editor. `/admin/assets` fetches existing backend catalog assets and supports search/filter by category family, category product type/subcategory, SKU, and status; operational stats; upload; existing image replacement; metadata review requests; bulk category/subcategory assignment review requests; archive/delete review requests; variant preview; broken-image warnings; and optimization stats. Brand/system chrome such as the SHRESTA logo is excluded by the backend asset API and is not editable in the dashboard. Asset metadata forms include categoryFamilyKey, categoryProductTypeKey, productSku, tags, alt text, SEO fields, backend S3/CDN URLs, LQIP, and generated variants. SKU controls are populated from backend product records; category/subcategory controls come from backend category configuration; tag controls are searchable multi-select dropdowns normalized by `src/lib/admin-enums.ts`. Admin asset tags must match the backend `media_assets.tags` contract: uppercase token values only, 40 characters per tag, and 16 tags per asset. Top-level admin copy uses operations words such as details, fields, facet mapping, governed updates, and service unavailable while preserving required payload field names under the hood. `/admin/categories` fetches existing category configuration and submits create/update/archive/delete review requests for families, subcategories, attributes, filters, tax rules, and styling rules. `/admin/review` lists pending change requests and provides reviewer approve/reject actions. Admin page loaders wrap SHRESTA-BE fetches with `nullWhenShrestaApiUnavailable` and show `AdminApiUnavailable` for backend-down or backend API 404 cases. All admin forms include hidden idempotency keys consumed by `src/app/admin/actions.ts`.
+`src/features/admin/admin-api.ts` is a server-side admin bridge. `/admin` is an API-backed catalog operations overview for asset/category health, catalog data coverage, and pending reviews; it is not a frontend presentation/copy editor. `/admin/assets` fetches existing backend catalog assets and supports search/filter by category family, category product type/subcategory, SKU, and status; operational stats; direct browser-to-R2 upload; immutable image replacement; metadata review requests; bulk category/subcategory assignment review requests; archive/delete review requests; canonical previews; and broken-image warnings. Brand/system chrome such as the SHRESTA logo is excluded by the backend asset API and is not editable in the dashboard. Asset metadata forms include categoryFamilyKey, categoryProductTypeKey, productSku, tags, alt text, SEO fields, canonical URL, dimensions, byte size, content type, and lifecycle status. SKU controls are populated from backend product records; category/subcategory controls come from backend category configuration; tag controls are searchable multi-select dropdowns normalized by `src/lib/admin-enums.ts`. Admin asset tags must match the backend `media_assets.tags` contract: uppercase token values only, 40 characters per tag, and 16 tags per asset. Top-level admin copy uses operations words such as details, fields, facet mapping, governed updates, and service unavailable while preserving required payload field names under the hood. `/admin/categories` fetches existing category configuration and submits create/update/archive/delete review requests for families, subcategories, attributes, filters, tax rules, and styling rules. `/admin/review` lists pending change requests and provides reviewer approve/reject actions. Admin page loaders wrap SHRESTA-BE fetches with `nullWhenShrestaApiUnavailable` and show `AdminApiUnavailable` for backend-down or backend API 404 cases. All admin forms include hidden idempotency keys consumed by `src/app/admin/actions.ts`.
+
+The `/admin/assets` page also renders a collapsible Unreferenced Media section backed by `GET /api/v1/admin/assets/storefront-unreferenced` (`fetchUnreferencedMediaAssets`). It lists storefront-unreferenced assets with their own `unreferencedPage` query parameter and Prev/Next pagination (24 per page) independent of the main asset grid's `assetPage`. Each card can submit a governed product media link (`storefront-product-media-link` change request carrying `{assetKey, slot}` for PRIMARY/GALLERY_1-4/VIDEO, surfaced as a pending-link chip indexed by payload assetKey) or reuse the asset permanent-delete request flow; both require reviewer approval before taking effect.
 
 Admin pages are server-rendered and use server actions so `SHRESTA_ADMIN_API_KEY` is never exposed to the browser. Mutating actions revalidate the impacted admin routes after successful backend writes.
 
 ## Deployment
 
-Phase 1 targets Vercel or equivalent Next.js hosting with environment variables and preview deployments. Phase 2 adds CloudFront/edge integration as backend infrastructure moves to AWS.
+The frontend runs on Vercel with explicit DEV/UAT/PROD environment variables and Cloudflare custom-domain media delivery.
 
 The frontend README is intentionally limited to repository-specific operational notes: dependencies, local environment setup, development and production commands, verification gates, and troubleshooting. Product features, architecture decisions, and roadmap notes belong in `.ai/` documents.
 
@@ -209,7 +211,7 @@ GitHub Actions workflow `.github/workflows/ci.yml` runs Node.js 22, `npm ci`, li
 
 ## Developer Run Modes
 
-- Development mode: create `.env.local`, run `npm ci`, then `npm run dev`; use `npm run dev -- -p 3001` when port `3000` is occupied.
-- Production local mode: run `npm run build`, then `npm run start`; use `npm run start -- -p 3001` for an alternate port.
-- Backend-connected mode: start SHRESTA-BE on `http://localhost:8080` and set `NEXT_PUBLIC_API_BASE_URL=http://localhost:8080`.
+- Component-only development mode: create `.env.dev` from `.env.dev.example`, run `npm ci`, then `npm run dev`; this does not manage the backend or dependencies.
+- Full-stack local mode: run `./up dev|uat|prod`; direct `npm run build` and `npm run start` are component-only frontend commands.
+- Backend-connected mode: use `./up dev`; the backend is `http://localhost:8090` and the frontend loads the matching `.env.dev` API URL.
 - Verification gate: `npm run lint`, `npm run typecheck`, `npm test`, and `npm run build`.

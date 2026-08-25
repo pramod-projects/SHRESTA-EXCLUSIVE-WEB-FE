@@ -1,8 +1,12 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { FetchLike } from "@/lib/api-client";
-import { fetchStorefrontHome } from "./storefront-home";
+import { browserSafeMediaUrl, fetchStorefrontHome } from "./storefront-home";
 
 describe("storefront-home", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it("fetches the backend-owned storefront home contract", async () => {
     const fetchImpl: FetchLike = async (input, init) => {
       expect(input).toBe("http://localhost:8090/api/v1/storefront/home");
@@ -10,7 +14,7 @@ describe("storefront-home", () => {
       return new Response(JSON.stringify({
         success: true,
         data: {
-          brand: { name: "SHRESTA EXCLUSIVE", tagline: "Premium", logo: media() },
+          brand: { name: "SHRESTA EXCLUSIVE", tagline: "Premium", logo: media(), demoVideoUrl: null },
           navigation: [],
           heroSlides: [],
           trustBadges: [],
@@ -32,7 +36,17 @@ describe("storefront-home", () => {
     const home = await fetchStorefrontHome({ apiBaseUrl: "http://localhost:8090", fetchImpl });
 
     expect(home.brand.name).toBe("SHRESTA EXCLUSIVE");
-    expect(home.brand.logo.variants[0]?.variantKey).toBe("thumbnail");
+    expect(home.brand.logo).not.toBeNull();
+    expect(home.brand.logo?.url).toContain("silk-saree-maroon-gold.png");
+  });
+
+  it("routes DEV MinIO media through the current browser origin", () => {
+    vi.stubEnv("NEXT_PUBLIC_MEDIA_BASE_URL", "http://localhost:9010");
+
+    expect(browserSafeMediaUrl("http://localhost:9010/shresta-local-assets/products/image.webp?v=2"))
+      .toBe("/shresta-local-assets/products/image.webp?v=2");
+    expect(browserSafeMediaUrl("https://media.shrestaexclusive.com/products/image.webp"))
+      .toBe("https://media.shrestaexclusive.com/products/image.webp");
   });
 });
 
@@ -44,17 +58,6 @@ function media() {
     width: 1154,
     height: 1398,
     deliveryMode: "backend-static-dev",
-    version: 1,
-    lqipDataUrl: "data:image/jpeg;base64,abc",
-    variants: [
-      {
-        variantKey: "thumbnail",
-        format: "jpg",
-        width: 160,
-        height: 160,
-        byteSize: 12000,
-        url: "http://localhost:8090/shresta-media/variants/hero-silk-saree-maroon-gold/v1/160.jpg"
-      }
-    ]
+    version: 1
   };
 }

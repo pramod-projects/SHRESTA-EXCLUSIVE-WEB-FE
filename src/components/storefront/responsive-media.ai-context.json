@@ -1,24 +1,21 @@
 {
   "module": "storefront",
   "file": "responsive-media.tsx",
-  "purpose": "Responsive media renderer for backend-provided asset variants.",
+  "purpose": "Responsive renderer for one backend-provided canonical media URL using frontend-controlled layout sizing.",
   "ownedConcepts": [
     "ResponsiveMedia",
     "prefetchMedia",
-    "srcset generation",
-    "LQIP background rendering",
     "Silent customer fallback for failed image loads",
-    "backend-static-dev original URL preference"
+    "Component-specific display sizes"
   ],
   "businessRules": [
-    "Do not construct or version image URLs in the frontend when the backend has already supplied variant URLs.",
-    "Prefer AVIF, then WebP, then original-compatible fallback formats.",
+    "Do not construct storage variants or cache-busting URLs in the frontend; use the one canonical custom-domain URL supplied by the backend.",
+    "In the current mode, keep Next.js image optimization and Cloudflare Image Resizing disabled; load the canonical custom-domain URL unchanged and control display dimensions through frontend layout and CSS. Cloudflare delivery-time resizing may be introduced later through an explicit configuration change without creating R2 variants.",
     "Preserve backend dimensions and alt text for layout stability and accessibility.",
     "Use eager loading only for above-the-fold media; keep other media lazy.",
     "Render a branded fallback surface when backend merchandising references an archived or missing media asset.",
     "Customer-facing image failures must not show upload/debug errors; explicit broken image warnings belong to admin asset management.",
-    "For backend-static-dev media, prefer the original backend static URL because generated /shresta-media/variants paths may not exist in local development; S3/CDN delivery modes should continue using optimized variants.",
-    "If a selected variant fails in customer UI, retry the backend-provided original asset URL before rendering the branded SHRESTA fallback.",
+    "If the canonical URL fails in customer UI, render the branded SHRESTA fallback without exposing storage errors.",
     "The picture wrapper applies stable block/full-size classes for fixed aspect-ratio containers so image layout does not create blank customer-facing space."
   ],
   "apiDependencies": [

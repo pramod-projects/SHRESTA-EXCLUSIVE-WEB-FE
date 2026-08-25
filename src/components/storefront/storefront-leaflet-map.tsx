@@ -124,8 +124,8 @@ export function StorefrontLeafletMap({ stores, selectedStore, onSelect }: Storef
     <div className="relative h-full w-full">
       <div className="h-full w-full" data-testid="store-leaflet-map" ref={containerRef} />
       {!isMapReady ? (
-        <div className="absolute inset-0 flex items-center justify-center bg-[linear-gradient(135deg,rgba(26,9,12,0.92),rgba(72,16,37,0.68))]">
-          <p className="text-sm font-medium text-white/65">Loading India service map...</p>
+        <div className="absolute inset-0 flex items-center justify-center bg-[linear-gradient(135deg,rgba(253,246,235,0.92),rgba(245,233,211,0.96))]">
+          <p className="text-sm font-medium text-[var(--shresta-logo-muted)]">Loading India service map...</p>
         </div>
       ) : null}
     </div>

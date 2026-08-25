@@ -11,15 +11,17 @@ export function AdminActionForm({
   action,
   children,
   className,
+  id,
 }: {
   action: ServerAction;
   children: React.ReactNode;
   className?: string;
+  id?: string;
 }) {
   const [state, formAction] = useActionState(action, null);
 
   return (
-    <form action={formAction} className={className}>
+    <form action={formAction} className={className} id={id}>
       {children}
       {state?.ok === false && (
         <div className="mt-4 flex items-start gap-2.5 rounded-lg border border-rose-700/50 bg-rose-950/40 px-4 py-3 text-sm text-rose-300">
@@ -41,18 +43,21 @@ export function AdminSubmitButton({
   label = "Submit for Review",
   className,
   confirmMessage,
+  disabled = false,
 }: {
   label?: string;
   className?: string;
   confirmMessage?: string;
+  disabled?: boolean;
 }) {
   const { pending } = useFormStatus();
+  const isDisabled = pending || disabled;
   return (
     <button
       className={`admin-button ${className ?? ""}`}
-      disabled={pending}
+      disabled={isDisabled}
       type="submit"
-      onClick={confirmMessage ? (e) => {
+      onClick={confirmMessage && !isDisabled ? (e) => {
         if (!window.confirm(confirmMessage)) {
           e.preventDefault();
         }

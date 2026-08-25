@@ -56,6 +56,23 @@ describe("api-client", () => {
       code: "INVALID_ENVELOPE"
     } satisfies Partial<ShrestaApiError>);
   });
+
+  it("preserves the status of non-JSON edge responses", async () => {
+    const fetchImpl: FetchLike = async () => new Response("<html>Forbidden</html>", {
+      status: 403,
+      headers: { "Content-Type": "text/html" }
+    });
+
+    await expect(requestApi("/api/v1/categories", {
+      apiBaseUrl: "http://localhost:8090",
+      fetchImpl
+    })).rejects.toMatchObject({
+      name: "ShrestaApiError",
+      status: 403,
+      code: "INVALID_ENVELOPE",
+      traceId: "not-set"
+    } satisfies Partial<ShrestaApiError>);
+  });
 });
 
 function jsonResponse(payload: unknown, status = 200): Response {

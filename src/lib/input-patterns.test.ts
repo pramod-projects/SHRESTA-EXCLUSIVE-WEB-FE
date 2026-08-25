@@ -17,4 +17,11 @@ describe("input patterns", () => {
     expect(pattern.test("1234567")).toBe(false);
     expect(pattern.test("12A456")).toBe(false);
   });
+
+  it("supports person names in browser pattern validation", () => {
+    const pattern = new RegExp(INPUT_PATTERNS.personName, "v");
+    expect(pattern.test("Mary-Jane")).toBe(true);
+    expect(pattern.test("O'Connor")).toBe(true);
+    expect(pattern.test("M")).toBe(false);
+  });
 });

@@ -35,6 +35,12 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      - name: Install Playwright Chromium
+        run: npm run e2e:install
+
+      - name: E2E tests
+        run: npm run e2e
+
       - name: Production build
         run: npm run build
 

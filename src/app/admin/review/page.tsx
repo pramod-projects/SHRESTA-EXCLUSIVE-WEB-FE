@@ -1,7 +1,9 @@
 import { randomUUID } from "crypto";
 import { approveChangeRequestAction, rejectChangeRequestAction } from "@/app/admin/actions";
+import { AdminActionForm } from "@/components/admin/admin-action-form";
 import { AdminApiUnavailable } from "@/components/admin/admin-api-unavailable";
 import { ConfirmSubmitButton } from "@/components/admin/confirm-submit-button";
+import { requireAdminModuleAccess } from "@/features/admin/admin-acl";
 import { fetchAdminAcl, fetchAdminChangeRequests, fetchAdminStorefrontHome, type AdminChangeRequestResponse } from "@/features/admin/admin-api";
 import type { ProductCard } from "@/features/storefront/storefront-home";
 import { toEnumValue } from "@/lib/admin-enums";
@@ -10,9 +12,11 @@ import { nullWhenShrestaApiUnavailable } from "@/lib/api-page-fallback";
 export const dynamic = "force-dynamic";
 
 export default async function AdminReviewPage() {
+  await requireAdminModuleAccess("review");
+
   const data = await nullWhenShrestaApiUnavailable(async () => {
     const [acl, requests, home] = await Promise.all([
-      fetchAdminAcl("CHANGE_REVIEWER"),
+      fetchAdminAcl("CHANGE_APPROVER"),
       fetchAdminChangeRequests("PENDING_REVIEW"),
       fetchAdminStorefrontHome()
     ]);
@@ -26,15 +30,15 @@ export default async function AdminReviewPage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-3 border-b border-[var(--wine-800)] pb-5 md:flex-row md:items-end md:justify-between">
+      <header className="flex flex-col gap-3 border-b border-[var(--shresta-logo-border)] pb-5 md:flex-row md:items-end md:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--gold-400)]">Governed Operations</p>
-          <h1 className="mt-2 font-serif text-4xl font-light text-white">Review Queue</h1>
-          <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--shresta-text-secondary)]">
+          <h1 className="mt-2 font-serif text-4xl font-light text-[var(--shresta-logo-text)]">Review Queue</h1>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--shresta-logo-muted)]">
             Review create, update, archive, and permanent-delete requests before they are allowed to change production data.
           </p>
         </div>
-        <div className="text-sm text-[var(--shresta-text-muted)]">{acl.role} — {requests.length} pending</div>
+        <div className="text-sm text-[var(--shresta-logo-muted)]">{acl.role} — {requests.length} pending</div>
       </header>
 
       <section className="grid gap-3 md:grid-cols-4">
@@ -50,8 +54,8 @@ export default async function AdminReviewPage() {
         ))}
         {requests.length === 0 ? (
           <div className="admin-panel rounded-lg p-8 text-center">
-            <h2 className="font-serif text-2xl font-light text-white">No Pending Requests</h2>
-            <p className="mt-2 text-sm text-[var(--shresta-text-muted)]">Submitted admin operations will appear here before anything is archived or permanently deleted.</p>
+            <h2 className="font-serif text-2xl font-light text-[var(--shresta-logo-text)]">No Pending Requests</h2>
+            <p className="mt-2 text-sm text-[var(--shresta-logo-muted)]">Submitted admin operations will appear here before anything is archived or permanently deleted.</p>
           </div>
         ) : null}
       </section>
@@ -107,7 +111,7 @@ function buildProductDiff(payload: Record<string, unknown>, current: ProductCard
     row("Rating", current.rating, meta.rating),
     row("Review Count", current.reviewCount, meta.reviewCount),
     row("Badges", current.badges, meta.badges),
-    row("Demo Video", current.demoVideoUrl, payload.demoVideoUrl),
+    row("Demo Video Asset", current.demoVideoUrl, payload.demoVideoAssetKey),
   ].filter((r): r is DiffRow => r !== null);
 
   if (payload.media !== undefined) {
@@ -119,7 +123,7 @@ function buildProductDiff(payload: Record<string, unknown>, current: ProductCard
   return rows;
 }
 
-function buildProductImageDiff(payload: Record<string, unknown>): DiffRow[] {
+function buildProductImageDiff(): DiffRow[] {
   return [{ field: "Primary Image", before: "—", after: "New upload", changed: true }];
 }
 
@@ -131,8 +135,8 @@ function buildProductGalleryDiff(payload: Record<string, unknown>): DiffRow[] {
 }
 
 function buildProductVideoDiff(payload: Record<string, unknown>): DiffRow[] {
-  const url = String(payload.demoVideoUrl ?? "");
-  return [{ field: "Demo Video", before: "—", after: url === "" ? "(cleared)" : url, changed: true }];
+  const assetKey = String(payload.demoVideoAssetKey ?? "");
+  return [{ field: "Demo Video Asset", before: "—", after: assetKey === "" ? "(cleared)" : assetKey, changed: true }];
 }
 
 function buildNewProductRows(payload: Record<string, unknown>): DiffRow[] {
@@ -148,13 +152,30 @@ function buildNewProductRows(payload: Record<string, unknown>): DiffRow[] {
     toPaiseRow("Selling Price", meta.pricePaise),
     toPaiseRow("Compare-at Price", meta.compareAtPricePaise),
     toRow("Short Description", payload.description),
-    toRow("Long Description", meta.longDescription),
+    toRow("Long Description", meta.longDescription ?? payload.longDescription),
     toRow("Bestseller", payload.featured),
     toRow("Rating", meta.rating),
     toRow("Review Count", meta.reviewCount),
     toRow("Badges", meta.badges),
-    toRow("Demo Video", payload.demoVideoUrl),
   ].filter((r) => r.after !== "—");
+}
+
+function buildTestUserCreateRows(payload: Record<string, unknown>): DiffRow[] {
+  const toRow = (field: string, v: unknown): DiffRow => ({ field, before: "—", after: fmtVal(v), changed: true });
+  return [
+    toRow("Display name", payload.displayName),
+    toRow("Email", payload.email),
+    toRow("Mobile", payload.mobile),
+    toRow("Note", payload.note),
+  ].filter((r) => r.after !== "—");
+}
+
+function buildTestUserDeleteRows(request: AdminChangeRequestResponse): DiffRow[] {
+  const toRow = (field: string, v: unknown): DiffRow => ({ field, before: fmtVal(v), after: "(permanently deleted)", changed: true });
+  return [
+    toRow("Customer ID", request.payload.customerId ?? request.entityKey),
+    toRow("Reason", request.payload.reason),
+  ];
 }
 
 // ── ReviewCard ─────────────────────────────────────────────────────────────────
@@ -181,7 +202,7 @@ function ReviewCard({ request, products }: { request: AdminChangeRequestResponse
     if (request.requestType === "storefront-product-merchandising" && currentProduct) {
       diffRows = buildProductDiff(request.payload, currentProduct);
     } else if (request.requestType === "storefront-product-image") {
-      diffRows = buildProductImageDiff(request.payload);
+      diffRows = buildProductImageDiff();
     } else if (request.requestType === "storefront-product-gallery") {
       diffRows = buildProductGalleryDiff(request.payload);
     } else if (request.requestType === "storefront-product-video") {
@@ -189,6 +210,13 @@ function ReviewCard({ request, products }: { request: AdminChangeRequestResponse
     }
   } else if (isProductCreate) {
     diffRows = buildNewProductRows(request.payload);
+  } else if (request.requestType === "test-user-management") {
+    // The OTP is minted at approval time and is never part of any payload — no secret rows here.
+    diffRows = request.action === "CREATE"
+      ? buildTestUserCreateRows(request.payload)
+      : request.action === "DELETE"
+        ? buildTestUserDeleteRows(request)
+        : diffRows;
   }
 
   const changedRows = diffRows?.filter((r) => r.changed) ?? [];
@@ -197,22 +225,22 @@ function ReviewCard({ request, products }: { request: AdminChangeRequestResponse
   return (
     <article className="admin-panel rounded-lg p-4">
       {/* ── Header ── */}
-      <div className="flex flex-col gap-3 border-b border-[var(--wine-800)] pb-4 lg:flex-row lg:items-start lg:justify-between">
+      <div className="flex flex-col gap-3 border-b border-[var(--shresta-logo-border)] pb-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className={request.action === "DELETE" ? "rounded-full bg-red-500/15 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-red-200" : "rounded-full bg-[rgba(212,175,55,0.14)] px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[var(--gold-300)]"}>
+            <span className={request.action === "DELETE" ? "rounded-full bg-red-500/15 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-red-700" : "rounded-full bg-[rgba(212,175,55,0.14)] px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[var(--gold-600)]"}>
               {request.action}
             </span>
-            <span className="rounded-full border border-[var(--wine-700)] px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[var(--shresta-text-muted)]">{request.status}</span>
-            {isProductUpdate && <span className="rounded-full border border-[var(--wine-700)] px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-amber-300">{changedRows.length} field{changedRows.length !== 1 ? "s" : ""} changed</span>}
-            {isProductCreate && <span className="rounded-full border border-emerald-800 bg-emerald-900/20 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-emerald-400">New product</span>}
+            <span className="rounded-full border border-[var(--shresta-logo-border)] px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-[var(--shresta-logo-muted)]">{request.status}</span>
+            {isProductUpdate && <span className="rounded-full border border-[var(--shresta-logo-border)] bg-amber-500/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-amber-700">{changedRows.length} field{changedRows.length !== 1 ? "s" : ""} changed</span>}
+            {isProductCreate && <span className="rounded-full border border-emerald-700/35 bg-emerald-500/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-emerald-700">New product</span>}
           </div>
-          <h2 className="mt-3 font-serif text-2xl font-light text-white">
+          <h2 className="mt-3 font-serif text-2xl font-light text-[var(--shresta-logo-text)]">
             {isProductUpdate && currentProduct ? currentProduct.name : (request.payload.title as string | undefined) ?? request.requestType}
           </h2>
-          <p className="mt-1 text-xs text-[var(--shresta-text-muted)]">{request.requestType} · {request.entityKey}</p>
+          <p className="mt-1 text-xs text-[var(--shresta-logo-muted)]">{request.requestType} · {request.entityKey}</p>
         </div>
-        <div className="text-xs text-[var(--shresta-text-muted)]">
+        <div className="text-xs text-[var(--shresta-logo-muted)]">
           <p className="font-mono">{request.requestKey}</p>
           <p className="mt-1">Submitted by {request.submittedByRole}</p>
           <p className="mt-0.5">{new Date(request.createdAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</p>
@@ -230,20 +258,20 @@ function ReviewCard({ request, products }: { request: AdminChangeRequestResponse
               </p>
               <table className="w-full border-collapse text-sm">
                 <thead>
-                  <tr className="border-b border-[var(--wine-800)]">
-                    <th className="w-36 py-2 pr-4 text-left text-xs font-bold uppercase tracking-[0.1em] text-[var(--shresta-text-muted)]">Field</th>
-                    {!isProductCreate && <th className="py-2 pr-4 text-left text-xs font-bold uppercase tracking-[0.1em] text-[var(--shresta-text-muted)]">Before</th>}
-                    <th className="py-2 text-left text-xs font-bold uppercase tracking-[0.1em] text-[var(--shresta-text-muted)]">{isProductCreate ? "Value" : "After"}</th>
+                  <tr className="border-b border-[var(--shresta-logo-border)]">
+                    <th className="w-36 py-2 pr-4 text-left text-xs font-bold uppercase tracking-[0.1em] text-[var(--shresta-logo-muted)]">Field</th>
+                    {!isProductCreate && <th className="py-2 pr-4 text-left text-xs font-bold uppercase tracking-[0.1em] text-[var(--shresta-logo-muted)]">Before</th>}
+                    <th className="py-2 text-left text-xs font-bold uppercase tracking-[0.1em] text-[var(--shresta-logo-muted)]">{isProductCreate ? "Value" : "After"}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {changedRows.map((r) => (
-                    <tr key={r.field} className="border-b border-[var(--wine-800)]/50">
-                      <td className="py-2 pr-4 text-xs font-semibold text-[var(--shresta-text-secondary)]">{r.field}</td>
+                    <tr key={r.field} className="border-b border-[var(--shresta-logo-border)]/50">
+                      <td className="py-2 pr-4 text-xs font-semibold text-[var(--shresta-logo-muted)]">{r.field}</td>
                       {!isProductCreate && (
-                        <td className="py-2 pr-4 text-xs text-[var(--shresta-text-muted)] line-through decoration-[var(--wine-500)]">{r.before}</td>
+                        <td className="py-2 pr-4 text-xs text-[var(--shresta-logo-muted)] line-through decoration-[var(--wine-500)]">{r.before}</td>
                       )}
-                      <td className="py-2 text-xs font-medium text-amber-300">{r.after}</td>
+                      <td className="py-2 text-xs font-medium text-amber-700">{r.after}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -254,15 +282,15 @@ function ReviewCard({ request, products }: { request: AdminChangeRequestResponse
           {/* Unchanged fields (collapsible) */}
           {!isProductCreate && unchangedRows.length > 0 && (
             <details className="group">
-              <summary className="cursor-pointer select-none text-xs font-bold uppercase tracking-[0.1em] text-[var(--shresta-text-muted)] hover:text-[var(--shresta-text-secondary)]">
+              <summary className="cursor-pointer select-none text-xs font-bold uppercase tracking-[0.1em] text-[var(--shresta-logo-muted)] hover:text-[var(--shresta-logo-muted)]">
                 Unchanged fields ({unchangedRows.length}) ▸
               </summary>
               <table className="mt-2 w-full border-collapse text-sm">
                 <tbody>
                   {unchangedRows.map((r) => (
-                    <tr key={r.field} className="border-b border-[var(--wine-800)]/30">
-                      <td className="w-36 py-1.5 pr-4 text-xs text-[var(--shresta-text-muted)]">{r.field}</td>
-                      <td className="py-1.5 text-xs text-[var(--shresta-text-muted)]">{r.after}</td>
+                    <tr key={r.field} className="border-b border-[var(--shresta-logo-border)]/30">
+                      <td className="w-36 py-1.5 pr-4 text-xs text-[var(--shresta-logo-muted)]">{r.field}</td>
+                      <td className="py-1.5 text-xs text-[var(--shresta-logo-muted)]">{r.after}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -274,40 +302,40 @@ function ReviewCard({ request, products }: { request: AdminChangeRequestResponse
 
       {/* Raw JSON toggle */}
       <details className="mt-4">
-        <summary className="cursor-pointer select-none text-xs font-bold uppercase tracking-[0.1em] text-[var(--shresta-text-muted)] hover:text-[var(--shresta-text-secondary)]">
+        <summary className="cursor-pointer select-none text-xs font-bold uppercase tracking-[0.1em] text-[var(--shresta-logo-muted)] hover:text-[var(--shresta-logo-muted)]">
           Raw payload ▸
         </summary>
-        <pre className="mt-2 max-h-72 overflow-auto rounded-lg border border-[var(--wine-800)] bg-[rgba(26,9,12,0.42)] p-4 text-xs leading-6 text-[var(--shresta-text-secondary)]">
+        <pre className="mt-2 max-h-72 overflow-auto rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] p-4 text-xs leading-6 text-[var(--shresta-logo-muted)]">
           {JSON.stringify(request.payload, null, 2)}
         </pre>
       </details>
 
       {/* ── Actions ── */}
-      <div className="mt-4 grid gap-3 border-t border-[var(--wine-800)] pt-4 lg:grid-cols-[1fr_180px_180px]">
+      <div className="mt-4 grid gap-3 border-t border-[var(--shresta-logo-border)] pt-4 lg:grid-cols-[1fr_180px_180px]">
         <label className="admin-label">
           Review Note
           <input className="admin-input" form={`approve-${request.requestKey}`} name="reviewNote" placeholder="Reason or approval note" />
         </label>
-        <form action={approveChangeRequestAction} className="self-end" id={`approve-${request.requestKey}`}>
+        <AdminActionForm action={approveChangeRequestAction} className="self-end" id={`approve-${request.requestKey}`}>
           <input name="idempotencyKey" type="hidden" value={randomUUID()} />
           <input name="requestKey" type="hidden" value={request.requestKey} />
           {(request.action === "DELETE" || request.action === "ARCHIVE") ? (
             <ConfirmSubmitButton
               className="admin-button w-full"
-              message={`Approving this will PERMANENTLY ${request.action === "DELETE" ? "delete the asset record and" : "archive the asset and delete the"} file from S3. This cannot be undone. Approve?`}
+              message={`Approving this will PERMANENTLY ${request.action === "DELETE" ? "delete the asset record and" : "archive the asset and delete the"} object from R2. This cannot be undone. Approve?`}
             >
               Approve
             </ConfirmSubmitButton>
           ) : (
             <button className="admin-button w-full" type="submit">Approve</button>
           )}
-        </form>
-        <form action={rejectChangeRequestAction} className="self-end">
+        </AdminActionForm>
+        <AdminActionForm action={rejectChangeRequestAction} className="self-end">
           <input name="idempotencyKey" type="hidden" value={randomUUID()} />
           <input name="requestKey" type="hidden" value={request.requestKey} />
           <input name="reviewNote" type="hidden" value="Rejected from admin review queue" />
           <button className="admin-button danger w-full" type="submit">Reject</button>
-        </form>
+        </AdminActionForm>
       </div>
     </article>
   );
@@ -315,9 +343,9 @@ function ReviewCard({ request, products }: { request: AdminChangeRequestResponse
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-[var(--wine-800)] p-3">
-      <p className="text-xs uppercase tracking-[0.12em] text-[var(--shresta-text-muted)]">{label}</p>
-      <p className="mt-1 font-semibold text-white">{value}</p>
+    <div className="rounded-lg border border-[var(--shresta-logo-border)] p-3">
+      <p className="text-xs uppercase tracking-[0.12em] text-[var(--shresta-logo-muted)]">{label}</p>
+      <p className="mt-1 font-semibold text-[var(--shresta-logo-text)]">{value}</p>
     </div>
   );
 }

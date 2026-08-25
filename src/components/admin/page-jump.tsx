@@ -20,18 +20,18 @@ export function PageJump({ current, total, paramName = "productPage", basePath =
         }
       }}
     >
-      <span className="text-xs text-[var(--shresta-text-muted)]">Go to</span>
+      <span className="text-xs text-[var(--shresta-logo-muted)]">Go to</span>
       <input
-        className="w-14 rounded-lg border border-[var(--wine-700)] bg-[rgba(26,9,12,0.4)] px-2 py-1 text-center text-sm text-white focus:border-[var(--gold-500)] focus:outline-none"
+        className="w-14 rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-2 py-1 text-center text-sm text-[var(--shresta-logo-text)] focus:border-[var(--gold-500)] focus:outline-none"
         defaultValue={current + 1}
         max={total}
         min={1}
         name="pageInput"
         type="number"
       />
-      <span className="text-xs text-[var(--shresta-text-muted)]">of {total}</span>
+      <span className="text-xs text-[var(--shresta-logo-muted)]">of {total}</span>
       <button
-        className="rounded-lg border border-[var(--wine-700)] bg-[rgba(26,9,12,0.3)] px-3 py-1 text-xs font-medium text-[var(--gold-400)] hover:border-[var(--gold-500)] hover:text-white"
+        className="rounded-lg border border-[var(--shresta-logo-border)] bg-[var(--shresta-logo-surface)] px-3 py-1 text-xs font-medium text-[var(--gold-600)] hover:border-[var(--gold-500)] hover:text-[var(--shresta-logo-text)]"
         type="submit"
       >
         Jump

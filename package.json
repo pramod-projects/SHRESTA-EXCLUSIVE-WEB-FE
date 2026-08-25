@@ -7,13 +7,16 @@
   },
   "scripts": {
     "check:node22": "node -e \"const major=Number(process.versions.node.split('.')[0]); if(major!==22){console.error('ERROR: Node 22 is required. Run: nvm use'); process.exit(1);}\"",
-    "dev": "if [ -x /opt/homebrew/opt/node@22/bin/node ]; then /opt/homebrew/opt/node@22/bin/node ./node_modules/next/dist/bin/next dev -p 3010 --webpack; else next dev -p 3010 --webpack; fi",
-    "dev:turbopack": "if [ -x /opt/homebrew/opt/node@22/bin/node ]; then /opt/homebrew/opt/node@22/bin/node ./node_modules/next/dist/bin/next dev -p 3010; else next dev -p 3010; fi",
+    "dev": "set -a; . ./.env.dev; set +a; if [ -x /opt/homebrew/opt/node@22/bin/node ]; then /opt/homebrew/opt/node@22/bin/node ./node_modules/next/dist/bin/next dev -p 3010 --webpack; else next dev -p 3010 --webpack; fi",
+    "dev:turbopack": "set -a; . ./.env.dev; set +a; if [ -x /opt/homebrew/opt/node@22/bin/node ]; then /opt/homebrew/opt/node@22/bin/node ./node_modules/next/dist/bin/next dev -p 3010; else next dev -p 3010; fi",
     "build": "if [ -x /opt/homebrew/opt/node@22/bin/node ]; then /opt/homebrew/opt/node@22/bin/node ./node_modules/next/dist/bin/next build; else next build; fi",
-    "start": "if [ -x /opt/homebrew/opt/node@22/bin/node ]; then /opt/homebrew/opt/node@22/bin/node ./node_modules/next/dist/bin/next start -p 3010; else next start -p 3010; fi",
-    "lint": "eslint .",
+    "start": "if [ -x /opt/homebrew/opt/node@22/bin/node ]; then /opt/homebrew/opt/node@22/bin/node ./node_modules/next/dist/bin/next start -p ${PORT:-3010}; else next start -p ${PORT:-3010}; fi",
+    "verify:no-runtime-mocks": "node ./.ai/verify-no-runtime-mocks.mjs",
+    "lint": "npm run verify:no-runtime-mocks && eslint .",
     "typecheck": "next typegen && tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "e2e": "playwright test",
+    "e2e:install": "playwright install --with-deps chromium"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
@@ -31,6 +34,7 @@
     "zustand": "^4.5.5"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@tailwindcss/postcss": "^4.3.2",
     "@testing-library/jest-dom": "^6.6.0",
     "@testing-library/react": "^16.3.0",

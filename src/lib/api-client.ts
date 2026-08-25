@@ -113,7 +113,17 @@ function resolveApiBaseUrl(value = process.env.NEXT_PUBLIC_API_BASE_URL): string
 }
 
 async function readEnvelope<T>(response: Response): Promise<ApiResponseEnvelope<T>> {
-  const payload: unknown = await response.json();
+  let payload: unknown;
+  try {
+    payload = await response.json();
+  } catch {
+    throw new ShrestaApiError(
+      "Backend returned a non-JSON response.",
+      response.status,
+      "INVALID_ENVELOPE",
+      "not-set"
+    );
+  }
   if (!isApiResponseEnvelope(payload)) {
     throw new ShrestaApiError(
       "Backend returned an unexpected response format — the service may be starting up or returning an error page.",

@@ -1,4 +1,6 @@
 .next/
+.turbo/
+.run/
 node_modules/
 coverage/
 dist/
@@ -6,8 +8,11 @@ tsconfig.tsbuildinfo
 *.log
 .env
 .env.*
-!.env.example
+!.env.dev.example
+!.env.uat.example
+!.env.prod.example
 .vercel/
 .DS_Store
 .idea/
 .vscode/
+*.pid

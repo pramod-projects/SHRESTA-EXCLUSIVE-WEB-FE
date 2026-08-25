@@ -7,7 +7,7 @@
     "Do not introduce client-trusted pricing or inventory state here.",
     "Copy must describe SHRESTA as a saree-focused brand.",
     "Brand, navigation, hero, trust, collection, bestseller, material, newsletter, footer, mobile navigation, and customer shell copy must come from GET /api/v1/storefront/home.",
-    "Images must render through ResponsiveMedia using backend-provided variants, LQIP, dimensions, and versioned URLs.",
+    "Images must render through ResponsiveMedia using the backend-provided canonical URL and dimensions; display sizing remains a delivery concern.",
     "Backend network failures and backend API 404 responses render StorefrontBackendUnavailable; other errors must not be swallowed."
   ],
   "apiDependencies": [

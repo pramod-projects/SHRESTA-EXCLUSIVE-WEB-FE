@@ -5,7 +5,7 @@ SHRESTA-WEB-FE
 ├── App Router
 │   ├── / -> Storefront home, force-dynamic SSR
 │   │   ├── fetchStorefrontHome -> GET /api/v1/storefront/home
-│   │   ├── ResponsiveMedia -> variants, srcset, LQIP, eager hero media, lazy shelf media
+│   │   ├── ResponsiveMedia -> one canonical URL, next/image sizes, priority hero media, lazy shelf media
 │   │   └── Rule: all logo, navigation, hero, collection, product, trust, material, and newsletter content comes from BE
 │   ├── /products -> Reference-style backend-driven listing with price chips, filters, grid/list toggle, sort, product cards
 │   ├── /products/[slug] -> Backend-driven PDP with media, quantity, certification, trust strip, specs, related products
@@ -40,11 +40,11 @@ SHRESTA-WEB-FE
 │   ├── Product image primitives
 │   ├── BackendApiUnavailable -> shared customer/admin service-unavailable state for SHRESTA-BE network failure and backend API 404 with customer-safe copy
 │   ├── PageNotAvailable -> shared missing FE route state
-│   ├── ResponsiveMedia -> AVIF/WebP/fallback picture rendering
+│   ├── ResponsiveMedia -> canonical Cloudflare URL through next/image
 │   └── Loading, empty, error, offline states
 ├── Lib
 │   ├── currency.ts -> formatPaise, paise type guard
-│   ├── cloudinary.ts -> buildCloudinaryUrl from public_id
+│   ├── environment-mode.ts -> typed DEV/UAT/PROD mode
 │   ├── api-client.ts -> requestApi, ApiResponseEnvelope, ShrestaApiError, ShrestaApiUnavailableError, trace ID preserving errors
 │   ├── api-page-fallback.ts -> nullWhenShrestaApiUnavailable for SSR page loaders
 │   ├── query-keys.ts -> stable TanStack Query keys
@@ -67,7 +67,7 @@ SHRESTA-WEB-FE
 │   ├── Category shelves
 │   ├── ProductCard -> backend short/long customer-facing descriptions plus SKU, price, badges, media
 │   ├── PriceDisplay
-│   ├── CloudinaryImage
+│   ├── ResponsiveMedia
 │   ├── PDP media gallery
 │   ├── Attribute sections from category config
 │   ├── SEO metadata generation
@@ -91,7 +91,7 @@ SHRESTA-WEB-FE
 │   ├── Responsive rule: top-to-bottom review/identify/fix/rereview across mobile, tablet, laptop, desktop, and wide monitor viewports for every affected screen
 │   ├── PDP sections: breadcrumb, media panel, wishlist/share overlay, discount badges, quantity stepper, certification panel, trust strip, backend short/long descriptions, specifications, related products
 │   ├── Store locator sections: backend search filters, selectable list, Leaflet India map, selected-store zoom, store fulfillment details
-│   ├── Media contract: assetKey, version, deliveryMode, dimensions, LQIP, variants
+│   ├── Media contract: assetKey, canonical URL, deliveryMode, source dimensions
 │   ├── Copy rule: visible customer text uses SHRESTA/customer wording and avoids backend, API, DB, KV, S3, CDN, metadata, contract, snapshots, or events
 │   └── Rule: no storefront dataset, category asset, store, or product-like merchandising data is hard-coded in FE
 ├── Search Feature
@@ -168,13 +168,13 @@ SHRESTA-WEB-FE
 │   │   ├── Existing asset search/filter/pagination
 │   │   ├── Filters: category family, category product type/subcategory, SKU, status
 │   │   ├── Operational stats: total, ready, archived, variant counts for visible result set
-│   │   ├── Multi-file upload with category/subcategory/product SKU/alt/tags/SEO details
-│   │   ├── Existing image replacement via multipart file upload, stable asset key, backend-regenerated S3/CDN variants
+│   │   ├── One canonical direct browser-to-R2 upload with progress and one retry
+│   │   ├── Existing image replacement by linking a newly completed immutable READY asset key
 │   │   ├── Catalog details edit and archive/delete review-request flows
 │   │   ├── SKU/category/subcategory/tag dropdowns from backend-owned options
 │   │   ├── Tag inputs enforce the backend media_assets.tags 40-character/16-tag uppercase token contract
 │   │   ├── Bulk category/subcategory assignment review request
-│   │   └── Variant preview, backend S3/CDN URLs, and optimization statistics
+│   │   └── Canonical Cloudflare custom-domain preview and metadata
 │   ├── /admin/categories
 │   │   ├── Existing family, subcategory, attribute, filter, tax, styling configuration
 │   │   ├── Collapsible family/detail/config sections with per-family counts for readability
@@ -195,7 +195,7 @@ SHRESTA-WEB-FE
     ├── Playwright -> E2E
     ├── Lighthouse CI -> performance budgets
     ├── CI: GitHub Actions + Node 22 + npm ci + lint/typecheck/test/build + high audit gate
-    ├── Dev runbook: README -> .env.local + npm ci + npm run dev + optional -p 3001
-    ├── Prod runbook: README -> npm run build -> npm run start + required NEXT_PUBLIC_* vars
-    └── Backend link: NEXT_PUBLIC_API_BASE_URL -> SHRESTA-BE http://localhost:8080 or deployed backend
+    ├── Component-only FE development: .env.dev + npm ci + npm run dev
+    ├── Full-stack runbook: README -> ./up dev|uat|prod -> canonical backend controller
+    └── Backend link: NEXT_PUBLIC_API_BASE_URL -> SHRESTA-BE http://localhost:8090 or deployed backend
 ```

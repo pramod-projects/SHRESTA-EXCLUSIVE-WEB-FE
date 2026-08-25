@@ -1,0 +1,25 @@
+{
+  "module": "admin",
+  "file": "test-users/page.tsx",
+  "purpose": "Server-rendered management surface for governed QA customer accounts (test users).",
+  "ownedConcepts": [
+    "Test user list with active status, test order counts, and creation timestamps",
+    "Governed test user create request flow (test-user-management CREATE, entityKey = email)",
+    "Governed test user delete request flow (test-user-management DELETE, entityKey = customerId)",
+    "Pending-review chips for create and delete requests keyed by entityKey",
+    "One-time OTP reveal with copy affordance"
+  ],
+  "businessRules": [
+    "List reads hit SHRESTA-BE directly; create and delete never mutate records and instead submit change requests approved at /admin/review.",
+    "The OTP is minted by the backend at approval time, stored only as a hash, and is never collected by any form or present in any change-request payload.",
+    "The OTP is revealed exactly once via the reveal endpoint; after reveal the list reports otpRevealed true and the reveal button disappears.",
+    "Mobile, when present, must be a 10-digit Indian number; email is normalized to lowercase.",
+    "Test user management is restricted to SUPER_ADMIN, CHANGE_MANAGER, and CHANGE_ADMIN roles.",
+    "Backend network failures and backend API 404 responses render AdminApiUnavailable instead of the Next runtime overlay."
+  ],
+  "apiDependencies": [
+    "/api/v1/admin/test-users",
+    "/api/v1/admin/test-users/{customerId}/reveal-otp",
+    "/api/v1/admin/change-requests"
+  ]
+}

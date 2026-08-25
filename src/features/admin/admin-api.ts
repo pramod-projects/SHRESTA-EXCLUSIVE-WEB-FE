@@ -1,8 +1,12 @@
 import type { CategoryFamily } from "@/features/catalog/category-config";
-import type { StorefrontHome } from "@/features/storefront/storefront-home";
-import { ShrestaApiError, ShrestaApiUnavailableError, requestApi, type ApiResponseEnvelope } from "@/lib/api-client";
+import { cookies } from "next/headers";
+import { ADMIN_SESSION_COOKIE, verifyAdminSessionToken } from "@/features/admin/admin-auth";
+import type { NotificationConfiguration } from "@/features/admin/notification-configuration";
+import type { RefundPolicyConfiguration } from "@/features/admin/refund-policy-configuration";
+import { browserSafeMediaUrl, normalizeStorefrontHomeMediaUrls, type StorefrontHome } from "@/features/storefront/storefront-home";
+import { ShrestaApiError, requestApi } from "@/lib/api-client";
 
-export type AdminRole = "SUPER_ADMIN" | "CHANGE_SUBMITTER" | "CHANGE_REVIEWER" | "CHANGE_MANAGER";
+export type AdminRole = "SUPER_ADMIN" | "CHANGE_SUBMITTER" | "CHANGE_APPROVER" | "CHANGE_MANAGER" | "CHANGE_ADMIN";
 
 export type AssetSearchParams = {
   query?: string;
@@ -19,6 +23,21 @@ export type AssetSearchResponse = {
   page: number;
   size: number;
   total: number;
+  systemTotal?: number;
+  systemImageTotal?: number;
+  systemVideoTotal?: number;
+  systemOtherTotal?: number;
+  systemReferencedTotal?: number;
+  systemUnreferencedTotal?: number;
+};
+
+export type UnreferencedMediaAsset = AssetResponse;
+
+export type UnreferencedMediaAssetsResponse = {
+  items: UnreferencedMediaAsset[];
+  page: number;
+  size: number;
+  total: number;
 };
 
 export type AssetResponse = {
@@ -29,126 +48,47 @@ export type AssetResponse = {
   categoryFamilyKey: string | null;
   categoryProductTypeKey: string | null;
   productSku: string | null;
-  status: "UPLOADED" | "PROCESSING" | "READY" | "FAILED" | "ARCHIVED" | string;
+  status: "PENDING_UPLOAD" | "READY" | "FAILED" | "ARCHIVED" | string;
   version: number;
   widthPx: number;
   heightPx: number;
   byteSize: number;
   contentType: string | null;
   deliveryMode: string;
-  lqipDataUrl: string | null;
   tags: string[];
   seoTitle: string | null;
   seoDescription: string | null;
-  variants: AssetVariantResponse[];
-  optimizationStats: AssetOptimizationStats;
 };
 
-export type AssetVariantResponse = {
-  variantKey: string;
-  format: string;
-  widthPx: number;
-  heightPx: number;
+export type MediaUploadAuthorizationRequest = {
+  productId?: string;
+  mediaType: "PRODUCT_IMAGE" | "PRODUCT_VIDEO" | "DISPLAY_IMAGE" | "DISPLAY_VIDEO";
+  contentType: string;
+  originalFilename: string;
   byteSize: number;
-  url: string;
-};
-
-export type AssetOptimizationStats = {
-  originalBytes: number;
-  smallestVariantBytes: number;
-  bytesSavedAgainstSmallest: number;
-  percentSavedAgainstSmallest: number;
-  variantCount: number;
-};
-
-export type AssetMetadataUpdatePayload = {
+  widthPx?: number;
+  heightPx?: number;
+  durationSeconds?: number;
   altText?: string;
-  categoryFamilyKey?: string;
-  categoryProductTypeKey?: string;
-  productSku?: string;
-  tags?: string[];
-  seoTitle?: string;
-  seoDescription?: string;
-  clearCategoryFamilyKey?: boolean;
-  clearCategoryProductTypeKey?: boolean;
-  clearProductSku?: boolean;
-  clearTags?: boolean;
-  clearSeoTitle?: boolean;
-  clearSeoDescription?: boolean;
 };
 
-export type CategoryFamilyMutationPayload = {
-  familyKey?: string;
-  displayName?: string;
-  description?: string;
-  sortOrder?: number;
-  metadata?: Record<string, unknown>;
+export type MediaUploadAuthorizationResponse = {
+  mediaId: string;
+  assetKey: string;
+  objectKey: string;
+  uploadUrl: string;
+  expiresAt: string;
+  contentType: string;
+  requiredHeaders: Record<string, string>;
 };
 
-export type CategoryProductTypeMutationPayload = {
-  typeKey?: string;
-  displayName?: string;
-  sortOrder?: number;
-  metadata?: Record<string, unknown>;
-};
-
-export type CategoryAttributeMutationPayload = {
-  attributeKey?: string;
-  displayName?: string;
-  dataType?: string;
-  required?: boolean;
-  filterable?: boolean;
-  searchable?: boolean;
-  allowedValues?: string[];
-  sortOrder?: number;
-};
-
-export type CategoryFilterMutationPayload = {
-  filterKey?: string;
-  displayName?: string;
-  attributeKey?: string;
-  frontendControl?: string;
-  backendMapping?: string;
-  sortOrder?: number;
-};
-
-export type CategoryTaxMutationPayload = {
-  hsnCode?: string;
-  gstRateBasisPoints?: number;
-  effectiveFrom?: string;
-  effectiveTo?: string | null;
-  clearEffectiveTo?: boolean;
-};
-
-export type CategoryStylingMutationPayload = {
-  occasionKey?: string;
-  displayName?: string;
-  complementaryFamilyKeys?: string[];
-  rules?: Record<string, unknown>;
-  sortOrder?: number;
+export type ProductMediaReservationResponse = {
+  productId: string;
+  expiresAt: string;
 };
 
 export type MutationOptions = {
   idempotencyKey: string;
-};
-
-export type StorefrontHomeItemUpdatePayload = {
-  familyKey?: string;
-  title?: string;
-  subtitle?: string;
-  description?: string;
-  ctaLabel?: string;
-  ctaHref?: string;
-  sortOrder?: number;
-  featured?: boolean;
-  metadata?: Record<string, unknown>;
-  media?: {
-    assetUrl?: string;
-    altText?: string;
-    widthPx?: number;
-    heightPx?: number;
-    deliveryMode?: string;
-  };
 };
 
 export type AdminAclResponse = {
@@ -183,6 +123,115 @@ export type AdminChangeRequestCreatePayload = {
   payload?: Record<string, unknown>;
 };
 
+export type AdminOrderSummary = {
+  orderNumber: string;
+  customerId: string;
+  customerEmail: string;
+  customerDisplayName: string;
+  orderStatus: string;
+  paymentStatus: string;
+  fulfillmentStatus: string;
+  refundRequestStatus: "NONE" | "REQUESTED" | "PROCESSING" | "SUCCESS" | string;
+  deliveryMode: string;
+  paymentMethod: string;
+  totalPaise: number;
+  itemCount: number;
+  placedAt: string;
+  isTest: boolean;
+};
+
+export type AdminCustomerOrderSummary = {
+  customerId: string;
+  customerEmail: string;
+  customerDisplayName: string;
+  totalOrders: number;
+  deliveredOrders: number;
+  cancelledOrders: number;
+  activeOrders: number;
+  grossOrderValuePaise: number;
+  lastOrderAt: string | null;
+};
+
+export type AdminOrderStatusUpdatePayload = {
+  fulfillmentStatus: string;
+  note?: string;
+  opsReference?: string;
+};
+
+export type AdminOrderDetail = {
+  orderNumber: string;
+  customerId: string;
+  customerEmail: string;
+  orderStatus: string;
+  paymentStatus: string;
+  fulfillmentStatus: string;
+  currency: string;
+  subtotalPaise: number;
+  deliveryPaise: number;
+  discountPaise: number;
+  taxPaise: number;
+  totalPaise: number;
+  deliveryMode: string;
+  paymentMethod: string;
+  placedAt: string;
+  isTest: boolean;
+  statusEvents: Array<{
+    eventType: string;
+    fromStatus: string | null;
+    toStatus: string;
+    actorType: string;
+    note: string | null;
+    createdAt: string;
+  }>;
+};
+
+export type AdminOrderRefundStatusCheck = {
+  orderNumber: string;
+  refundId: string | null;
+  razorpayStatus: string;
+  refundSuccessful: boolean;
+  paymentMarkedRefunded: boolean;
+  message: string;
+};
+
+export type AdminUserResponse = {
+  email: string;
+  role: AdminRole | string;
+  active: boolean;
+  createdByEmail: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminUserCreatePayload = {
+  email: string;
+  password: string;
+  role: AdminRole;
+};
+
+export type TestUserSummary = {
+  customerId: string;
+  displayName: string;
+  email: string;
+  mobile: string | null;
+  note: string | null;
+  active: boolean;
+  testOrdersCount: number;
+  createdAt: string;
+  otpRevealed: boolean;
+};
+
+export type AdminTestUsersResponse = {
+  items: TestUserSummary[];
+  page: number;
+  size: number;
+  total: number;
+};
+
+export type TestUserOtpRevealResponse = {
+  otp: string;
+};
+
 export async function fetchAdminAssets(params: AssetSearchParams = {}): Promise<AssetSearchResponse> {
   const query = new URLSearchParams();
   appendQuery(query, "query", params.query);
@@ -194,9 +243,36 @@ export async function fetchAdminAssets(params: AssetSearchParams = {}): Promise<
   appendQuery(query, "size", params.size?.toString());
 
   const suffix = query.size > 0 ? `?${query.toString()}` : "";
-  return requestAdminApi<AssetSearchResponse>(`/api/v1/admin/assets${suffix}`, {
+  const response = await requestAdminApi<AssetSearchResponse>(`/api/v1/admin/assets${suffix}`, {
     role: "CHANGE_MANAGER"
   });
+  return {
+    ...response,
+    assets: response.assets.map((asset) => ({
+      ...asset,
+      assetUrl: browserSafeMediaUrl(asset.assetUrl) ?? asset.assetUrl
+    }))
+  };
+}
+
+export async function fetchUnreferencedMediaAssets(params: AssetSearchParams = {}): Promise<UnreferencedMediaAssetsResponse> {
+  const query = new URLSearchParams();
+  appendQuery(query, "query", params.query);
+  appendQuery(query, "status", params.status);
+  appendQuery(query, "page", params.page?.toString());
+  appendQuery(query, "size", params.size?.toString());
+
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
+  const response = await requestAdminApi<UnreferencedMediaAssetsResponse>(`/api/v1/admin/assets/storefront-unreferenced${suffix}`, {
+    role: "CHANGE_MANAGER"
+  });
+  return {
+    ...response,
+    items: response.items.map((asset) => ({
+      ...asset,
+      assetUrl: browserSafeMediaUrl(asset.assetUrl) ?? asset.assetUrl
+    }))
+  };
 }
 
 export function fetchAdminCategories(): Promise<CategoryFamily[]> {
@@ -205,14 +281,83 @@ export function fetchAdminCategories(): Promise<CategoryFamily[]> {
   });
 }
 
-export function fetchAdminStorefrontHome(): Promise<StorefrontHome> {
-  return requestAdminApi<StorefrontHome>("/api/v1/admin/storefront/home", {
+export async function fetchAdminStorefrontHome(): Promise<StorefrontHome> {
+  const home = await requestAdminApi<StorefrontHome>("/api/v1/admin/storefront/home", {
     role: "CHANGE_MANAGER"
   });
+  return normalizeStorefrontHomeMediaUrls(home);
 }
 
 export function fetchAdminAcl(role: AdminRole = "CHANGE_MANAGER"): Promise<AdminAclResponse> {
   return requestAdminApi<AdminAclResponse>("/api/v1/admin/acl/me", { role });
+}
+
+export function fetchAdminNotificationConfiguration(): Promise<NotificationConfiguration[]> {
+  return requestAdminApi<NotificationConfiguration[]>("/api/v1/admin/configurations/notifications", {
+    role: "CHANGE_MANAGER"
+  });
+}
+
+export function fetchAdminRefundPolicyConfiguration(): Promise<RefundPolicyConfiguration> {
+  return requestAdminApi<RefundPolicyConfiguration>("/api/v1/admin/configurations/refund-policy", {
+    role: "CHANGE_MANAGER"
+  });
+}
+
+export function fetchAdminOrders(params: { limit?: number; offset?: number; customerEmail?: string; orderNumber?: string } = {}): Promise<AdminOrderSummary[]> {
+  const query = new URLSearchParams();
+  appendQuery(query, "limit", params.limit?.toString());
+  appendQuery(query, "offset", params.offset?.toString());
+  appendQuery(query, "customerEmail", params.customerEmail);
+  appendQuery(query, "orderNumber", params.orderNumber);
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
+
+  return requestAdminApi<AdminOrderSummary[]>(`/api/v1/admin/orders${suffix}`, {
+    role: "CHANGE_MANAGER"
+  });
+}
+
+export function fetchAdminOrderCustomers(params: { limit?: number; offset?: number } = {}): Promise<AdminCustomerOrderSummary[]> {
+  const query = new URLSearchParams();
+  appendQuery(query, "limit", params.limit?.toString());
+  appendQuery(query, "offset", params.offset?.toString());
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
+
+  return requestAdminApi<AdminCustomerOrderSummary[]>(`/api/v1/admin/orders/customers${suffix}`, {
+    role: "CHANGE_MANAGER"
+  });
+}
+
+export function fetchAdminOrder(orderNumber: string): Promise<AdminOrderDetail> {
+  return requestAdminApi<AdminOrderDetail>(`/api/v1/admin/orders/${encodeURIComponent(orderNumber)}`, {
+    role: "CHANGE_MANAGER"
+  });
+}
+
+export function updateAdminOrderStatus(orderNumber: string, payload: AdminOrderStatusUpdatePayload, options: MutationOptions): Promise<Record<string, unknown>> {
+  return requestAdminApi<Record<string, unknown>>(`/api/v1/admin/orders/${encodeURIComponent(orderNumber)}/status`, {
+    method: "PATCH",
+    role: "CHANGE_MANAGER",
+    body: payload,
+    idempotencyKey: options.idempotencyKey
+  });
+}
+
+export function approveAdminOrderRefund(orderNumber: string, payload: { note?: string; opsReference?: string }, options: MutationOptions): Promise<Record<string, unknown>> {
+  return requestAdminApi<Record<string, unknown>>(`/api/v1/admin/orders/${encodeURIComponent(orderNumber)}/refund/approve`, {
+    method: "POST",
+    role: "CHANGE_MANAGER",
+    body: payload,
+    idempotencyKey: options.idempotencyKey
+  });
+}
+
+export function checkAdminOrderRefundStatus(orderNumber: string): Promise<AdminOrderRefundStatusCheck> {
+  return requestAdminApi<AdminOrderRefundStatusCheck>(`/api/v1/admin/orders/${encodeURIComponent(orderNumber)}/refund/check-status`, {
+    method: "POST",
+    role: "CHANGE_MANAGER",
+    body: {}
+  });
 }
 
 export function fetchAdminChangeRequests(status = "PENDING_REVIEW"): Promise<AdminChangeRequestResponse[]> {
@@ -220,50 +365,33 @@ export function fetchAdminChangeRequests(status = "PENDING_REVIEW"): Promise<Adm
   appendQuery(query, "status", status);
   const suffix = query.size > 0 ? `?${query.toString()}` : "";
   return requestAdminApi<AdminChangeRequestResponse[]>(`/api/v1/admin/change-requests${suffix}`, {
-    role: "CHANGE_REVIEWER"
+    role: "CHANGE_APPROVER"
   });
 }
 
-export function uploadAdminAssets(formData: FormData, options: MutationOptions): Promise<AssetResponse[]> {
-  return requestMultipartAdminApi<AssetResponse[]>("/api/v1/admin/assets", formData, "CHANGE_SUBMITTER", options.idempotencyKey);
-}
-
-export function replaceAdminAssetImage(assetKey: string, formData: FormData, options: MutationOptions): Promise<AssetResponse> {
-  return requestMultipartAdminApi<AssetResponse>(`/api/v1/admin/assets/${encodeURIComponent(assetKey)}/image`, formData, "CHANGE_SUBMITTER", options.idempotencyKey);
-}
-
-export function updateAdminAssetMetadata(assetKey: string, payload: AssetMetadataUpdatePayload, options: MutationOptions): Promise<AssetResponse> {
-  return requestAdminApi<AssetResponse>(`/api/v1/admin/assets/${encodeURIComponent(assetKey)}`, {
-    method: "PATCH",
-    role: "CHANGE_SUBMITTER",
-    body: payload,
-    idempotencyKey: options.idempotencyKey
-  });
-}
-
-export function archiveAdminAsset(assetKey: string, options: MutationOptions): Promise<void> {
-  return requestAdminApi<void>(`/api/v1/admin/assets/${encodeURIComponent(assetKey)}`, {
-    method: "DELETE",
-    role: "CHANGE_SUBMITTER",
-    allowEmptyData: true,
-    idempotencyKey: options.idempotencyKey
-  });
-}
-
-export function bulkAssignAdminAssets(assetKeys: string[], categoryFamilyKey: string, categoryProductTypeKey: string | undefined, options: MutationOptions): Promise<AssetSearchResponse> {
-  return requestAdminApi<AssetSearchResponse>("/api/v1/admin/assets/bulk/category-assignment", {
+export function authorizeAdminMediaUpload(payload: MediaUploadAuthorizationRequest, options: MutationOptions): Promise<MediaUploadAuthorizationResponse> {
+  return requestAdminApi<MediaUploadAuthorizationResponse>("/api/v1/admin/assets/upload-authorizations", {
     method: "POST",
     role: "CHANGE_SUBMITTER",
-    body: { assetKeys, categoryFamilyKey, categoryProductTypeKey },
+    body: payload,
     idempotencyKey: options.idempotencyKey
   });
 }
 
-export function updateAdminStorefrontHomeItem(itemKey: string, payload: StorefrontHomeItemUpdatePayload, options: MutationOptions): Promise<StorefrontHome> {
-  return requestAdminApi<StorefrontHome>(`/api/v1/admin/storefront/home/items/${encodeURIComponent(itemKey)}`, {
-    method: "PATCH",
+export function reserveProductMedia(options: MutationOptions): Promise<ProductMediaReservationResponse> {
+  return requestAdminApi<ProductMediaReservationResponse>("/api/v1/admin/assets/product-media-reservations", {
+    method: "POST",
     role: "CHANGE_SUBMITTER",
-    body: payload,
+    body: {},
+    idempotencyKey: options.idempotencyKey
+  });
+}
+
+export function completeAdminMediaUpload(mediaId: string, options: MutationOptions): Promise<AssetResponse> {
+  return requestAdminApi<AssetResponse>("/api/v1/admin/assets/upload-completions", {
+    method: "POST",
+    role: "CHANGE_SUBMITTER",
+    body: { mediaId },
     idempotencyKey: options.idempotencyKey
   });
 }
@@ -290,7 +418,7 @@ export function upsertAdminChangeRequest(payload: AdminChangeRequestCreatePayloa
 export function approveAdminChangeRequest(requestKey: string, reviewNote: string | undefined, options: MutationOptions): Promise<AdminChangeRequestResponse> {
   return requestAdminApi<AdminChangeRequestResponse>(`/api/v1/admin/change-requests/${encodeURIComponent(requestKey)}/approve`, {
     method: "POST",
-    role: "CHANGE_REVIEWER",
+    role: "CHANGE_APPROVER",
     body: { reviewedBy: "SHRESTA reviewer", reviewNote },
     idempotencyKey: options.idempotencyKey
   });
@@ -299,165 +427,63 @@ export function approveAdminChangeRequest(requestKey: string, reviewNote: string
 export function rejectAdminChangeRequest(requestKey: string, reviewNote: string | undefined, options: MutationOptions): Promise<AdminChangeRequestResponse> {
   return requestAdminApi<AdminChangeRequestResponse>(`/api/v1/admin/change-requests/${encodeURIComponent(requestKey)}/reject`, {
     method: "POST",
-    role: "CHANGE_REVIEWER",
+    role: "CHANGE_APPROVER",
     body: { reviewedBy: "SHRESTA reviewer", reviewNote },
     idempotencyKey: options.idempotencyKey
   });
 }
 
-export function createCategoryFamily(payload: CategoryFamilyMutationPayload, options: MutationOptions): Promise<CategoryFamily[]> {
-  return requestAdminApi<CategoryFamily[]>("/api/v1/admin/catalog/categories", {
+export function fetchAdminUsers(): Promise<AdminUserResponse[]> {
+  return requestAdminApi<AdminUserResponse[]>("/api/v1/admin/users", {
+    role: "SUPER_ADMIN"
+  });
+}
+
+export function fetchAdminTestUsers(params: { page?: number; size?: number } = {}): Promise<AdminTestUsersResponse> {
+  const query = new URLSearchParams();
+  appendQuery(query, "page", params.page?.toString());
+  appendQuery(query, "size", params.size?.toString());
+  const suffix = query.size > 0 ? `?${query.toString()}` : "";
+
+  return requestAdminApi<AdminTestUsersResponse>(`/api/v1/admin/test-users${suffix}`, {
+    role: "CHANGE_MANAGER"
+  });
+}
+
+/**
+ * One-time OTP reveal. The backend stores only an OTP hash — this endpoint returns the
+ * plaintext exactly once (404 TEST_USER_NOT_FOUND, 409 TEST_USER_OTP_ALREADY_REVEALED).
+ */
+export async function revealTestUserOtp(customerId: string): Promise<TestUserOtpRevealResponse> {
+  try {
+    return await requestAdminApi<TestUserOtpRevealResponse>(`/api/v1/admin/test-users/${encodeURIComponent(customerId)}/reveal-otp`, {
+      role: "CHANGE_MANAGER"
+    });
+  } catch (error) {
+    if (error instanceof ShrestaApiError) {
+      if (error.status === 404 || error.code === "TEST_USER_NOT_FOUND") {
+        throw new Error("Test user not found. It may have been deleted by an approved change request.");
+      }
+      if (error.status === 409 || error.code === "TEST_USER_OTP_ALREADY_REVEALED") {
+        throw new Error("The OTP for this test user has already been revealed and can never be shown again.");
+      }
+    }
+    throw error;
+  }
+}
+
+export function createAdminUser(payload: AdminUserCreatePayload): Promise<AdminUserResponse> {
+  return requestAdminApi<AdminUserResponse>("/api/v1/admin/users", {
     method: "POST",
-    role: "CHANGE_SUBMITTER",
-    body: payload,
-    idempotencyKey: options.idempotencyKey
+    role: "SUPER_ADMIN",
+    body: payload
   });
 }
 
-export function updateCategoryFamily(familyKey: string, payload: CategoryFamilyMutationPayload, options: MutationOptions): Promise<CategoryFamily[]> {
-  return requestAdminApi<CategoryFamily[]>(`/api/v1/admin/catalog/categories/${encodeURIComponent(familyKey)}`, {
-    method: "PATCH",
-    role: "CHANGE_SUBMITTER",
-    body: payload,
-    idempotencyKey: options.idempotencyKey
-  });
-}
-
-export function archiveCategoryFamily(familyKey: string, options: MutationOptions): Promise<CategoryFamily[]> {
-  return requestAdminApi<CategoryFamily[]>(`/api/v1/admin/catalog/categories/${encodeURIComponent(familyKey)}`, {
+export function deleteAdminUser(email: string): Promise<AdminUserResponse> {
+  return requestAdminApi<AdminUserResponse>(`/api/v1/admin/users/${encodeURIComponent(email)}`, {
     method: "DELETE",
-    role: "CHANGE_SUBMITTER",
-    idempotencyKey: options.idempotencyKey
-  });
-}
-
-export function createCategoryProductType(familyKey: string, payload: CategoryProductTypeMutationPayload, options: MutationOptions): Promise<CategoryFamily[]> {
-  return requestAdminApi<CategoryFamily[]>(`/api/v1/admin/catalog/categories/${encodeURIComponent(familyKey)}/subcategories`, {
-    method: "POST",
-    role: "CHANGE_SUBMITTER",
-    body: payload,
-    idempotencyKey: options.idempotencyKey
-  });
-}
-
-export function updateCategoryProductType(familyKey: string, typeKey: string, payload: CategoryProductTypeMutationPayload, options: MutationOptions): Promise<CategoryFamily[]> {
-  return requestAdminApi<CategoryFamily[]>(`/api/v1/admin/catalog/categories/${encodeURIComponent(familyKey)}/subcategories/${encodeURIComponent(typeKey)}`, {
-    method: "PATCH",
-    role: "CHANGE_SUBMITTER",
-    body: payload,
-    idempotencyKey: options.idempotencyKey
-  });
-}
-
-export function archiveCategoryProductType(familyKey: string, typeKey: string, options: MutationOptions): Promise<CategoryFamily[]> {
-  return requestAdminApi<CategoryFamily[]>(`/api/v1/admin/catalog/categories/${encodeURIComponent(familyKey)}/subcategories/${encodeURIComponent(typeKey)}`, {
-    method: "DELETE",
-    role: "CHANGE_SUBMITTER",
-    idempotencyKey: options.idempotencyKey
-  });
-}
-
-export function createCategoryAttribute(familyKey: string, payload: CategoryAttributeMutationPayload, options: MutationOptions): Promise<CategoryFamily[]> {
-  return requestAdminApi<CategoryFamily[]>(`/api/v1/admin/catalog/categories/${encodeURIComponent(familyKey)}/attributes`, {
-    method: "POST",
-    role: "CHANGE_SUBMITTER",
-    body: payload,
-    idempotencyKey: options.idempotencyKey
-  });
-}
-
-export function updateCategoryAttribute(familyKey: string, attributeKey: string, payload: CategoryAttributeMutationPayload, options: MutationOptions): Promise<CategoryFamily[]> {
-  return requestAdminApi<CategoryFamily[]>(`/api/v1/admin/catalog/categories/${encodeURIComponent(familyKey)}/attributes/${encodeURIComponent(attributeKey)}`, {
-    method: "PATCH",
-    role: "CHANGE_SUBMITTER",
-    body: payload,
-    idempotencyKey: options.idempotencyKey
-  });
-}
-
-export function archiveCategoryAttribute(familyKey: string, attributeKey: string, options: MutationOptions): Promise<CategoryFamily[]> {
-  return requestAdminApi<CategoryFamily[]>(`/api/v1/admin/catalog/categories/${encodeURIComponent(familyKey)}/attributes/${encodeURIComponent(attributeKey)}`, {
-    method: "DELETE",
-    role: "CHANGE_SUBMITTER",
-    idempotencyKey: options.idempotencyKey
-  });
-}
-
-export function createCategoryFilter(familyKey: string, payload: CategoryFilterMutationPayload, options: MutationOptions): Promise<CategoryFamily[]> {
-  return requestAdminApi<CategoryFamily[]>(`/api/v1/admin/catalog/categories/${encodeURIComponent(familyKey)}/filters`, {
-    method: "POST",
-    role: "CHANGE_SUBMITTER",
-    body: payload,
-    idempotencyKey: options.idempotencyKey
-  });
-}
-
-export function updateCategoryFilter(familyKey: string, filterKey: string, payload: CategoryFilterMutationPayload, options: MutationOptions): Promise<CategoryFamily[]> {
-  return requestAdminApi<CategoryFamily[]>(`/api/v1/admin/catalog/categories/${encodeURIComponent(familyKey)}/filters/${encodeURIComponent(filterKey)}`, {
-    method: "PATCH",
-    role: "CHANGE_SUBMITTER",
-    body: payload,
-    idempotencyKey: options.idempotencyKey
-  });
-}
-
-export function archiveCategoryFilter(familyKey: string, filterKey: string, options: MutationOptions): Promise<CategoryFamily[]> {
-  return requestAdminApi<CategoryFamily[]>(`/api/v1/admin/catalog/categories/${encodeURIComponent(familyKey)}/filters/${encodeURIComponent(filterKey)}`, {
-    method: "DELETE",
-    role: "CHANGE_SUBMITTER",
-    idempotencyKey: options.idempotencyKey
-  });
-}
-
-export function createCategoryTax(familyKey: string, payload: CategoryTaxMutationPayload, options: MutationOptions): Promise<CategoryFamily[]> {
-  return requestAdminApi<CategoryFamily[]>(`/api/v1/admin/catalog/categories/${encodeURIComponent(familyKey)}/taxes`, {
-    method: "POST",
-    role: "CHANGE_SUBMITTER",
-    body: payload,
-    idempotencyKey: options.idempotencyKey
-  });
-}
-
-export function updateCategoryTax(familyKey: string, hsnCode: string, effectiveFrom: string, payload: CategoryTaxMutationPayload, options: MutationOptions): Promise<CategoryFamily[]> {
-  return requestAdminApi<CategoryFamily[]>(`/api/v1/admin/catalog/categories/${encodeURIComponent(familyKey)}/taxes/${encodeURIComponent(hsnCode)}/${encodeURIComponent(effectiveFrom)}`, {
-    method: "PATCH",
-    role: "CHANGE_SUBMITTER",
-    body: payload,
-    idempotencyKey: options.idempotencyKey
-  });
-}
-
-export function archiveCategoryTax(familyKey: string, hsnCode: string, effectiveFrom: string, options: MutationOptions): Promise<CategoryFamily[]> {
-  return requestAdminApi<CategoryFamily[]>(`/api/v1/admin/catalog/categories/${encodeURIComponent(familyKey)}/taxes/${encodeURIComponent(hsnCode)}/${encodeURIComponent(effectiveFrom)}`, {
-    method: "DELETE",
-    role: "CHANGE_SUBMITTER",
-    idempotencyKey: options.idempotencyKey
-  });
-}
-
-export function createCategoryStyling(familyKey: string, payload: CategoryStylingMutationPayload, options: MutationOptions): Promise<CategoryFamily[]> {
-  return requestAdminApi<CategoryFamily[]>(`/api/v1/admin/catalog/categories/${encodeURIComponent(familyKey)}/styling`, {
-    method: "POST",
-    role: "CHANGE_SUBMITTER",
-    body: payload,
-    idempotencyKey: options.idempotencyKey
-  });
-}
-
-export function updateCategoryStyling(familyKey: string, occasionKey: string, payload: CategoryStylingMutationPayload, options: MutationOptions): Promise<CategoryFamily[]> {
-  return requestAdminApi<CategoryFamily[]>(`/api/v1/admin/catalog/categories/${encodeURIComponent(familyKey)}/styling/${encodeURIComponent(occasionKey)}`, {
-    method: "PATCH",
-    role: "CHANGE_SUBMITTER",
-    body: payload,
-    idempotencyKey: options.idempotencyKey
-  });
-}
-
-export function archiveCategoryStyling(familyKey: string, occasionKey: string, options: MutationOptions): Promise<CategoryFamily[]> {
-  return requestAdminApi<CategoryFamily[]>(`/api/v1/admin/catalog/categories/${encodeURIComponent(familyKey)}/styling/${encodeURIComponent(occasionKey)}`, {
-    method: "DELETE",
-    role: "CHANGE_SUBMITTER",
-    idempotencyKey: options.idempotencyKey
+    role: "SUPER_ADMIN"
   });
 }
 
@@ -470,11 +496,12 @@ type AdminRequestOptions = {
 };
 
 async function requestAdminApi<T>(path: string, options: AdminRequestOptions): Promise<T> {
+  const headers = await adminHeaders(options.role, options.idempotencyKey);
   try {
     return await requestApi<T>(path as `/${string}`, {
       apiBaseUrl: apiBaseUrl(),
       method: options.method ?? "GET",
-      headers: adminHeaders(options.role, options.idempotencyKey),
+      headers,
       body: options.body,
       cache: "no-store"
     });
@@ -486,45 +513,19 @@ async function requestAdminApi<T>(path: string, options: AdminRequestOptions): P
   }
 }
 
-async function requestMultipartAdminApi<T>(path: string, formData: FormData, role: AdminRole, idempotencyKey: string): Promise<T> {
-  const headers = new Headers(adminHeaders(role, idempotencyKey));
-  headers.set("Accept", "application/json");
+async function adminHeaders(role: AdminRole, idempotencyKey?: string): Promise<HeadersInit> {
+  const cookieStore = await cookies();
+  const sessionToken = cookieStore.get(ADMIN_SESSION_COOKIE)?.value;
+  const session = verifyAdminSessionToken(sessionToken);
+  const effectiveRole = session?.role ?? role;
 
-  let response: Response;
-  try {
-    response = await fetch(`${apiBaseUrl()}${path}`, {
-      method: "POST",
-      body: formData,
-      cache: "no-store",
-      headers
-    });
-  } catch (error) {
-    throw new ShrestaApiUnavailableError("SHRESTA service is not reachable", null, error);
-  }
-  if (response.status === 404) {
-    throw new ShrestaApiUnavailableError("SHRESTA service route was not found", 404);
-  }
-  const envelope = await response.json() as ApiResponseEnvelope<T>;
-  if (!response.ok || !envelope.success) {
-    throw new ShrestaApiError(
-      envelope.error?.message ?? `SHRESTA service request failed with status ${response.status}`,
-      response.status,
-      envelope.error?.code ?? "SHRESTA_SERVICE_ERROR",
-      envelope.traceId
-    );
-  }
-  if (envelope.data === null) {
-    throw new ShrestaApiError("SHRESTA service returned an empty success payload", response.status, "EMPTY_DATA", envelope.traceId);
-  }
-
-  return envelope.data;
-}
-
-function adminHeaders(role: AdminRole, idempotencyKey?: string): HeadersInit {
   const headers: Record<string, string> = {
     "X-SHRESTA-ADMIN-KEY": adminKey(),
-    "X-SHRESTA-ADMIN-ROLE": role
+    "X-SHRESTA-ADMIN-ROLE": effectiveRole
   };
+  if (session?.email) {
+    headers["X-SHRESTA-ADMIN-ACTOR"] = session.email;
+  }
   if (idempotencyKey) {
     headers["Idempotency-Key"] = idempotencyKey;
   }
@@ -537,7 +538,11 @@ function apiBaseUrl(): string {
 }
 
 function adminKey(): string {
-  return process.env.SHRESTA_ADMIN_API_KEY ?? "local-shresta-admin-key";
+  const value = process.env.SHRESTA_ADMIN_API_KEY?.trim();
+  if (!value) {
+    throw new Error("SHRESTA_ADMIN_API_KEY is required");
+  }
+  return value;
 }
 
 function appendQuery(query: URLSearchParams, key: string, value: string | undefined) {

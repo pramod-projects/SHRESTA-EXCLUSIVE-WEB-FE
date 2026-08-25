@@ -1,6 +1,7 @@
 import { StorefrontUtilityPageExperience } from "@/components/storefront/storefront-browse-experience";
 import { StorefrontBackendUnavailable } from "@/components/storefront/storefront-home-experience";
 import { fetchStorefrontPageData } from "@/features/storefront/storefront-page-data";
+import { SUPPORT_EMAIL, SUPPORT_PHONE_DISPLAY } from "@/lib/support-contact";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ export default async function SupportPage() {
       eyebrow="Customer service"
       home={data.home}
       panels={[
-        { title: "Contact", body: "Use support@shrestaexclusive.com for customer care while SHRESTA support tooling expands." },
+        { title: "Contact", body: `Email ${SUPPORT_EMAIL} or call ${SUPPORT_PHONE_DISPLAY} for customer care.` },
         { title: "Shipping", body: "Review delivery coverage, pickup options, and order readiness before checkout." },
         { title: "Care", body: "Get care guidance for saree drape storage, weave maintenance, and festive wear upkeep." }
       ]}
